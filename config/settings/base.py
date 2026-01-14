@@ -1,0 +1,158 @@
+#config/settings/base.py
+import environ
+from pathlib import Path
+
+env = environ.Env(DEBUG=(bool, True))
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+ROOT_DIR = BASE_DIR.parent
+APPS_DIR = ROOT_DIR / "apps"
+
+#import sys
+#sys.path.insert(0, str(APPS_DIR))   # APPS_DIR = ROOT_DIR / "apps"
+
+
+SECRET_KEY = env("SECRET_KEY", default="dev-secret-change-me")
+
+DEBUG = env("DEBUG")
+
+ALLOWED_HOSTS = []
+
+
+# Apps
+DJANGO_APPS = [
+    "django.contrib.admin",
+    "django.contrib.auth",
+    "django.contrib.contenttypes",
+    "django.contrib.sessions",
+    "django.contrib.messages",
+    "django.contrib.staticfiles",
+]
+
+THIRD_PARTY_APPS = [
+    "debug_toolbar",
+    "django_extensions",
+]
+
+LOCAL_APPS = [
+    "apps.identity",
+    "apps.contract_core",
+    "apps.contract_works",
+    "apps.companies",
+    #"apps.audit.apps.AuditConfig",   # ← явный путь
+    "apps.audit",
+    "apps.chat",
+    "apps.mailing",
+
+]
+
+INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
+
+MIDDLEWARE = [
+    'django.middleware.security.SecurityMiddleware',
+    'debug_toolbar.middleware.DebugToolbarMiddleware',  # ← новая
+    'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.common.CommonMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+]
+
+ROOT_URLCONF = "config.urls"
+
+TEMPLATES = [
+    {
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        "DIRS": [ROOT_DIR / "templates"],
+        'APP_DIRS': True,
+        'OPTIONS': {
+            'context_processors': [
+                'django.template.context_processors.debug',
+                'django.template.context_processors.request',
+                'django.contrib.auth.context_processors.auth',
+                'django.contrib.messages.context_processors.messages',
+            ],
+        },
+    },
+]
+
+WSGI_APPLICATION = "config.wsgi.application"
+
+
+# Database
+DATABASES = {
+    "default": {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": ROOT_DIR / "db.sqlite3",   # файл появится в корне проекта
+    }
+}
+# DATABASES = {
+#     "default": env.db(
+#         default="postgres://postgres:pbpass@localhost:5433/contracts_pb"
+#     )
+# }
+
+# Redis (для Celery + Channels)
+# REDIS_URL = env("REDIS_URL", default="redis://localhost:6379/0")
+
+
+# Passwords / Auth
+AUTH_PASSWORD_VALIDATORS = [
+    {
+        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
+    },
+    {
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+        "OPTIONS": {"min_length": 8},
+    },
+    {
+        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
+    },
+    {
+        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
+    },
+]
+
+AUTH_USER_MODEL = "identity.User"
+
+
+# Static / Media
+STATIC_URL = "/static/"
+STATICFILES_DIRS = [ROOT_DIR / "static"]
+MEDIA_URL = "/media/"
+MEDIA_ROOT = ROOT_DIR / "media"
+
+
+# Internationalization
+LANGUAGE_CODE = "ru"
+TIME_ZONE = "Europe/Moscow"
+USE_I18N = True
+USE_TZ = True
+
+
+# Default primary key field type
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Logging
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "verbose": {
+            "format": "{levelname} {asctime} {module} {message}",
+            "style": "{",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "verbose",
+        },
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": "INFO",
+    },
+}

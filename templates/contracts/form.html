@@ -1,0 +1,164 @@
+<!--templates/contracts/form.html-->
+{% load bootstrap %}
+{% extends "base.html" %}
+{% block title %}Новый договор{% endblock %}
+
+{% block content %}
+<h1 class="mb-4">Новый договор</h1>
+
+<form method="post" enctype="multipart/form-data" class="needs-validation" novalidate>
+    {% csrf_token %}
+
+    <!-- Основные сведения -->
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">Основные сведения</div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-3 mb-3">
+                    {{ form.type.label_tag }} {{ form.type|add_class:"form-select" }}
+                </div>
+                <div class="col-md-3 mb-3">
+                    {{ form.number.label_tag }} {{ form.number|add_class:"form-control" }}
+                </div>
+                <div class="col-md-3 mb-3">
+                    {{ form.date_concluded.label_tag }} {{ form.date_concluded|add_class:"form-control" }}
+                </div>
+                <div class="col-md-3 mb-3">
+                    {{ form.date_start.label_tag }} {{ form.date_start|add_class:"form-control" }}
+                </div>
+                <div class="col-md-3 mb-3">
+                    {{ form.date_end.label_tag }} {{ form.date_end|add_class:"form-control" }}
+                </div>
+                <div class="col-md-6 mb-3">
+                    {{ form.customer.label_tag }} {{ form.customer|add_class:"form-control" }}
+                </div>
+                <div class="col-md-3 mb-3">
+                    {{ form.inn.label_tag }} {{ form.inn|add_class:"form-control" }}
+                </div>
+                <div class="col-md-3 mb-3">
+                    {{ form.executor.label_tag }} {{ form.executor|add_class:"form-select" }}
+                </div>
+                <div class="col-12 mb-3">
+                    {{ form.note.label_tag }} {{ form.note|add_class:"form-control" rows="2" }}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Финансы -->
+    <div class="card mb-4">
+        <div class="card-header bg-success text-white">Финансы</div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    {{ form.total_sum.label_tag }} {{ form.total_sum|add_class:"form-control" }}
+                </div>
+                <div class="col-md-4 mb-3">
+                    {{ form.monthly_sum.label_tag }} {{ form.monthly_sum|add_class:"form-control" }}
+                </div>
+                <div class="col-md-4 mb-3">
+                    {{ form.advance.label_tag }} {{ form.advance|add_class:"form-control" }}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Статус -->
+    <div class="card mb-4">
+        <div class="card-header bg-secondary text-white">Статус</div>
+        <div class="card-body">
+            {{ form.status.label_tag }} {{ form.status|add_class:"form-select" }}
+        </div>
+    </div>
+
+    <!-- Работы -->
+    <div class="card mb-4">
+        <div class="card-header bg-info text-white">Виды работ</div>
+        <div class="card-body">
+            {{ form.works.label_tag }}
+            <div class="border rounded p-2" style="max-height: 200px; overflow-y: auto;">
+                {% for w in form.works %}
+                    <div class="form-check">
+                        {{ w.tag }} <label class="form-check-label" for="{{ w.id_for_label }}">{{ w.choice_label }}</label>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Файлы -->
+    <div class="card mb-4">
+        <div class="card-header bg-warning text-dark">Файлы</div>
+        <div class="card-body">
+            <div class="mb-3">
+                <label class="form-label">Документ</label>
+                {{ form.file_doc|add_class:"form-control" }}
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Изображение</label>
+                {{ form.file_img|add_class:"form-control" }}
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Таблица</label>
+                {{ form.file_table|add_class:"form-control" }}
+            </div>
+        </div>
+    </div>
+
+    <!-- Чек-листы -->
+    <div class="card mb-4">
+        <div class="card-header bg-light">Системы</div>
+        <div class="card-body">
+            <div class="form-check form-switch">
+                {{ form.gos_services }} <label class="form-check-label" for="{{ form.gos_services.id_for_label }}">Госуслуги</label>
+            </div>
+            <div class="form-check form-switch">
+                {{ form.oko }} <label class="form-check-label" for="{{ form.oko.id_for_label }}">ОКО</label>
+            </div>
+            <div class="form-check form-switch">
+                {{ form.spolokh }} <label class="form-check-label" for="{{ form.spolokh.id_for_label }}">Сполох</label>
+            </div>
+        </div>
+    </div>
+
+    <!-- Стадии подписания -->
+    <div class="card mb-4">
+        <div class="card-header bg-light">Стадия подписания</div>
+        <div class="card-body">
+            <div class="form-check form-switch">
+                {{ form.contract_to_be_signed }} <label class="form-check-label" for="{{ form.contract_to_be_signed.id_for_label }}">На подписании</label>
+            </div>
+            <div class="form-check form-switch">
+                {{ form.contract_signed }} <label class="form-check-label" for="{{ form.contract_signed.id_for_label }}">Подписан</label>
+            </div>
+            <div class="form-check form-switch">
+                {{ form.contract_signed_in_trading_platform }} <label class="form-check-label" for="{{ form.contract_signed_in_trading_platform.id_for_label }}">Торги</label>
+            </div>
+            <div class="form-check form-switch">
+                {{ form.contract_signed_in_EDO }} <label class="form-check-label" for="{{ form.contract_signed_in_EDO.id_for_label }}">ЭДО</label>
+            </div>
+            <div class="form-check form-switch">
+                {{ form.contract_original_received }} <label class="form-check-label" for="{{ form.contract_original_received.id_for_label }}">Бумажный оригинал</label>
+            </div>
+            <div class="form-check form-switch">
+                {{ form.contract_termination }} <label class="form-check-label" for="{{ form.contract_termination.id_for_label }}">Расторжение</label>
+            </div>
+        </div>
+    </div>
+
+    <!-- Акт итоговый -->
+    <div class="card mb-4">
+        <div class="card-header bg-dark text-white">Акт итоговый</div>
+        <div class="card-body">
+            {{ form.final_act_date.label_tag }} {{ form.final_act_date|add_class:"form-control" }}
+        </div>
+    </div>
+
+    <!-- Кнопки -->
+    <div class="d-flex justify-content-end">
+        <button type="submit" class="btn btn-primary btn-lg">
+            <i class="bi bi-check-circle"></i> Сохранить
+        </button>
+    </div>
+</form>
+{% endblock %}

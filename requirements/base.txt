@@ -1,0 +1,13 @@
+Django==5.1.4
+psycopg[binary]==3.2.3
+redis
+celery==5.4.0
+django-environ
+django-extensions
+django-debug-toolbar==4.4.6
+pre-commit==4.0.1
+black
+isort==5.13.2
+mypy
+django-stubs
+psycopg2==2.9.11

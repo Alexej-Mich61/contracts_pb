@@ -1,0 +1,44 @@
+#.gitignore
+/venv/
+/db.sqlite3
+
+# Виртуальное окружение
+venv/
+.venv/
+env/
+ENV/
+
+# Python / Django
+__pycache__/
+*.py[cod]
+*.sqlite3
+*.log
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# медиа, которую генерирует Django
+/static/
+/media/
+/staticfiles/
+/mediafiles/
+
+# Служебные Django / Celery
+*.pid
+celerybeat-schedule
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# PyPI / build
+*.egg-info/
+build/
+dist/
+
+/config/settings/.env
