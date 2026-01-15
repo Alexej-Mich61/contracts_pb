@@ -95,11 +95,12 @@ class ContractAdmin(admin.ModelAdmin):
                 )
             },
         ),
-        ("Файлы", {"fields": ("file_doc", "file_img", "file_table")}),
+        ("Файлы", {"fields": ("file",)}),
         ("Финансы", {"fields": ("total_sum", "monthly_sum", "advance")}),
         ("Акт итоговый", {"fields": ("final_act_date", "final_act_present")}),
     )
-    inlines = [InterimActInline, ProtectionObjectInline, AkInline]
+    inlines = [InterimActInline, ProtectionObjectInline]
+
 
 
     def get_queryset(self, request):
@@ -148,10 +149,22 @@ class ProtectionObjectAdmin(admin.ModelAdmin):
     list_display = ("name", "region", "district", "subcontractor")
     list_filter = ("region", "subcontractor")
     search_fields = ("name", "address")
+    inlines = [AkInline]
 
 
 @admin.register(Ak)
 class AkAdmin(admin.ModelAdmin):
-    list_display = ("contract", "number", "name", "address")
-    list_filter = ("contract__type",)
-    search_fields = ("contract__number", "name", "address")
+    list_display = (
+        "protection_object",
+        "number",
+        "name",
+        "address",
+    )
+    list_filter = (
+        "protection_object__contract__type",  # ← было contract__type
+    )
+    search_fields = (
+        "protection_object__contract__number",
+        "name",
+        "address",
+    )

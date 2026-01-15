@@ -3,7 +3,7 @@ from django.contrib.auth import get_user_model
 from django.core.validators import FileExtensionValidator, MaxValueValidator, MinValueValidator
 
 from .managers import ContractManager
-from .validators import inn_validator
+from .validators import inn_validator, file_validator
 from django.db import models
 from apps.companies.models import Company   # ← новый импорт
 
@@ -81,7 +81,7 @@ class Contract(models.Model):
         limit_choices_to={"kind__in": ["licensee", "lab"]},
         verbose_name="Исполнитель",
         related_name="contracts_executor",
-        null=True,  # ← добавь
+        null=True,
         blank=True,
     )
     note = models.TextField("Примечание", blank=True)
@@ -99,44 +99,37 @@ class Contract(models.Model):
     contract_original_received         = models.BooleanField(default=False, verbose_name="Бумажный оригинал")
     contract_termination               = models.BooleanField(default=False, verbose_name="Расторжение")
 
-    # Файлы (до 3 штук, необязательные)
-    file_doc = models.FileField(
-        "Документ",
+    # Файлы (1 шт., необязательные)
+    file = models.FileField(
+        "Файл договора",
         upload_to="contracts/%Y/%m/",
         blank=True,
-        validators=[FileExtensionValidator(allowed_extensions=["pdf", "doc", "docx", "xls", "xlsx", "jpg", "jpeg", "png"])],
-        help_text="Не более 20 МБ",
-    )
-    file_img = models.ImageField(
-        "Изображение",
-        upload_to="contracts/%Y/%m/",
-        blank=True,
-        help_text="Не более 20 МБ",
-    )
-    file_table = models.FileField(
-        "Таблица",
-        upload_to="contracts/%Y/%m/",
-        blank=True,
-        validators=[FileExtensionValidator(allowed_extensions=["xls", "xlsx"])],
-        help_text="Не более 20 МБ",
+        validators=[file_validator],
+        help_text="Любой формат, кроме .exe и пр. До 100 МБ",
     )
 
     # Финансы
-    total_sum = models.DecimalField("Сумма общая", max_digits=12, decimal_places=2, default=0.00)
-    monthly_sum = models.DecimalField("Сумма в месяц", max_digits=12, decimal_places=2, default=0.00)
+    total_sum = models.DecimalField("Сумма контракта общая", max_digits=12, decimal_places=2, default=0.00)
+    monthly_sum = models.DecimalField("Сумма контракта в месяц", max_digits=12, decimal_places=2, default=0.00)
     advance = models.DecimalField("Аванс", max_digits=12, decimal_places=2, default=0.00)
 
     # Статус
     STATUS_PENDING = "pending"
     STATUS_ACTIVE = "active"
+    STATUS_ACTIVE_EXPIRES = "active_expires"
+    STATUS_ACTIVE_EXPIRED = "active_expired"
     STATUS_COMPLETED = "completed"
 
     STATUS_CHOICES = (
         (STATUS_PENDING, "Ожидание"),
         (STATUS_ACTIVE, "Действует"),
+        (STATUS_ACTIVE_EXPIRES, "Истекает"),
+        (STATUS_ACTIVE_EXPIRED, "Истёк"),
         (STATUS_COMPLETED, "Завершён"),
     )
-    status = models.CharField("Статус", max_length=10, choices=STATUS_CHOICES, default=STATUS_PENDING, db_index=True)
+    status = models.CharField(
+        "Статус", max_length=15, choices=STATUS_CHOICES,
+        default=STATUS_PENDING, db_index=True)
 
     # Акт итоговый
     final_act_date = models.DateField("Дата итогового акта", blank=True, null=True)
@@ -219,6 +212,9 @@ class ProtectionObject(models.Model):
         null=True,
         related_name="protection_objects_sub",
     )
+    # финансы субподрядчик
+    total_sum_subcontract = models.DecimalField("Сумма субконтракта общая", max_digits=12, decimal_places=2, default=0.00)
+    monthly_sum_subcontract = models.DecimalField("Сумма субконтракта в месяц", max_digits=12, decimal_places=2, default=0.00)
 
     class Meta:
         verbose_name = "Объект защиты"
@@ -230,8 +226,15 @@ class ProtectionObject(models.Model):
 
 
 class Ak(models.Model):
-    """Абонентский комплект (много штук к одному договору)."""
-    contract = models.ForeignKey(Contract, on_delete=models.CASCADE, related_name="aks")
+    """Абонентский комплект (много штук к одному объекту защиты)."""
+    protection_object = models.ForeignKey(
+        ProtectionObject,
+        on_delete=models.CASCADE,
+        related_name="aks",
+        verbose_name="Объект защиты",
+        null=True,
+        blank=True,
+    )
     number = models.PositiveIntegerField(
         "Номер АК",
         validators=[MinValueValidator(1), MaxValueValidator(99999999)],
@@ -243,7 +246,7 @@ class Ak(models.Model):
     class Meta:
         verbose_name = "Абонентский комплект (АК)"
         verbose_name_plural = "Абонентские комплекты (АК)"
-        unique_together = ("contract", "number")
+        unique_together = ("protection_object", "number")   # уникален внутри объекта
         ordering = ["number"]
 
     def __str__(self):

@@ -136,23 +136,51 @@ USE_TZ = True
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Logging
+LOGS_DIR = ROOT_DIR / "logs"
+LOGS_DIR.mkdir(exist_ok=True)         # создаст при первом запуске
+
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
     "formatters": {
         "verbose": {
-            "format": "{levelname} {asctime} {module} {message}",
+            "format": "{levelname} {asctime} {name} {message}",
+            "style": "{",
+        },
+        "simple": {
+            "format": "{levelname} {message}",
             "style": "{",
         },
     },
     "handlers": {
         "console": {
+            "level": "DEBUG",
             "class": "logging.StreamHandler",
+            "formatter": "verbose",
+        },
+        "file": {
+            "level": "INFO",
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": LOGS_DIR / "contracts.log",
+            "maxBytes": 10 * 1024 * 1024,   # 10 МБ
+            "backupCount": 5,
             "formatter": "verbose",
         },
     },
     "root": {
         "handlers": ["console"],
-        "level": "INFO",
+        "level": "WARNING",
+    },
+    "loggers": {
+        "django": {                       # системные логи Django
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "apps": {                         # всё, что пишем мы
+            "handlers": ["console", "file"],
+            "level": "DEBUG",
+            "propagate": False,
+        },
     },
 }

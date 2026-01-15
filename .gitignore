@@ -42,3 +42,4 @@ build/
 dist/
 
 /config/settings/.env
+/logs/
