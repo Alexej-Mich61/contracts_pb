@@ -1,6 +1,6 @@
 # apps/companies/templatetags/perm_tags.py
 from django import template
-from apps.companies.permissions import ContractPermission
+from apps.identity.permissions import ContractPermission
 
 register = template.Library()
 

@@ -44,6 +44,7 @@ LOCAL_APPS = [
     "apps.audit",
     "apps.chat",
     "apps.mailing",
+    "import_export",
 
 ]
 

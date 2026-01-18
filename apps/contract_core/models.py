@@ -14,6 +14,8 @@ User = get_user_model()
 
 class Region(models.Model):
     name = models.CharField("Наименование", max_length=100, unique=True)
+    fias_code = models.CharField("Код ФИАС", max_length=50, blank=True, null=True)
+    region_code = models.CharField("Код региона", max_length=50, blank=True, null=True)
 
     class Meta:
         verbose_name = "Регион"
@@ -27,6 +29,8 @@ class Region(models.Model):
 class District(models.Model):
     region = models.ForeignKey(Region, on_delete=models.CASCADE, related_name="districts")
     name = models.CharField("Наименование", max_length=100)
+    fias_code = models.CharField("Код ФИАС", max_length=50, blank=True, null=True)
+    district_code = models.CharField("Код района", max_length=50, blank=True, null=True)
 
     class Meta:
         verbose_name = "Район"
@@ -42,19 +46,15 @@ class District(models.Model):
 
 
 class Contract(models.Model):
-    # 5 типов договоров (аналогично Work)
+    # аналогично Work
     TYPE_ONEOFF_LICENSEE = "oneoff_licensee"
     TYPE_LONGTERM_TO_LICENSEE = "longterm_to_licensee"
-    TYPE_SMR_LICENSEE = "smr_licensee"
     TYPE_ONEOFF_LAB = "oneoff_lab"
-    TYPE_LONGTERM_LAB = "longterm_lab"
 
     TYPE_CHOICES = (
         (TYPE_ONEOFF_LICENSEE, "Разовый (лицензиат)"),
         (TYPE_LONGTERM_TO_LICENSEE, "Долгосрочный ТО (лицензиат)"),
-        (TYPE_SMR_LICENSEE, "Долгосрочный СМР (лицензиат)"),
         (TYPE_ONEOFF_LAB, "Разовый (лаборатория)"),
-        (TYPE_LONGTERM_LAB, "Долгосрочный (лаборатория)"),
     )
 
     # Служебные флаги
@@ -65,12 +65,14 @@ class Contract(models.Model):
     type = models.CharField("Тип договора", max_length=25, choices=TYPE_CHOICES, db_index=True)
     number = models.CharField("Номер договора", max_length=50, blank=True)
     date_concluded = models.DateField("Дата заключения", blank=True, null=True)
-    customer = models.CharField("Заказчик", max_length=255)
-    inn = models.CharField(
-        "ИНН",
-        max_length=12,
-        validators=[inn_validator],
-        help_text="10 цифр ― для юрлиц, 12 ― для физлиц",
+    customer = models.ForeignKey(
+        Company,
+        on_delete=models.SET_NULL,
+        limit_choices_to={"is_customer": True},
+        related_name="contracts_customer",
+        verbose_name="Заказчик",
+        null=True,
+        blank=True,
     )
     date_start = models.DateField("Начало действия")
     date_end = models.DateField("Окончание действия")
@@ -226,28 +228,49 @@ class ProtectionObject(models.Model):
 
 
 class Ak(models.Model):
-    """Абонентский комплект (много штук к одному объекту защиты)."""
-    protection_object = models.ForeignKey(
+    """Абонентский комплект (много-ко-многим к объектам защиты + регион/район)."""
+    # связь M2M с ProtectionObject (чтобы один и тот же АК мог висеть у разных объектов)
+    protection_objects = models.ManyToManyField(
         ProtectionObject,
-        on_delete=models.CASCADE,
         related_name="aks",
-        verbose_name="Объект защиты",
+        verbose_name="Объекты защиты",
+        blank=True,
+    )
+    region = models.ForeignKey(
+        Region,
+        on_delete=models.PROTECT,
+        verbose_name="Регион установки",
         null=True,
         blank=True,
     )
+    district = models.ForeignKey(
+        District,
+        on_delete=models.PROTECT,
+        verbose_name="Район установки",
+        null=True,
+        blank=True,
+    )
+
     number = models.PositiveIntegerField(
         "Номер АК",
         validators=[MinValueValidator(1), MaxValueValidator(99999999)],
         help_text="Макс. 8 цифр",
     )
     name = models.CharField("Наименование", max_length=255)
-    address = models.TextField("Адрес")
+    address = models.TextField("Адрес установки")
 
+    # защита от физического удаления – запретим в админке / signals
     class Meta:
         verbose_name = "Абонентский комплект (АК)"
         verbose_name_plural = "Абонентские комплекты (АК)"
-        unique_together = ("protection_object", "number")   # уникален внутри объекта
+        unique_together = ("number",)   # номер уникален глобально
         ordering = ["number"]
+
+        # быстрый поиск по номеру + регион/район
+        indexes = [
+            models.Index(fields=["number"], name="ak_number_idx"),
+            models.Index(fields=["region", "district"], name="ak_region_district_idx"),
+        ]
 
     def __str__(self):
         return f"АК №{self.number} – {self.name}"

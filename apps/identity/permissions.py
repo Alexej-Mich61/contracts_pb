@@ -1,6 +1,6 @@
-# apps/companies/permissions.py
+# apps/identity/permissions.py
 from django.core.exceptions import PermissionDenied
-from apps.companies.models import Employee
+from apps.identity.models import Employee
 
 
 class ContractPermission:

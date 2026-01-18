@@ -1,7 +1,10 @@
 #apps/contract_core/admin.py
 from django.contrib import admin
-from django.core.exceptions import PermissionDenied
-from apps.companies.permissions import ContractPermission
+from import_export import resources, fields
+from import_export.widgets import ForeignKeyWidget
+from import_export.admin import ImportExportModelAdmin
+from apps.identity.permissions import ContractPermission
+
 from .models import (
     Region,
     District,
@@ -43,10 +46,10 @@ class ProtectionObjectInline(admin.TabularInline):
     fields = ("name", "region", "district", "address", "subcontractor")
 
 
-class AkInline(admin.TabularInline):
-    model = Ak
-    extra = 0
-    fields = ("number", "name", "address")
+# class AkInline(admin.TabularInline):
+#     model = Ak
+#     extra = 0
+#     fields = ("number", "name", "address")
 
 
 @admin.register(Contract)
@@ -69,7 +72,7 @@ class ContractAdmin(admin.ModelAdmin):
         "status",
         "is_trash",
         "is_archived",
-        "executor__kind",
+        "executor__is_licensee",
         "created_at",
     )
     search_fields = ("number", "customer", "inn")
@@ -149,22 +152,65 @@ class ProtectionObjectAdmin(admin.ModelAdmin):
     list_display = ("name", "region", "district", "subcontractor")
     list_filter = ("region", "subcontractor")
     search_fields = ("name", "address")
-    inlines = [AkInline]
+    #inlines = [AkInline]
+
+
+
+class AkResource(resources.ModelResource):
+    """Импорт АК с привязкой к региону и району."""
+    # колонки Excel:  номер | название | адрес | регион | район | protection_object_id (необязательно)
+    region = fields.Field(
+        column_name="регион",
+        attribute="region",
+        widget=ForeignKeyWidget(Region, field="name")
+    )
+    district = fields.Field(
+        column_name="район",
+        attribute="district",
+        widget=ForeignKeyWidget(District, field="name")
+    )
+    protection_objects = fields.Field(
+        column_name="protection_object_id",
+        attribute="protection_objects",
+        widget=ForeignKeyWidget(ProtectionObject, field="id")
+    )
+
+    class Meta:
+        model = Ak
+        import_id_fields = ("number",)   # номер АК уникален
+        skip_unchanged = True
+        fields = ("number", "name", "address", "region", "district", "protection_objects")
+
+    def before_import_row(self, row, **kwargs):
+        """
+        Перед сохранением строки находим конкретный район по паре «регион + район».
+        Если в Excel не указан protection_object_id – оставляем пустым.
+        """
+        region_name = row.get("регион")
+        district_name = row.get("район")
+
+        if region_name and district_name:
+            try:
+                region = Region.objects.get(name=region_name)
+                district = District.objects.get(region=region, name=district_name)
+                row["region"] = region.id
+                row["district"] = district.id
+            except (Region.DoesNotExist, District.DoesNotExist):
+                raise ValueError(
+                    f"Не найдена пара «регион: {region_name}, район: {district_name}» в справочнике."
+                )
+        else:
+            row["region"] = None
+            row["district"] = None
+
 
 
 @admin.register(Ak)
-class AkAdmin(admin.ModelAdmin):
-    list_display = (
-        "protection_object",
-        "number",
-        "name",
-        "address",
-    )
-    list_filter = (
-        "protection_object__contract__type",  # ← было contract__type
-    )
-    search_fields = (
-        "protection_object__contract__number",
-        "name",
-        "address",
-    )
+class AkAdmin(ImportExportModelAdmin):
+    resource_classes = [AkResource]   # подключаем импорт/экспорт
+
+    list_display = ("number", "name", "address", "region", "district")
+    list_filter = ("region", "district")
+    search_fields = ("number", "name", "address")
+    filter_horizontal = ("protection_objects",)   # M2M-виджет
+

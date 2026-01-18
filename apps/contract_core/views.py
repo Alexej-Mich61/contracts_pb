@@ -1,62 +1,46 @@
-#apps/contract_core/views.py
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.urls import reverse_lazy
-from django.views.generic import ListView, CreateView, UpdateView
-from apps.identity.models import User   # своя модель, чтобы PyCharm видел поля
-from .forms import DynamicContractForm
+# apps/contract_core/views.py
+# from apps.audit.utils import add_event
+# from apps.identity.models import Employee
+# from apps.identity.permissions import ContractPermission
+#
+# class ContractCreateView(CreateView):
+#     ...
+#     def form_valid(self, form):
+#         contract = form.save()
+#         msg = add_event(contract, self.request.user, Event.EVENT_CREATED)
+#         logger.info(msg)                      # в файл
+#         send_chat_notification(contract, msg) # пример отправки в чат
+#         return super().form_valid(form)
+#
+#
+# class ContractUpdateView(UpdateView):
+#     ...
+#     def form_valid(self, form):
+#         old_status = self.get_object().status
+#         contract = form.save()
+#         new_status = contract.status
+#
+#         if old_status != new_status:
+#             msg = add_event(
+#                 contract,
+#                 self.request.user,
+#                 Event.EVENT_STATUS_CHANGED,
+#                 old_value=old_status,
+#                 new_value=new_status,
+#             )
+#             send_chat_notification(contract, msg)
+#
+#         if "date_end" in form.changed_data:
+#             msg = add_event(
+#                 contract,
+#                 self.request.user,
+#                 Event.EVENT_DATE_CHANGED,
+#                 old_value=form.initial["date_end"],
+#                 new_value=contract.date_end,
+#             )
+#             send_chat_notification(contract, msg)
+#
+#         return super().form_valid(form)
 
 
-class ContractListView(LoginRequiredMixin, ListView):
-    """Список договоров текущего пользователя."""
-    model               = None                      # определим ниже
-    template_name       = "contracts/list.html"
-    context_object_name = "contracts"
 
-    def get_queryset(self):
-        user: User = self.request.user              # type-hint для PyCharm
-        # показываем только те договоры, где пользователь – исполнитель
-        return user.companies.all()
-
-    def get_context_data(self, **kwargs):
-        """Подгружаем сами объекты Contract через related_name."""
-        context = super().get_context_data(**kwargs)
-        # фильтруем Contract по исполнителю
-        context["contracts"] = (
-            self.get_queryset()
-            .prefetch_related("contractcore_set")
-            .order_by("-created_at")
-        )
-        return context
-
-
-class ContractCreateView(LoginRequiredMixin, CreateView):
-    """Создание нового договора."""
-    def get_model(self):
-        from .models import Contract                  # импорт внутри метода
-        return Contract
-
-    form_class      = DynamicContractForm
-    template_name   = "contracts/form.html"
-    success_url     = reverse_lazy("contract:list")
-
-    def get_form_kwargs(self):
-        kw = super().get_form_kwargs()
-        kw["user"] = self.request.user
-        kw["initial"] = {"type": self.request.GET.get("type")}
-        return kw
-
-
-class ContractUpdateView(LoginRequiredMixin, UpdateView):
-    """Редактирование существующего договора."""
-    def get_model(self):
-        from .models import Contract                  # импорт внутри метода
-        return Contract
-
-    form_class      = DynamicContractForm
-    template_name   = "contracts/form.html"
-    success_url     = reverse_lazy("contract:list")
-
-    def get_form_kwargs(self):
-        kw = super().get_form_kwargs()
-        kw["user"] = self.request.user
-        return kw
