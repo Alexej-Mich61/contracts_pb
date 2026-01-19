@@ -5,11 +5,44 @@ from django.core.validators import FileExtensionValidator, MaxValueValidator, Mi
 from .managers import ContractManager
 from .validators import inn_validator, file_validator
 from django.db import models
-from apps.companies.models import Company   # ← новый импорт
+from apps.companies.models import Company
+from django.utils import timezone
+import datetime
 
 User = get_user_model()
 
 # ---------- СПРАВОЧНИКИ (регион/район) ----------
+
+
+class ContractSettings(models.Model):
+    """Единая строка на весь проект – настройки расчёта статусов."""
+    days_before_expires = models.PositiveSmallIntegerField(
+        "Дней до статуса «Истекает»",
+        default=10,
+        validators=[MinValueValidator(1), MaxValueValidator(365)],
+        help_text="Если до конца срока ≤ этого числа – статус «Истекает»",
+    )
+    longterm_status_time = models.TimeField(
+        "Время обновления долгосрочных",
+        default=datetime.time(2, 0),  # 02:00
+    )
+    oneoff_status_time = models.TimeField(
+        "Время обновления разовых",
+        default=datetime.time(3, 0),  # 03:00
+    )
+
+    class Meta:
+        verbose_name = "Настройки статусов договоров"
+        verbose_name_plural = "Настройки статусов договоров"
+
+    def __str__(self):
+        return f"До «Истекает» {self.days_before_expires} дн., обновления в {self.longterm_status_time} и {self.oneoff_status_time}"
+
+
+# Утилита – получение настроек
+def get_contract_settings():
+    return ContractSettings.objects.first() or ContractSettings.objects.create()
+
 
 
 class Region(models.Model):
@@ -116,11 +149,11 @@ class Contract(models.Model):
     advance = models.DecimalField("Аванс", max_digits=12, decimal_places=2, default=0.00)
 
     # Статус
-    STATUS_PENDING = "pending"
-    STATUS_ACTIVE = "active"
-    STATUS_ACTIVE_EXPIRES = "active_expires"
-    STATUS_ACTIVE_EXPIRED = "active_expired"
-    STATUS_COMPLETED = "completed"
+    STATUS_PENDING = "pending"               # ожидание
+    STATUS_ACTIVE = "active"                 # действует
+    STATUS_ACTIVE_EXPIRES = "active_expires" # истекает
+    STATUS_ACTIVE_EXPIRED = "active_expired" # истёк
+    STATUS_COMPLETED = "completed"            # завершён
 
     STATUS_CHOICES = (
         (STATUS_PENDING, "Ожидание"),
@@ -156,8 +189,54 @@ class Contract(models.Model):
             models.Index(fields=["is_archived"]),
         ]
 
+    # --------- служебные методы ---------
+    def save(self, *args, **kwargs):
+        self._recalc_status()  # рассчитаем перед сохранением
+        super().save(*args, **kwargs)
+
+    def _recalc_status(self):
+        """Рассчитать статус по алгоритму."""
+        settings = get_contract_settings()
+        today = timezone.now().date()
+        start, end = self.date_start, self.date_end
+
+        # 1. Долгосрочный ТО (лицензиат)
+        if self.type == self.TYPE_LONGTERM_TO_LICENSEE:
+            if today < start:
+                self.status = self.STATUS_PENDING
+            elif today > end:
+                self.status = self.STATUS_COMPLETED
+            else:  # внутри срока
+                days_left = (end - today).days
+                self.status = (
+                    self.STATUS_ACTIVE_EXPIRES
+                    if days_left <= settings.days_before_expires
+                    else self.STATUS_ACTIVE
+                )
+            return
+
+        # 2. Разовые (лицензиат или лаборатория)
+        if self.type in (self.TYPE_ONEOFF_LICENSEE, self.TYPE_ONEOFF_LAB):
+            if self.final_act_present:
+                self.status = self.STATUS_COMPLETED
+                return
+            if today < start:
+                self.status = self.STATUS_PENDING
+            elif today > end:
+                self.status = self.STATUS_ACTIVE_EXPIRED
+            else:
+                days_left = (end - today).days
+                self.status = (
+                    self.STATUS_ACTIVE_EXPIRES
+                    if days_left <= settings.days_before_expires
+                    else self.STATUS_ACTIVE
+                )
+
+    # --------- представления ---------
     def __str__(self):
         return f"{self.number or 'б/н'} ({self.get_type_display()})"
+
+
 
     # ---------- helper-свойства для шаблонов / логики ----------
     @property

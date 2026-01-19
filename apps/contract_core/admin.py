@@ -4,6 +4,7 @@ from import_export import resources, fields
 from import_export.widgets import ForeignKeyWidget
 from import_export.admin import ImportExportModelAdmin
 from apps.identity.permissions import ContractPermission
+from .models import ContractSettings
 
 from .models import (
     Region,
@@ -213,4 +214,11 @@ class AkAdmin(ImportExportModelAdmin):
     list_filter = ("region", "district")
     search_fields = ("number", "name", "address")
     filter_horizontal = ("protection_objects",)   # M2M-виджет
+
+
+
+@admin.register(ContractSettings)
+class ContractSettingsAdmin(admin.ModelAdmin):
+    list_display = ("days_before_expires", "longterm_status_time", "oneoff_status_time")
+    fields = ("days_before_expires", "longterm_status_time", "oneoff_status_time")
 
