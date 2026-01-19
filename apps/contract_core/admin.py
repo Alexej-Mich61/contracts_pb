@@ -76,7 +76,7 @@ class ContractAdmin(admin.ModelAdmin):
         "executor__is_licensee",
         "created_at",
     )
-    search_fields = ("number", "customer", "inn")
+    search_fields = ("number", "customer__name", "customer__inn")
     date_hierarchy = "date_start"
     ordering = ("-created_at",)
     readonly_fields = ("created_at", "updated_at", "final_act_present")
@@ -92,7 +92,6 @@ class ContractAdmin(admin.ModelAdmin):
                     "number",
                     "date_concluded",
                     "customer",
-                    "inn",
                     ("date_start", "date_end"),
                     "executor",
                     "note",

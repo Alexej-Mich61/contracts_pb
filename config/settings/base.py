@@ -40,11 +40,12 @@ LOCAL_APPS = [
     "apps.contract_core",
     "apps.contract_works",
     "apps.companies",
-    #"apps.audit.apps.AuditConfig",   # ← явный путь
     "apps.audit",
     "apps.chat",
     "apps.mailing",
     "import_export",
+    "tailwind",
+    "frontend",
 
 ]
 
@@ -185,3 +186,6 @@ LOGGING = {
         },
     },
 }
+
+# в самый низ файла
+TAILWIND_APP_NAME = "frontend"

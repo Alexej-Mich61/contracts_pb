@@ -1,4 +1,4 @@
-#apps/contract_core/services.py
+# apps/contract_core/services.py
 from datetime import date
 from typing import TYPE_CHECKING
 from django.db import transaction
@@ -14,7 +14,7 @@ def create_contract(
     number: str,
     type: str,
     executor: "Company",
-    customer: str,
+    customer: "Company",
     total_sum: float,
     creator: "User",
 ) -> Contract:

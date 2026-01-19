@@ -7,9 +7,9 @@ from django.conf.urls.static import static
 
 
 urlpatterns = [
-    path("", RedirectView.as_view(url="/contracts/")),  # ← перенаправляем
     path("admin/", admin.site.urls),
-    path("contracts/", include("apps.contract_core.urls")),
+    path("", include("apps.contract_core.urls")),
+    path("auth/", include("apps.identity.urls")),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 if settings.DEBUG:

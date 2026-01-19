@@ -113,7 +113,6 @@ class Contract(models.Model):
     executor = models.ForeignKey(
         Company,
         on_delete=models.PROTECT,
-        limit_choices_to={"kind__in": ["licensee", "lab"]},
         verbose_name="Исполнитель",
         related_name="contracts_executor",
         null=True,
@@ -239,15 +238,15 @@ class Contract(models.Model):
 
 
     # ---------- helper-свойства для шаблонов / логики ----------
-    @property
-    def is_longterm(self):
-        """Долгосрочный ли договор (по типу)."""
-        return self.type in (self.TYPE_LONGTERM_TO_LICENSEE, self.TYPE_LONGTERM_LAB, self.TYPE_SMR_LICENSEE)
-
-    @property
-    def company_kind(self):
-        """Вид компании-исполнителя (для фильтров)."""
-        return self.executor.kind if self.executor else None
+    # @property
+    # def is_longterm(self):
+    #     """Долгосрочный ли договор (по типу)."""
+    #     return self.type in (self.TYPE_LONGTERM_TO_LICENSEE, self.TYPE_LONGTERM_LAB, self.TYPE_SMR_LICENSEE)
+    #
+    # @property
+    # def company_kind(self):
+    #     """Вид компании-исполнителя (для фильтров)."""
+    #     return self.executor.is_licensee if self.executor else None
 
 
 # ---------- СВЯЗАННЫЕ МОДЕЛИ ----------
@@ -287,7 +286,7 @@ class ProtectionObject(models.Model):
     subcontractor = models.ForeignKey(
         Company,
         on_delete=models.PROTECT,
-        limit_choices_to={"kind": "subcontractor"},
+        limit_choices_to={"is_subcontractor": True},
         verbose_name="Субподрядчик",
         blank=True,
         null=True,
