@@ -1,8 +1,10 @@
-#apps/contract_core/validators.py
+# apps/contract_core/validators.py
 import os
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 from django.template.defaultfilters import filesizeformat
+
+
 
 
 
@@ -28,5 +30,3 @@ def inn_validator(value: int):
             _("ИНН должен содержать 10 цифр (юрлицо) или 12 цифр (физлицо)."),
             params={"value": value},
         )
-
-

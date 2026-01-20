@@ -1,10 +1,9 @@
 # apps/contract_core/admin.py
 from django.contrib import admin
-from import_export import resources, fields
-from import_export.widgets import ForeignKeyWidget
 from import_export.admin import ImportExportModelAdmin
 from apps.identity.permissions import ContractPermission
 from .models import ContractSettings
+from .resources import AkResource
 
 from .models import (
     Region,
@@ -172,64 +171,38 @@ class ProtectionObjectAdmin(admin.ModelAdmin):
     #inlines = [AkInline]
 
 
-
-class AkResource(resources.ModelResource):
-    """Импорт АК с привязкой к региону и району."""
-    # колонки Excel:  номер | название | адрес | регион | район | protection_object_id (необязательно)
-    region = fields.Field(
-        column_name="регион",
-        attribute="region",
-        widget=ForeignKeyWidget(Region, field="name")
-    )
-    district = fields.Field(
-        column_name="район",
-        attribute="district",
-        widget=ForeignKeyWidget(District, field="name")
-    )
-    protection_objects = fields.Field(
-        column_name="protection_object_id",
-        attribute="protection_objects",
-        widget=ForeignKeyWidget(ProtectionObject, field="id")
-    )
-
-    class Meta:
-        model = Ak
-        import_id_fields = ("number",)   # номер АК уникален
-        skip_unchanged = True
-        fields = ("number", "name", "address", "region", "district", "protection_objects")
-
-    def before_import_row(self, row, **kwargs):
-        """
-        Перед сохранением строки находим конкретный район по паре «регион + район».
-        Если в Excel не указан protection_object_id – оставляем пустым.
-        """
-        region_name = row.get("регион")
-        district_name = row.get("район")
-
-        if region_name and district_name:
-            try:
-                region = Region.objects.get(name=region_name)
-                district = District.objects.get(region=region, name=district_name)
-                row["region"] = region.id
-                row["district"] = district.id
-            except (Region.DoesNotExist, District.DoesNotExist):
-                raise ValueError(
-                    f"Не найдена пара «регион: {region_name}, район: {district_name}» в справочнике."
-                )
-        else:
-            row["region"] = None
-            row["district"] = None
-
-
-
 @admin.register(Ak)
 class AkAdmin(ImportExportModelAdmin):
-    resource_classes = [AkResource]   # подключаем импорт/экспорт
+    resource_class = AkResource  # подключаем импорт/экспорт
 
     list_display = ("number", "name", "address", "region", "district")
     list_filter = ("region", "district")
     search_fields = ("number", "name", "address")
     filter_horizontal = ("protection_objects",)   # M2M-виджет
+
+    def get_form(self, request, obj=None, **kwargs):
+        help_texts = {
+            'number': 'Номер АК (уникален в комбинации с регионом и районом).',
+            'name': 'Наименование АК.',
+            'address': 'Адрес установки.',
+            'region': 'Регион установки (по коду региона).',
+            'district': 'Район установки (по коду района).',
+        }
+        kwargs.update({'help_texts': help_texts})
+        return super().get_form(request, obj, **kwargs)
+
+    class Media:
+        js = ('admin/js/admin_import_help.js',)  # Можно добавить JS для подсказки
+
+    # Добавляем текстовую подсказку в админ
+    def changelist_view(self, request, extra_context=None):
+        extra_context = extra_context or {}
+        extra_context['import_help'] = (
+            "Для импорта АК используйте таблицу с колонками в порядке: number, name, address, district, region. "
+            "district - код района, region - код региона. "
+            "Все поля обязательны. Данные проверяются перед загрузкой."
+        )
+        return super().changelist_view(request, extra_context)
 
 
 

@@ -1,5 +1,6 @@
 # apps/contract_core/models.py
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError
 from django.core.validators import FileExtensionValidator, MaxValueValidator, MinValueValidator
 
 from .managers import ContractManager
@@ -341,7 +342,7 @@ class Ak(models.Model):
     class Meta:
         verbose_name = "Абонентский комплект (АК)"
         verbose_name_plural = "Абонентские комплекты (АК)"
-        unique_together = ("number",)   # номер уникален глобально
+        unique_together = ("number", "region", "district")   # уникальность по номеру + регион + район
         ordering = ["number"]
 
         # быстрый поиск по номеру + регион/район
@@ -352,3 +353,23 @@ class Ak(models.Model):
 
     def __str__(self):
         return f"АК №{self.number} – {self.name}"
+
+
+# Валидаторы для импорта
+def validate_region_code_exists(region_code):
+    from django.apps import apps
+    Region = apps.get_model('contract_core', 'Region')
+    if not Region.objects.filter(region_code=region_code).exists():
+        raise ValidationError(f"Регион с кодом '{region_code}' не найден в базе данных.")
+
+
+def validate_district_code_exists(district_code, region_code):
+    from django.apps import apps
+    Region = apps.get_model('contract_core', 'Region')
+    District = apps.get_model('contract_core', 'District')
+    try:
+        region = Region.objects.get(region_code=region_code)
+        if not District.objects.filter(district_code=district_code, region=region).exists():
+            raise ValidationError(f"Район с кодом '{district_code}' не найден для региона '{region_code}'.")
+    except Region.DoesNotExist:
+        raise ValidationError(f"Регион с кодом '{region_code}' не найден в базе данных.")
