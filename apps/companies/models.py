@@ -19,7 +19,7 @@ class Company(models.Model):
     inn = models.CharField(
         "ИНН",
         max_length=12,
-        unique=True,          # ← обязательное поле
+        unique=True,          # ← уникальность
         validators=[inn_validator],
         help_text="10 цифр – юрлицо, 12 – физлицо",
     )

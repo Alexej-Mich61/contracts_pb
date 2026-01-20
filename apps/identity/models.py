@@ -82,3 +82,26 @@ class Employee(models.Model):
 
     def __str__(self):
         return f"{self.user} – {self.company} ({self.get_role_display()})"
+
+    # быстрые проверки ролей
+    def is_admin(self) -> bool:
+        return self.role == self.Role.ADMIN
+
+    def is_manager(self) -> bool:
+        return self.role == self.Role.MANAGER
+
+    def is_employee(self) -> bool:
+        return self.role == self.Role.EMPLOYEE
+
+    # делегирование пермиссий от User
+    @property
+    def can_delete_contract(self):
+        return self.user.can_delete_contract
+
+    @property
+    def can_edit_systems(self):
+        return self.user.can_edit_systems
+
+    @property
+    def can_edit_sign_stage(self):
+        return self.user.can_edit_sign_stage
