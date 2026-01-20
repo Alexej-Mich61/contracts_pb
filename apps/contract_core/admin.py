@@ -1,4 +1,4 @@
-#apps/contract_core/admin.py
+# apps/contract_core/admin.py
 from django.contrib import admin
 from import_export import resources, fields
 from import_export.widgets import ForeignKeyWidget
@@ -100,6 +100,23 @@ class ContractAdmin(admin.ModelAdmin):
         ),
         ("Файлы", {"fields": ("file",)}),
         ("Финансы", {"fields": ("total_sum", "monthly_sum", "advance")}),
+        (
+            "Чек-лист: Системы",
+            {"fields": ("gos_services", "oko", "spolokh")},
+        ),
+        (
+            "Чек-лист: Стадия подписания",
+            {
+                "fields": (
+                    "contract_to_be_signed",
+                    "contract_signed",
+                    "contract_signed_in_trading_platform",
+                    "contract_signed_in_EDO",
+                    "contract_original_received",
+                    "contract_termination",
+                )
+            },
+        ),
         ("Акт итоговый", {"fields": ("final_act_date", "final_act_present")}),
     )
     inlines = [InterimActInline, ProtectionObjectInline]
@@ -220,4 +237,3 @@ class AkAdmin(ImportExportModelAdmin):
 class ContractSettingsAdmin(admin.ModelAdmin):
     list_display = ("days_before_expires", "longterm_status_time", "oneoff_status_time")
     fields = ("days_before_expires", "longterm_status_time", "oneoff_status_time")
-

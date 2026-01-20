@@ -1,4 +1,4 @@
-#apps/contract_core/models.py
+# apps/contract_core/models.py
 from django.contrib.auth import get_user_model
 from django.core.validators import FileExtensionValidator, MaxValueValidator, MinValueValidator
 
@@ -121,9 +121,9 @@ class Contract(models.Model):
     note = models.TextField("Примечание", blank=True)
 
     # ---------- ЧЕК-ЛИСТ: СИСТЕМЫ ----------
-    gos_services = models.BooleanField(default=False, verbose_name="Госуслуги")
-    oko          = models.BooleanField(default=False, verbose_name="ОКО")
-    spolokh      = models.BooleanField(default=False, verbose_name="Сполох")
+    gos_services = models.DateField(blank=True, null=True, verbose_name="Госуслуги")
+    oko          = models.DateField(blank=True, null=True, verbose_name="ОКО")
+    spolokh      = models.DateField(blank=True, null=True, verbose_name="Сполох")
 
     # ---------- ЧЕК-ЛИСТ: СТАДИЯ ПОДПИСАНИЯ ----------
     contract_to_be_signed              = models.BooleanField(default=True, verbose_name="На подписании")
@@ -352,5 +352,3 @@ class Ak(models.Model):
 
     def __str__(self):
         return f"АК №{self.number} – {self.name}"
-
-
