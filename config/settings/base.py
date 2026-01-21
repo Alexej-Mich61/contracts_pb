@@ -44,7 +44,6 @@ LOCAL_APPS = [
     "apps.chat",
     "apps.mailing",
     "import_export",
-    "tailwind",
     "frontend",
 
 ]
@@ -187,5 +186,4 @@ LOGGING = {
     },
 }
 
-# в самый низ файла
-TAILWIND_APP_NAME = "frontend"
+# Tailwind не используется

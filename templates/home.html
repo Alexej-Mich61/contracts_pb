@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block title %}Главная{% endblock %}
+
+{% block content %}
+<div class="jumbotron">
+    <h1 class="display-4">Добро пожаловать в систему управления контрактами!</h1>
+    <p class="lead">Здесь вы можете управлять всеми аспектами контрактов, от создания до отчетности.</p>
+    <hr class="my-4">
+    <p>Используйте меню навигации для доступа к различным разделам системы.</p>
+    <a class="btn btn-primary btn-lg" href="#" role="button">Начать работу</a>
+</div>
+
+<div class="row mt-5">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Контракты</h5>
+                <p class="card-text">Управляйте контрактами: создавайте новые, редактируйте существующие, отслеживайте историю изменений.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Отчеты</h5>
+                <p class="card-text">Генерируйте отчеты по заказчикам, исполнителям и субподрядчикам для анализа деятельности.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Справочники</h5>
+                <p class="card-text">Ведите справочники АК, компаний и пользователей для поддержания актуальной информации.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
