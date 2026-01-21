@@ -1,4 +1,4 @@
-#apps/identity/models.py
+# apps/identity/models.py
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from apps.companies.models import Company

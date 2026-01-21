@@ -23,8 +23,11 @@ urlpatterns = [
     path("reports/executors/", views.ExecutorReportsView.as_view(), name="executor_reports"),
     path("reports/subcontractors/", views.SubcontractorsReportsView.as_view(), name="subcontractors_reports"),
     path("catalogs/ak/", views.AkListView.as_view(), name="ak_list"),
+    path("catalogs/ak/add/", views.AkCreateView.as_view(), name="ak_create"),
     path("catalogs/companies/", views.CompaniesListView.as_view(), name="companies_list"),
+    path("catalogs/companies/add/", views.CompanyCreateView.as_view(), name="company_create"),
     path("catalogs/users/", views.UsersListView.as_view(), name="users_list"),
+    path("catalogs/users/add/", views.UserCreateView.as_view(), name="user_create"),
     path("chat/", views.ChatView.as_view(), name="chat"),
     path("faq/", views.FAQView.as_view(), name="faq"),
 ]
