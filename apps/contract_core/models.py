@@ -6,17 +6,17 @@ from django.core.validators import FileExtensionValidator, MaxValueValidator, Mi
 from .managers import ContractManager
 from .validators import inn_validator, file_validator
 from django.db import models
-from apps.companies.models import Company
 from django.utils import timezone
 import datetime
+from apps.contract_core.services import ContractStatusCalculator
 
 User = get_user_model()
 
-# ---------- СПРАВОЧНИКИ (регион/район) ----------
+
 
 
 class ContractSettings(models.Model):
-    """Единая строка на весь проект – настройки расчёта статусов."""
+    """Единая строка на весь проект – настройки расчёта статусов контрактов."""
     days_before_expires = models.PositiveSmallIntegerField(
         "Дней до статуса «Истекает»",
         default=10,
@@ -35,16 +35,22 @@ class ContractSettings(models.Model):
     class Meta:
         verbose_name = "Настройки статусов договоров"
         verbose_name_plural = "Настройки статусов договоров"
+        constraints = [
+            models.UniqueConstraint(fields=['pk'], name='singleton_settings'),
+        ]
 
     def __str__(self):
         return f"До «Истекает» {self.days_before_expires} дн., обновления в {self.longterm_status_time} и {self.oneoff_status_time}"
 
+    @classmethod
+    def get_settings(cls):
+        """Получить единственную запись настроек (создаёт, если нет)."""
+        obj, created = cls.objects.get_or_create(pk=1)  # или без pk, если не принципиально
+        return obj
 
-# Утилита – получение настроек
-def get_contract_settings():
-    return ContractSettings.objects.first() or ContractSettings.objects.create()
 
 
+# ---------- СПРАВОЧНИКИ (регион/район) ----------
 
 class Region(models.Model):
     name = models.CharField("Наименование", max_length=100, unique=True)
@@ -61,7 +67,7 @@ class Region(models.Model):
 
 
 class District(models.Model):
-    region = models.ForeignKey(Region, on_delete=models.CASCADE, related_name="districts")
+    region = models.ForeignKey(Region, on_delete=models.PROTECT, related_name="districts")
     name = models.CharField("Наименование", max_length=100)
     fias_code = models.CharField("Код ФИАС", max_length=50, blank=True, null=True)
     district_code = models.CharField("Код района", max_length=50, blank=True, null=True)
@@ -76,37 +82,122 @@ class District(models.Model):
         return f"{self.region} – {self.name}"
 
 
+# ---------- РАБОТЫ ----------
+
+class Work(models.Model):
+    """Справочник видов работ (3 типа)."""
+    WORK_TYPE_ONEOFF_LICENSEE = "work_oneoff_licensee"
+    WORK_TYPE_LONGTERM_TO_LICENSEE = "work_longterm_to_licensee"
+    WORK_TYPE_ONEOFF_LAB = "work_oneoff_lab"
+
+    WORK_TYPE_CHOICES = (
+        (WORK_TYPE_ONEOFF_LICENSEE, "Разовая работа (лицензиат)"),
+        (WORK_TYPE_LONGTERM_TO_LICENSEE, "Периодическая работа ТО (лицензиат)"),
+        (WORK_TYPE_ONEOFF_LAB, "Разовая работа (лаборатория)"),
+    )
+
+    name = models.CharField("Наименование работы", max_length=255, db_index=True)
+    is_active = models.BooleanField(default=True)
+    work_type = models.CharField("Тип работы", max_length=25, choices=WORK_TYPE_CHOICES, db_index=True)
+
+    class Meta:
+        verbose_name = "Вид работы"
+        verbose_name_plural = "Виды работ"
+        ordering = ["name"]
+        # уникальность только по паре «название + тип»
+        unique_together = ("name", "work_type")
+
+    def __str__(self):
+        return f"{self.get_work_type_display()} – {self.name}"
+
+
+# ---------- КОМПАНИИ (заказчики, исполнители (лицензиат, лаборатория), субподрядчики) ----------
+
+class Company(models.Model):
+    """Справочник организаций: заказчик, лицензиат, лаборатория, субподрядчик."""
+    # роли
+    is_customer = models.BooleanField("Заказчик", default=True, db_index=True)
+    is_licensee = models.BooleanField("Лицензиат МЧС", default=False, db_index=True)
+    is_laboratory = models.BooleanField("Лаборатория", default=False, db_index=True)
+    is_subcontractor = models.BooleanField("Субподрядчик", default=False, db_index=True)
+
+    name = models.CharField("Название", max_length=255, db_index=True)
+    inn = models.CharField(
+        "ИНН",
+        max_length=12,
+        unique=True,          # ← уникальность
+        validators=[inn_validator],
+        help_text="10 цифр – юрлицо, 12 – физлицо",
+    )
+    fias_code = models.CharField(
+        "Код ФИАС",
+        max_length=50,
+        blank=True,
+        null=True,
+        help_text="Код объекта по ФИАС (необязательно)",
+    )
+
+    class Meta:
+        verbose_name = "Организация"
+        verbose_name_plural = "Организации"
+        ordering = ["name"]
+
+        # составной индекс «роль + название» — ускоряет фильтры админки
+        indexes = [
+            models.Index(fields=["name"]),
+            models.Index(fields=["inn"]),
+            models.Index(fields=["is_customer", "name"]),
+            models.Index(fields=["is_licensee", "name"]),
+            models.Index(fields=["is_lab", "name"]),
+            models.Index(fields=["is_subcontractor", "name"]),
+        ]
+
+    def __str__(self):
+        return self.name
+
+
+    def clean(self):
+        # проверка «хотя бы одна роль» (уже было)
+        if not any((self.is_customer, self.is_licensee, self.is_lab, self.is_subcontractor)):
+            raise ValidationError("Необходимо выбрать хотя бы одну роль организации.")
+
+        # дружелюбное сообщение при дубле ИНН
+        if self.inn:  # заполнено
+            qs = Company.objects.filter(inn=self.inn)
+            if self.pk:  # редактирование – исключаем себя
+                qs = qs.exclude(pk=self.pk)
+            if qs.exists():
+                raise ValidationError(
+                    {"inn": f"Компания с ИНН «{self.inn}» уже существует в базе. "
+                            f"Проверьте справочник или обратитесь к администратору."}
+                )
+
+
 # ---------- КОНТРАКТ (основная модель) ----------
 
 
 class Contract(models.Model):
     # аналогично Work
-    TYPE_ONEOFF_LICENSEE = "oneoff_licensee"
-    TYPE_LONGTERM_TO_LICENSEE = "longterm_to_licensee"
-    TYPE_ONEOFF_LAB = "oneoff_lab"
-
-    TYPE_CHOICES = (
-        (TYPE_ONEOFF_LICENSEE, "Разовый (лицензиат)"),
-        (TYPE_LONGTERM_TO_LICENSEE, "Долгосрочный ТО (лицензиат)"),
-        (TYPE_ONEOFF_LAB, "Разовый (лаборатория)"),
-    )
+    class Type(models.TextChoices):
+        ONEOFF_LICENSEE = "oneoff_licensee", "Разовый (лицензиат)"
+        LONGTERM_TO_LICENSEE = "longterm_to_licensee", "Долгосрочный ТО (лицензиат)"
+        ONEOFF_LAB = "oneoff_lab", "Разовый (лаборатория)"
 
     # Служебные флаги
     is_trash = models.BooleanField("В корзине", default=False, db_index=True)
     is_archived = models.BooleanField("В архиве", default=False, db_index=True)
 
     # Основные сведения
-    type = models.CharField("Тип договора", max_length=25, choices=TYPE_CHOICES, db_index=True)
-    number = models.CharField("Номер договора", max_length=50, blank=True)
+    type = models.CharField("Тип договора", max_length=25, choices=Type.choices, db_index=True)
+    number = models.CharField("Номер договора", max_length=50, blank=True, null=True)
     date_concluded = models.DateField("Дата заключения", blank=True, null=True)
+    # заказчик
     customer = models.ForeignKey(
         Company,
-        on_delete=models.SET_NULL,
+        on_delete=models.PROTECT,
         limit_choices_to={"is_customer": True},
         related_name="contracts_customer",
         verbose_name="Заказчик",
-        null=True,
-        blank=True,
     )
     date_start = models.DateField("Начало действия")
     date_end = models.DateField("Окончание действия")
@@ -116,10 +207,15 @@ class Contract(models.Model):
         on_delete=models.PROTECT,
         verbose_name="Исполнитель",
         related_name="contracts_executor",
-        null=True,
-        blank=True,
     )
-    note = models.TextField("Примечание", blank=True)
+    # работы
+    work = models.ForeignKey(
+        Work,
+        on_delete=models.PROTECT,  # ← ВАЖНО: не позволит удалить работу, если она используется в контрактах
+        related_name="contracts",  # contracts.work — все контракты с этой работой
+        verbose_name="Вид работы",
+    )
+    note = models.TextField("Примечание", blank=True, null=True)
 
     # ---------- ЧЕК-ЛИСТ: СИСТЕМЫ ----------
     gos_services = models.DateField(blank=True, null=True, verbose_name="Госуслуги")
@@ -133,6 +229,8 @@ class Contract(models.Model):
     contract_signed_in_EDO             = models.BooleanField(default=False, verbose_name="ЭДО")
     contract_original_received         = models.BooleanField(default=False, verbose_name="Бумажный оригинал")
     contract_termination               = models.BooleanField(default=False, verbose_name="Расторжение")
+    note_on_the_signing_stages = models.TextField(
+        "Примечание к стадиям подписания", max_length=30, blank=True, null=True)
 
     # Файлы (1 шт., необязательные)
     file = models.FileField(
@@ -191,46 +289,12 @@ class Contract(models.Model):
 
     # --------- служебные методы ---------
     def save(self, *args, **kwargs):
-        self._recalc_status()  # рассчитаем перед сохранением
+        # Вычисляем статус перед сохранением
+        new_status = ContractStatusCalculator.calculate_status(self)
+        if new_status != self.status:
+            self.status = new_status
+
         super().save(*args, **kwargs)
-
-    def _recalc_status(self):
-        """Рассчитать статус по алгоритму."""
-        settings = get_contract_settings()
-        today = timezone.now().date()
-        start, end = self.date_start, self.date_end
-
-        # 1. Долгосрочный ТО (лицензиат)
-        if self.type == self.TYPE_LONGTERM_TO_LICENSEE:
-            if today < start:
-                self.status = self.STATUS_PENDING
-            elif today > end:
-                self.status = self.STATUS_COMPLETED
-            else:  # внутри срока
-                days_left = (end - today).days
-                self.status = (
-                    self.STATUS_ACTIVE_EXPIRES
-                    if days_left <= settings.days_before_expires
-                    else self.STATUS_ACTIVE
-                )
-            return
-
-        # 2. Разовые (лицензиат или лаборатория)
-        if self.type in (self.TYPE_ONEOFF_LICENSEE, self.TYPE_ONEOFF_LAB):
-            if self.final_act_present:
-                self.status = self.STATUS_COMPLETED
-                return
-            if today < start:
-                self.status = self.STATUS_PENDING
-            elif today > end:
-                self.status = self.STATUS_ACTIVE_EXPIRED
-            else:
-                days_left = (end - today).days
-                self.status = (
-                    self.STATUS_ACTIVE_EXPIRES
-                    if days_left <= settings.days_before_expires
-                    else self.STATUS_ACTIVE
-                )
 
     # --------- представления ---------
     def __str__(self):
@@ -294,8 +358,10 @@ class ProtectionObject(models.Model):
         related_name="protection_objects_sub",
     )
     # финансы субподрядчик
-    total_sum_subcontract = models.DecimalField("Сумма субконтракта общая", max_digits=12, decimal_places=2, default=0.00)
-    monthly_sum_subcontract = models.DecimalField("Сумма субконтракта в месяц", max_digits=12, decimal_places=2, default=0.00)
+    total_sum_subcontract = models.DecimalField(
+        "Сумма субконтракта общая", max_digits=12, decimal_places=2, default=0.00)
+    monthly_sum_subcontract = models.DecimalField(
+        "Сумма субконтракта в месяц", max_digits=12, decimal_places=2, default=0.00)
 
     class Meta:
         verbose_name = "Объект защиты"

@@ -1,6 +1,6 @@
 # apps/mailing/models.py
 from django.db import models
-from apps.companies.models import Company
+from apps.contract_core.models import Company
 
 
 class Recipient(models.Model):

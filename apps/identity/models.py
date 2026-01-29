@@ -1,12 +1,12 @@
 # apps/identity/models.py
 from django.contrib.auth.models import AbstractUser
 from django.db import models
-from apps.companies.models import Company
+from apps.contract_core.models import Company
 
 
 
 class User(AbstractUser):
-    # 3 категории аккаунта
+    # категории аккаунта
     class Category(models.TextChoices):
         ADMIN = "admin", "Администратор"
         MANAGER = "manager", "Менеджер"
@@ -34,10 +34,19 @@ class User(AbstractUser):
     )
 
     # пермиссии (на уровне User – чтобы не создавать Employee для гостя)
-    can_view_systems = models.BooleanField("Может видеть чек-лист Системы", default=False)
-    can_edit_systems = models.BooleanField("Может редактировать чек-лист Системы", default=False)
-    can_edit_sign_stage = models.BooleanField("Может редактировать чек-лист Стадии подписания", default=False)
-    can_delete_contract = models.BooleanField("Может удалять договоры", default=False)
+    can_edit_systems = models.BooleanField(
+        "Может редактировать чек-лист Системы",
+        default=False
+    )
+
+    can_edit_sign_stage = models.BooleanField(
+        "Может редактировать чек-лист Стадии подписания",
+        default=False
+    )
+
+    # редактировать, добавлять, удалять - 1. компании, 2. АК
+    # редактировать акты итог, акты этап, объект, привязывать/отвязывать ак ???
+
 
     class Meta:
         verbose_name = "Пользователь"

@@ -38,8 +38,6 @@ THIRD_PARTY_APPS = [
 LOCAL_APPS = [
     "apps.identity",
     "apps.contract_core",
-    "apps.contract_works",
-    "apps.companies",
     "apps.audit",
     "apps.chat",
     "apps.mailing",

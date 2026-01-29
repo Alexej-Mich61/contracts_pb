@@ -30,10 +30,10 @@
                                 Контракты
                             </a>
                             <ul class="dropdown-menu" aria-labelledby="contractsDropdown">
-                                <li><a class="dropdown-item" href="{% url 'identity:contract_oneoff_licensee' %}">Разовые Лицензиат</a></li>
-                                <li><a class="dropdown-item" href="{% url 'identity:contract_longterm_to_licensee' %}">ТО Лицензиат</a></li>
-                                <li><a class="dropdown-item" href="{% url 'identity:contract_oneoff_lab' %}">Лаборатория</a></li>
-                                <li><a class="dropdown-item" href="{% url 'identity:contract_history' %}">История</a></li>
+                                <li><a class="dropdown-item" href="{% url 'contract_core:contract_oneoff_licensee' %}">Разовые Лицензиат</a></li>
+                                <li><a class="dropdown-item" href="{% url 'contract_core:contract_longterm_to_licensee' %}">ТО Лицензиат</a></li>
+                                <li><a class="dropdown-item" href="{% url 'contract_core:contract_oneoff_lab' %}">Лаборатория</a></li>
+                                <li><a class="dropdown-item" href="{% url 'contract_core:contract_history' %}">История</a></li>
                             </ul>
                         </li>
                         <li class="nav-item dropdown">
@@ -41,9 +41,9 @@
                                 Отчеты
                             </a>
                             <ul class="dropdown-menu" aria-labelledby="reportsDropdown">
-                                <li><a class="dropdown-item" href="{% url 'identity:customer_reports' %}">Заказчики</a></li>
-                                <li><a class="dropdown-item" href="{% url 'identity:executor_reports' %}">Исполнители</a></li>
-                                <li><a class="dropdown-item" href="{% url 'identity:subcontractors_reports' %}">Субподрядчики</a></li>
+                                <li><a class="dropdown-item" href="{% url 'contract_core:customer_reports' %}">Заказчики</a></li>
+                                <li><a class="dropdown-item" href="{% url 'contract_core:executor_reports' %}">Исполнители</a></li>
+                                <li><a class="dropdown-item" href="{% url 'contract_core:subcontractors_reports' %}">Субподрядчики</a></li>
                             </ul>
                         </li>
                         <li class="nav-item dropdown">
@@ -51,13 +51,13 @@
                                 Справочники
                             </a>
                             <ul class="dropdown-menu" aria-labelledby="catalogsDropdown">
-                                <li><a class="dropdown-item" href="{% url 'identity:ak_list' %}">АК</a></li>
-                                <li><a class="dropdown-item" href="{% url 'identity:companies_list' %}">Компании</a></li>
+                                <li><a class="dropdown-item" href="{% url 'contract_core:ak_list' %}">АК</a></li>
+                                <li><a class="dropdown-item" href="{% url 'contract_core:companies_list' %}">Компании</a></li>
                                 <li><a class="dropdown-item" href="{% url 'identity:users_list' %}">Пользователи</a></li>
                             </ul>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="{% url 'identity:chat' %}">Чат</a>
+                            <a class="nav-link" href="{% url 'chat:chat' %}">Чат</a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" href="{% url 'identity:faq' %}">FAQ</a>
@@ -68,7 +68,7 @@
                             <span class="navbar-text me-3" id="current-time"></span>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="{% url 'identity:contract_trash' %}">
+                            <a class="nav-link" href="{% url 'contract_core:contract_trash' %}">
                                 <i class="bi bi-trash"></i>
                             </a>
                         </li>
