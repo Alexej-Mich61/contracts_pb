@@ -148,7 +148,7 @@ class Company(models.Model):
             models.Index(fields=["inn"]),
             models.Index(fields=["is_customer", "name"]),
             models.Index(fields=["is_licensee", "name"]),
-            models.Index(fields=["is_lab", "name"]),
+            models.Index(fields=["is_laboratory", "name"]),
             models.Index(fields=["is_subcontractor", "name"]),
         ]
 
@@ -158,7 +158,7 @@ class Company(models.Model):
 
     def clean(self):
         # проверка «хотя бы одна роль» (уже было)
-        if not any((self.is_customer, self.is_licensee, self.is_lab, self.is_subcontractor)):
+        if not any((self.is_customer, self.is_licensee, self.is_laboratory, self.is_subcontractor)):
             raise ValidationError("Необходимо выбрать хотя бы одну роль организации.")
 
         # дружелюбное сообщение при дубле ИНН
@@ -205,6 +205,7 @@ class Contract(models.Model):
     executor = models.ForeignKey(
         Company,
         on_delete=models.PROTECT,
+        limit_choices_to={"is_licensee": True, "is_laboratory": True},  # проверить синтаксис
         verbose_name="Исполнитель",
         related_name="contracts_executor",
     )
@@ -230,12 +231,12 @@ class Contract(models.Model):
     contract_original_received         = models.BooleanField(default=False, verbose_name="Бумажный оригинал")
     contract_termination               = models.BooleanField(default=False, verbose_name="Расторжение")
     note_on_the_signing_stages = models.TextField(
-        "Примечание к стадиям подписания", max_length=30, blank=True, null=True)
+        "Примечание к стадиям подписания", max_length=50, blank=True, null=True)
 
     # Файлы (1 шт., необязательные)
     file = models.FileField(
         "Файл договора",
-        upload_to="contracts/%Y/%m/",
+        upload_to="contracts/%Y/%m/%d",
         blank=True,
         validators=[file_validator],
         help_text="Любой формат, кроме .exe и пр. До 100 МБ",
@@ -271,10 +272,12 @@ class Contract(models.Model):
     # Служебные
     created_at = models.DateTimeField("Создан", auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField("Изменён", auto_now=True)
+    # как автоматом получить Юзера????
     creator = models.ForeignKey(User, on_delete=models.PROTECT, verbose_name="Автор", related_name="contracts_created")
+    updater = models.ForeignKey(User, on_delete=models.PROTECT, verbose_name="Обновил", related_name="contracts_updated")
 
     # менеджер
-    objects = ContractManager()
+    objects = ContractManager()    # разобраться в apps/contract_core/managers.py
 
     class Meta:
         verbose_name = "Договор"
@@ -298,20 +301,8 @@ class Contract(models.Model):
 
     # --------- представления ---------
     def __str__(self):
-        return f"{self.number or 'б/н'} ({self.get_type_display()})"
+        return f"{self.number or 'б/н'} ({self.get_type_display()})" # нужен метод этот?
 
-
-
-    # ---------- helper-свойства для шаблонов / логики ----------
-    # @property
-    # def is_longterm(self):
-    #     """Долгосрочный ли договор (по типу)."""
-    #     return self.type in (self.TYPE_LONGTERM_TO_LICENSEE, self.TYPE_LONGTERM_LAB, self.TYPE_SMR_LICENSEE)
-    #
-    # @property
-    # def company_kind(self):
-    #     """Вид компании-исполнителя (для фильтров)."""
-    #     return self.executor.is_licensee if self.executor else None
 
 
 # ---------- СВЯЗАННЫЕ МОДЕЛИ ----------
@@ -324,10 +315,10 @@ class InterimAct(models.Model):
     date = models.DateField("Дата")
     file = models.FileField(
         "Файл акта",
-        upload_to="acts/%Y/%m/",
+        upload_to="acts/%Y/%m/%d",
         blank=True,
-        validators=[FileExtensionValidator(allowed_extensions=["pdf", "doc", "docx", "jpg", "jpeg", "png"])],
-        help_text="Не более 20 МБ",
+        validators=[file_validator],
+        help_text="Любой формат, кроме .exe и пр. До 100 МБ",
     )
 
     class Meta:
@@ -341,12 +332,12 @@ class InterimAct(models.Model):
 
 class ProtectionObject(models.Model):
     """Объект защиты (много штук к одному договору)."""
-    contract = models.ForeignKey(Contract, on_delete=models.CASCADE, related_name="objects")
+    contract = models.ForeignKey(Contract, on_delete=models.CASCADE, related_name="objects") # разобраться с on_delete
     name = models.CharField("Наименование", max_length=255)
     region = models.ForeignKey(Region, on_delete=models.PROTECT, verbose_name="Регион", related_name="objects")
     district = models.ForeignKey(District, on_delete=models.PROTECT, verbose_name="Район", related_name="objects")
     address = models.TextField("Адрес")
-    contacts = models.TextField("Контакты", blank=True)
+    contacts = models.TextField("Контакты", blank=True, null=True)
     # субподрядчик
     subcontractor = models.ForeignKey(
         Company,
