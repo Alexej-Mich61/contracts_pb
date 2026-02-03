@@ -1,7 +1,10 @@
-#apps/identity/apps.py
+# apps/identity/apps.py
 from django.apps import AppConfig
+
 
 class IdentityConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name = 'apps.identity'   # ← ДОЛЖЕН быть полный путь
-    verbose_name = 'Пользователи'
+    name = 'apps.identity'  # полный путь к приложению (apps.identity)
+
+    def ready(self):
+        import apps.identity.signals

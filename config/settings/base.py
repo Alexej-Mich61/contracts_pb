@@ -57,6 +57,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'config.middleware.CurrentUserMiddleware',  # ← мой middleware.py, путь указан от корня проекта
 ]
 
 ROOT_URLCONF = "config.urls"

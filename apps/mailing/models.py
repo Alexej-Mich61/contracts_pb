@@ -17,7 +17,7 @@ class Recipient(models.Model):
         verbose_name="Организации",
         help_text="Если не выбрано — письмо уйдёт всем, у кого активна рассылка.",
     )
-    is_active = models.BooleanField("Рассылка активна", default=True, db_index=True)
+    news_is_active = models.BooleanField("Рассылка активна", default=True, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

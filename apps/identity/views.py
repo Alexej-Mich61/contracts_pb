@@ -4,7 +4,6 @@ from django.views.generic import TemplateView, ListView, CreateView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse_lazy
 from django.contrib import messages
-#from apps.contract_core.models import Company
 from .models import User
 
 # Create your views here.

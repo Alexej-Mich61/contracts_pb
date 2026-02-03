@@ -1,272 +1,205 @@
 # apps/contract_core/admin.py
 from django.contrib import admin
 from import_export.admin import ImportExportModelAdmin
-from apps.identity.permissions import ContractPermission
-from apps.identity.models import Employee
-from .resources import AkResource, CompanyResource
 
 from .models import (
-    Region,
-    District,
-    Contract,
-    InterimAct,
-    ProtectionObject,
-    Ak,
-    Work,
-    Company,
-    ContractSettings,
+    ContractSettings, Region, District, Work, Company,
+    SigningStage, ContractSigningStage, SystemType,
+    ContractSystemCheck, Contract, FinalAct, InterimAct,
+    ProtectionObject, Ak
 )
+from .resources import CompanyResource, AkResource
 
 
-
-class DistrictInline(admin.TabularInline):
-    model = District
-    extra = 1
-
-
-@admin.register(Region)
-class RegionAdmin(admin.ModelAdmin):
-    list_display = ("name",)
-    search_fields = ("name",)
-    inlines = [DistrictInline]
-
-
-@admin.register(District)
-class DistrictAdmin(admin.ModelAdmin):
-    list_display = ("region", "name")
-    list_filter = ("region",)
-    search_fields = ("name",)
+# ---------- ИНЛАЙНЫ ----------
+class FinalActInline(admin.StackedInline):
+    model = FinalAct
+    extra = 0
+    can_delete = False
+    fields = ('present', 'date', 'file', 'note', 'checked_by', 'checked_at')
+    readonly_fields = ('checked_by', 'checked_at')
+    verbose_name = "Итоговый акт"
+    verbose_name_plural = "Итоговый акт"
 
 
 class InterimActInline(admin.TabularInline):
     model = InterimAct
+    extra = 1
+    fields = ('title', 'date', 'file')
+    verbose_name = "Промежуточный акт"
+    verbose_name_plural = "Промежуточные акты"
+
+
+class ContractSigningStageInline(admin.StackedInline):
+    model = ContractSigningStage
     extra = 0
-    fields = ("title", "date", "file")
+    can_delete = False
+    fields = ('stage', 'changed_at', 'changed_by', 'note')
+    readonly_fields = ('changed_at', 'changed_by')
+    verbose_name = "Стадия подписания"
+    verbose_name_plural = "Стадия подписания"
+
+
+class ContractSystemCheckInline(admin.TabularInline):
+    model = ContractSystemCheck
+    extra = 0
+    fields = ('system_type', 'last_checked', 'checked_by', 'note')
+    readonly_fields = ('checked_by',)
+    verbose_name = "Проверка системы"
+    verbose_name_plural = "Проверки систем"
 
 
 class ProtectionObjectInline(admin.TabularInline):
     model = ProtectionObject
-    extra = 0
-    fields = ("name", "region", "district", "address", "subcontractor")
+    extra = 1
+    fields = ('name', 'district', 'address', 'contacts', 'subcontractor',
+              'total_sum_subcontract', 'monthly_sum_subcontract')
+    verbose_name = "Объект защиты"
+    verbose_name_plural = "Объекты защиты"
 
 
-# Справочник работ
+# ---------- АДМИНКИ ----------
+
+@admin.register(ContractSettings)
+class ContractSettingsAdmin(admin.ModelAdmin):
+    list_display = ('days_before_expires', 'longterm_status_time', 'oneoff_status_time')
+    readonly_fields = ('pk',)
+    fieldsets = (
+        (None, {
+            'fields': ('days_before_expires', 'longterm_status_time', 'oneoff_status_time')
+        }),
+    )
+
+
+@admin.register(Region)
+class RegionAdmin(admin.ModelAdmin):
+    list_display = ('name', 'fias_code', 'region_code')
+    search_fields = ('name', 'fias_code')
+
+
+@admin.register(District)
+class DistrictAdmin(admin.ModelAdmin):
+    list_display = ('name', 'region')
+    list_filter = ('region',)
+    search_fields = ('name', 'region__name')
+
+
 @admin.register(Work)
 class WorkAdmin(admin.ModelAdmin):
-    list_display = ("name", "work_type")
-    list_filter = ("work_type",)
-    search_fields = ("name",)
-    ordering = ("name",)
+    list_display = ('name', 'work_type', 'is_active')
+    list_filter = ('work_type', 'is_active')
+    search_fields = ('name',)
+
+
+@admin.register(Company)
+class CompanyAdmin(ImportExportModelAdmin):
+    resource_class = CompanyResource
+    list_display = ('name', 'inn', 'is_customer', 'is_licensee', 'is_laboratory', 'is_subcontractor')
+    list_filter = ('is_customer', 'is_licensee', 'is_laboratory', 'is_subcontractor')
+    search_fields = ('name', 'inn')
+    actions = ['mark_as_licensee', 'mark_as_laboratory']
+
+    def mark_as_licensee(self, request, queryset):
+        queryset.update(is_licensee=True)
+    mark_as_licensee.short_description = "Отметить как лицензиат МЧС"
+
+    def mark_as_laboratory(self, request, queryset):
+        queryset.update(is_laboratory=True)
+    mark_as_laboratory.short_description = "Отметить как лаборатория"
+
+
+@admin.register(SigningStage)
+class SigningStageAdmin(admin.ModelAdmin):
+    list_display = ('name', 'slug', 'order', 'is_final')
+    ordering = ('order', 'name')
+    search_fields = ('name', 'slug')
+
+
+@admin.register(SystemType)
+class SystemTypeAdmin(admin.ModelAdmin):
+    list_display = ('name', 'slug', 'is_active')
+    list_filter = ('is_active',)
+    search_fields = ('name', 'slug')
 
 
 @admin.register(Contract)
-class ContractAdmin(admin.ModelAdmin):
-    list_display = (
-        "number",
-        "type",
-        "status",
-        "customer",
-        "executor",
-        "total_sum",
-        "date_start",
-        "date_end",
-        "is_trash",
-        "is_archived",
-        "creator",
-    )
-    list_filter = (
-        "type",
-        "status",
-        "is_trash",
-        "is_archived",
-        "executor__is_licensee",
-        "created_at",
-    )
-    search_fields = ("number", "customer__name", "customer__inn")
-    date_hierarchy = "date_start"
-    ordering = ("-created_at",)
-    readonly_fields = ("created_at", "updated_at", "final_act_present")
+class ContractAdmin(ImportExportModelAdmin):
+    list_display = ('number', 'type', 'status', 'customer', 'executor', 'date_start', 'date_end')
+    list_filter = ('type', 'status', 'is_trash', 'is_archived')
+    search_fields = ('number', 'customer__name', 'executor__name')
+    ordering = ('-created_at',)
+    inlines = [
+        FinalActInline,
+        InterimActInline,
+        ContractSigningStageInline,
+        ContractSystemCheckInline,
+        ProtectionObjectInline,
+    ]
     fieldsets = (
-        (
-            "Служебное",
-            {"fields": ("type", "is_trash", "is_archived", "status", "creator")},
-        ),
-        (
-            "Основные сведения",
-            {
-                "fields": (
-                    "number",
-                    "date_concluded",
-                    "customer",
-                    ("date_start", "date_end"),
-                    "executor",
-                    "note",
-                )
-            },
-        ),
-        ("Файлы", {"fields": ("file",)}),
-        ("Финансы", {"fields": ("total_sum", "monthly_sum", "advance")}),
-        (
-            "Чек-лист: Системы",
-            {"fields": ("gos_services", "oko", "spolokh")},
-        ),
-        (
-            "Чек-лист: Стадия подписания",
-            {
-                "fields": (
-                    "contract_to_be_signed",
-                    "contract_signed",
-                    "contract_signed_in_trading_platform",
-                    "contract_signed_in_EDO",
-                    "contract_original_received",
-                    "contract_termination",
-                )
-            },
-        ),
-        ("Акт итоговый", {"fields": ("final_act_date", "final_act_present")}),
+        ('Основное', {
+            'fields': ('type', 'number', 'date_concluded', 'customer', 'date_start', 'date_end', 'executor', 'work')
+        }),
+        ('Финансы', {
+            'fields': ('total_sum', 'monthly_sum', 'advance')
+        }),
+        ('Служебное', {
+            'fields': ('status', 'is_trash', 'is_archived', 'creator', 'updater', 'created_at', 'updated_at')
+        }),
+        ('Примечание и файлы', {
+            'fields': ('note', 'file')
+        }),
     )
-    inlines = [InterimActInline, ProtectionObjectInline]
+    readonly_fields = ('creator', 'updater', 'created_at', 'updated_at', 'status')
 
 
-
-    def get_queryset(self, request):
-        return super().get_queryset(request).select_related("executor", "creator")
-
-
-    def get_readonly_fields(self, request, obj=None):
-        """Динамически блокируем поля в зависимости от роли."""
-        if obj is None:
-            return super().get_readonly_fields(request, obj)
-
-        perm = ContractPermission(request.user, obj.executor)
-        ro = list(self.readonly_fields)
-
-        if not perm.can_edit_systems:
-            ro.extend(["gos_services", "oko", "spolokh"])
-
-        if not perm.can_edit_sign_stage:
-            ro.extend([
-                "contract_to_be_signed",
-                "contract_signed",
-                "contract_signed_in_trading_platform",
-                "contract_signed_in_EDO",
-                "contract_original_received",
-                "contract_termination",
-            ])
-        return ro
-
-    def has_delete_permission(self, request, obj=None):
-        if obj is None:
-            return True
-        perm = ContractPermission(request.user, obj.executor)
-        return perm.can_delete()
+@admin.register(FinalAct)
+class FinalActAdmin(admin.ModelAdmin):
+    list_display = ('contract', 'present', 'date', 'checked_by', 'checked_at')
+    list_filter = ('present',)
+    search_fields = ('contract__number',)
+    readonly_fields = ('checked_by', 'checked_at')
 
 
 @admin.register(InterimAct)
 class InterimActAdmin(admin.ModelAdmin):
-    list_display = ("contract", "title", "date")
-    list_filter = ("date",)
-    search_fields = ("contract__number", "title")
-    date_hierarchy = "date"
+    list_display = ('title', 'date', 'contract')
+    list_filter = ('date',)
+    search_fields = ('title', 'contract__number')
+
+
+@admin.register(ContractSigningStage)
+class ContractSigningStageAdmin(admin.ModelAdmin):
+    list_display = ('contract', 'stage', 'changed_at', 'changed_by')
+    list_filter = ('stage',)
+    search_fields = ('contract__number',)
+
+
+@admin.register(ContractSystemCheck)
+class ContractSystemCheckAdmin(admin.ModelAdmin):
+    list_display = ('contract', 'system_type', 'last_checked', 'checked_by')
+    list_filter = ('system_type', 'last_checked')
+    search_fields = ('contract__number', 'system_type__name')
 
 
 @admin.register(ProtectionObject)
 class ProtectionObjectAdmin(admin.ModelAdmin):
-    list_display = ("name", "region", "district", "subcontractor")
-    list_filter = ("region", "subcontractor")
-    search_fields = ("name", "address")
-    #inlines = [AkInline]
+    list_display = ('name', 'contract', 'district', 'region_property', 'subcontractor')
+    list_filter = ('district__region', 'subcontractor')
+    search_fields = ('name', 'address', 'contract__number')
+
+    def region_property(self, obj):
+        return obj.region
+    region_property.short_description = "Регион"
 
 
 @admin.register(Ak)
 class AkAdmin(ImportExportModelAdmin):
-    resource_class = AkResource  # подключаем импорт/экспорт
+    resource_class = AkResource
+    list_display = ('number', 'name', 'district', 'region_property')
+    list_filter = ('district__region',)
+    search_fields = ('number', 'name', 'address')
 
-    list_display = ("number", "name", "address", "region", "district")
-    list_filter = ("region", "district")
-    search_fields = ("number", "name", "address")
-    filter_horizontal = ("protection_objects",)   # M2M-виджет
+    def region_property(self, obj):
+        return obj.region
+    region_property.short_description = "Регион"
 
-    def get_form(self, request, obj=None, **kwargs):
-        help_texts = {
-            'number': 'Номер АК (уникален в комбинации с регионом и районом).',
-            'name': 'Наименование АК.',
-            'address': 'Адрес установки.',
-            'region': 'Регион установки (по коду региона).',
-            'district': 'Район установки (по коду района).',
-        }
-        kwargs.update({'help_texts': help_texts})
-        return super().get_form(request, obj, **kwargs)
-
-    class Media:
-        js = ('admin/js/admin_import_help.js',)  # Можно добавить JS для подсказки
-
-    # Добавляем текстовую подсказку в админ
-    def changelist_view(self, request, extra_context=None):
-        extra_context = extra_context or {}
-        extra_context['import_help'] = (
-            "Для импорта АК используйте таблицу с колонками в порядке: number, name, address, district, region. "
-            "district - код района, region - код региона. "
-            "Все поля обязательны. Данные проверяются перед загрузкой."
-        )
-        return super().changelist_view(request, extra_context)
-
-
-class EmployeeInline(admin.TabularInline):
-    model = Employee
-    extra = 0
-    raw_id_fields = ("user",)          # удобный поиск пользователя
-    fields = ("user", "role", "is_active",
-              "can_delete_contract", "can_edit_systems", "can_edit_sign_stage")
-
-# 2. Админка
-@admin.register(Company)
-class CompanyAdmin(ImportExportModelAdmin):
-    resource_class = CompanyResource  # подключаем импорт/экспорт
-
-    list_display = ("name", "inn", "fias_code", "roles_list")
-    list_filter = ("is_customer", "is_licensee", "is_lab", "is_subcontractor")
-    search_fields = ("name", "inn")
-    ordering = ("name",)
-
-    # отображаем роли чек-боксами
-    fields = (
-        "name",
-        "inn",
-        "fias_code",
-        "is_customer",
-        "is_licensee",
-        "is_lab",
-        "is_subcontractor",
-    )
-
-    def roles_list(self, obj):
-        # короткая строка для list_display
-        roles = []
-        if obj.is_customer:
-            roles.append("Заказчик")
-        if obj.is_licensee:
-            roles.append("Лицензиат")
-        if obj.is_lab:
-            roles.append("Лаборатория")
-        if obj.is_subcontractor:
-            roles.append("Субподрядчик")
-        return ", ".join(roles) or "-"
-
-    roles_list.short_description = "Роли"
-
-    # Добавляем текстовую подсказку в админ
-    def changelist_view(self, request, extra_context=None):
-        extra_context = extra_context or {}
-        extra_context['import_help'] = (
-            "Для импорта компаний используйте таблицу с колонками в порядке: name, inn, is_customer, is_licensee, is_lab, is_subcontractor. "
-            "name и inn обязательны. Хотя бы одна роль должна быть True. ИНН проверяется на корректность и уникальность."
-        )
-        return super().changelist_view(request, extra_context)
-
-
-
-@admin.register(ContractSettings)
-class ContractSettingsAdmin(admin.ModelAdmin):
-    list_display = ("days_before_expires", "longterm_status_time", "oneoff_status_time")
-    fields = ("days_before_expires", "longterm_status_time", "oneoff_status_time")

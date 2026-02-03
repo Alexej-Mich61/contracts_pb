@@ -1,116 +1,91 @@
 # apps/identity/models.py
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from django.utils.translation import gettext_lazy as _
 from apps.contract_core.models import Company
 
 
-
 class User(AbstractUser):
-    # категории аккаунта
+    """Пользователь системы с категорией и дополнительными разрешениями."""
     class Category(models.TextChoices):
-        ADMIN = "admin", "Администратор"
-        MANAGER = "manager", "Менеджер"
-        GUEST = "guest", "Гость (только просмотр)"
+        ADMIN = "admin", _("Администратор")
+        MANAGER = "manager", _("Менеджер")
+        BOOKKEEPER = "bookkeeper", _("Бухгалтер")
+        SYSTEM_MANAGER = "system_manager", _("Диспетчер")
+        GUEST = "guest", _("Гость")
 
-    email = models.EmailField("email", unique=True)
-    phone = models.CharField("телефон", max_length=20, blank=True)
-    is_system = models.BooleanField("Системный пользователь", default=False, editable=False)
-
-    # категория пользователя
+    email = models.EmailField(_("email"), unique=True)
+    phone = models.CharField(_("телефон"), max_length=20, blank=True)
     category = models.CharField(
-        "Категория",
-        max_length=10,
+        _("категория"),
+        max_length=20,
         choices=Category.choices,
         default=Category.GUEST,
         db_index=True,
     )
-
-    # аватарка
     avatar = models.ImageField(
-        "Аватар",
-        upload_to="avatars/%Y/%m/",
+        _("аватар"),
+        upload_to="avatars/%Y/%m/%d",
         blank=True,
-        default="default_img.png",  # положите файл в MEDIA_ROOT/default_img.png
+        default="default_img.png",
+    )
+    news_is_active = models.BooleanField("Рассылка активна", default=True, db_index=True)
+
+    # Вариативные права только для MANAGER
+    can_mark_final_act = models.BooleanField(
+        _("может отмечать итоговый акт сформированным"),
+        default=False,
+        help_text=_("Только для категории MANAGER"),
+    )
+    can_edit_system_checklist = models.BooleanField(
+        _("может редактировать чек-лист Системы"),
+        default=False,
+        help_text=_("Только для категории MANAGER"),
+    )
+    can_edit_signing_stages = models.BooleanField(
+        _("может редактировать стадии подписания"),
+        default=False,
+        help_text=_("Только для категории MANAGER"),
+    )
+    can_edit_interim_act = models.BooleanField(
+        _("может редактировать этапные акты"),
+        default=False,
+        help_text=_("Только для категории MANAGER"),
     )
 
-    # пермиссии (на уровне User – чтобы не создавать Employee для гостя)
-    can_edit_systems = models.BooleanField(
-        "Может редактировать чек-лист Системы",
-        default=False
+    is_system = models.BooleanField(
+        "Системный пользователь",
+        default=False,
+        editable=False,
+        help_text="Пользователь от имени системы (уведомления, чат-боты и т.д.)",
     )
-
-    can_edit_sign_stage = models.BooleanField(
-        "Может редактировать чек-лист Стадии подписания",
-        default=False
-    )
-
-    # редактировать, добавлять, удалять - 1. компании, 2. АК
-    # редактировать акты итог, акты этап, объект, привязывать/отвязывать ак ???
-
 
     class Meta:
-        verbose_name = "Пользователь"
-        verbose_name_plural = "Пользователи"
+        verbose_name = _("пользователь")
+        verbose_name_plural = _("пользователи")
 
     def __str__(self):
         return self.get_full_name() or self.username
 
-    # быстрые проверки
-    def is_admin(self) -> bool:
-        return self.category == self.Category.ADMIN
-
-    def is_manager(self) -> bool:
-        return self.category == self.Category.MANAGER
-
-    def is_guest(self) -> bool:
-        return self.category == self.Category.GUEST
-
-    def has_full_access(self) -> bool:
-        """Полный доступ – только у админа."""
-        return self.is_admin or self.is_superuser
+    def save(self, *args, **kwargs):
+        if self.is_system:
+            self.is_staff = False  # системный пользователь не должен иметь доступ в админку
+            self.is_superuser = False
+            self.set_unusable_password()  # запрещаем логин паролем
+        super().save(*args, **kwargs)
 
 
-# Employee остаётся как связь «пользователь ↔ компания»
 class Employee(models.Model):
-    class Role(models.TextChoices):
-        ADMIN = "admin", "Администратор"
-        MANAGER = "manager", "Менеджер"
-        EMPLOYEE = "employee", "Сотрудник"
-
+    """Связь пользователя с компанией (сотрудник компании)."""
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="employees")
     company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name="employees")
-    role = models.CharField("Роль в компании", max_length=10, choices=Role.choices, default=Role.EMPLOYEE)
-    is_active = models.BooleanField("Активен", default=True)
-
-    created_at = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(_("активен"), default=True)
+    created_at = models.DateTimeField(_("создан"), auto_now_add=True)
 
     class Meta:
         unique_together = ("user", "company")
-        verbose_name = "Сотрудник компании"
-        verbose_name_plural = "Сотрудники компании"
+        verbose_name = _("сотрудник компании")
+        verbose_name_plural = _("сотрудники компании")
 
     def __str__(self):
-        return f"{self.user} – {self.company} ({self.get_role_display()})"
-
-    # быстрые проверки ролей
-    def is_admin(self) -> bool:
-        return self.role == self.Role.ADMIN
-
-    def is_manager(self) -> bool:
-        return self.role == self.Role.MANAGER
-
-    def is_employee(self) -> bool:
-        return self.role == self.Role.EMPLOYEE
-
-    # делегирование пермиссий от User
-    @property
-    def can_delete_contract(self):
-        return self.user.can_delete_contract
-
-    @property
-    def can_edit_systems(self):
-        return self.user.can_edit_systems
-
-    @property
-    def can_edit_sign_stage(self):
-        return self.user.can_edit_sign_stage
+        return f"{self.user} – {self.company} ({'активен' if self.is_active else 'не активен'})"

@@ -1,22 +1,24 @@
 # apps/contract_core/managers.py
-from django.db import models
-from django.contrib.auth import get_user_model
-
-User = get_user_model()
+from django.db.models import Manager
 
 
-class ContractQuerySet(models.QuerySet):
-    def for_user(self, user: User):
-        """Оставляем только договоры компаний, в которых пользователь – активный сотрудник."""
-        if user.is_superuser:
-            return self
-        company_ids = user.employees.filter(is_active=True).values_list("company_id", flat=True)
-        return self.filter(executor_id__in=company_ids)
-
-
-class ContractManager(models.Manager):
-    def get_queryset(self):
-        return ContractQuerySet(self.model, using=self._db)
-
+class ContractManager(Manager):
     def for_user(self, user):
-        return self.get_queryset().for_user(user)
+        """
+        Возвращает queryset договоров, которые может видеть данный пользователь.
+        """
+        if not user or not user.is_authenticated:
+            return self.none()
+
+        # Здесь можно получить модель User, если нужно
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+
+        if user.is_superuser or user.category == User.Category.ADMIN:
+            return self.all()
+
+        # Для всех остальных — только свои компании-исполнители
+        return self.filter(
+            executor__employees__user=user,
+            executor__employees__is_active=True
+        ).distinct()

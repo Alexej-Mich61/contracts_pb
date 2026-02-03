@@ -1,6 +1,6 @@
 # apps/contract_core/services/status_service.py
 from django.utils import timezone
-from apps.contract_core.models import Contract, ContractSettings  # ← добавь ContractSettings
+from apps.contract_core.models import Contract, ContractSettings
 
 
 class ContractStatusCalculator:
@@ -52,7 +52,7 @@ class ContractStatusCalculator:
 
         # 2. Разовые договоры (лицензиат или лаборатория)
         if contract.type in (Contract.Type.ONEOFF_LICENSEE, Contract.Type.ONEOFF_LAB):
-            if contract.final_act_present:
+            if hasattr(contract, 'final_act') and contract.final_act.present:
                 return Contract.STATUS_COMPLETED
 
             if today < contract.date_start:

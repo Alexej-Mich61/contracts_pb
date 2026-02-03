@@ -2,19 +2,22 @@
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.core.validators import FileExtensionValidator, MaxValueValidator, MinValueValidator
-
-from .managers import ContractManager
-from .validators import inn_validator, file_validator
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+from django.db.models import Q
 from django.db import models
 from django.utils import timezone
 import datetime
-from apps.contract_core.services import ContractStatusCalculator
+
+from config.middleware import get_current_user
+from .managers import ContractManager
+from .validators import inn_validator, file_validator
+from .services import ContractStatusCalculator
 
 User = get_user_model()
 
 
-
-
+# ---------- НАСТРОЙКА ДЛЯ СТАТУСОВ КОНТРАКТОВ ----------
 class ContractSettings(models.Model):
     """Единая строка на весь проект – настройки расчёта статусов контрактов."""
     days_before_expires = models.PositiveSmallIntegerField(
@@ -45,13 +48,11 @@ class ContractSettings(models.Model):
     @classmethod
     def get_settings(cls):
         """Получить единственную запись настроек (создаёт, если нет)."""
-        obj, created = cls.objects.get_or_create(pk=1)  # или без pk, если не принципиально
+        obj, created = cls.objects.get_or_create(pk=1)
         return obj
 
 
-
 # ---------- СПРАВОЧНИКИ (регион/район) ----------
-
 class Region(models.Model):
     name = models.CharField("Наименование", max_length=100, unique=True)
     fias_code = models.CharField("Код ФИАС", max_length=50, blank=True, null=True)
@@ -83,39 +84,32 @@ class District(models.Model):
 
 
 # ---------- РАБОТЫ ----------
-
 class Work(models.Model):
     """Справочник видов работ (3 типа)."""
-    WORK_TYPE_ONEOFF_LICENSEE = "work_oneoff_licensee"
-    WORK_TYPE_LONGTERM_TO_LICENSEE = "work_longterm_to_licensee"
-    WORK_TYPE_ONEOFF_LAB = "work_oneoff_lab"
-
-    WORK_TYPE_CHOICES = (
-        (WORK_TYPE_ONEOFF_LICENSEE, "Разовая работа (лицензиат)"),
-        (WORK_TYPE_LONGTERM_TO_LICENSEE, "Периодическая работа ТО (лицензиат)"),
-        (WORK_TYPE_ONEOFF_LAB, "Разовая работа (лаборатория)"),
-    )
+    class WorkType(models.TextChoices):
+        ONEOFF_LICENSEE = "work_oneoff_licensee", "Разовая работа (лицензиат)"
+        LONGTERM_TO_LICENSEE = "work_longterm_to_licensee", "Периодическая работа ТО (лицензиат)"
+        ONEOFF_LAB = "work_oneoff_lab", "Разовая работа (лаборатория)"
 
     name = models.CharField("Наименование работы", max_length=255, db_index=True)
-    is_active = models.BooleanField(default=True)
-    work_type = models.CharField("Тип работы", max_length=25, choices=WORK_TYPE_CHOICES, db_index=True)
+    is_active = models.BooleanField("Активна", default=True)
+    work_type = models.CharField("Тип работы", max_length=25, choices=WorkType.choices, db_index=True)
 
     class Meta:
         verbose_name = "Вид работы"
         verbose_name_plural = "Виды работ"
         ordering = ["name"]
-        # уникальность только по паре «название + тип»
-        unique_together = ("name", "work_type")
+        constraints = [
+            models.UniqueConstraint(fields=['name', 'work_type'], name='work_name_type_unique'),
+        ]
 
     def __str__(self):
         return f"{self.get_work_type_display()} – {self.name}"
 
 
-# ---------- КОМПАНИИ (заказчики, исполнители (лицензиат, лаборатория), субподрядчики) ----------
-
+# ---------- КОМПАНИИ ----------
 class Company(models.Model):
     """Справочник организаций: заказчик, лицензиат, лаборатория, субподрядчик."""
-    # роли
     is_customer = models.BooleanField("Заказчик", default=True, db_index=True)
     is_licensee = models.BooleanField("Лицензиат МЧС", default=False, db_index=True)
     is_laboratory = models.BooleanField("Лаборатория", default=False, db_index=True)
@@ -125,7 +119,7 @@ class Company(models.Model):
     inn = models.CharField(
         "ИНН",
         max_length=12,
-        unique=True,          # ← уникальность
+        unique=True,
         validators=[inn_validator],
         help_text="10 цифр – юрлицо, 12 – физлицо",
     )
@@ -141,8 +135,6 @@ class Company(models.Model):
         verbose_name = "Организация"
         verbose_name_plural = "Организации"
         ordering = ["name"]
-
-        # составной индекс «роль + название» — ускоряет фильтры админки
         indexes = [
             models.Index(fields=["name"]),
             models.Index(fields=["inn"]),
@@ -153,31 +145,168 @@ class Company(models.Model):
         ]
 
     def __str__(self):
+        return self.name or f"Компания {self.pk}"
+
+    def validate_unique(self, exclude=None):
+        super().validate_unique(exclude=exclude)
+        if self.inn:
+            qs = Company.objects.filter(inn=self.inn)
+            if self.pk:
+                qs = qs.exclude(pk=self.pk)
+            if qs.exists():
+                raise ValidationError({
+                    'inn': f"Компания с ИНН «{self.inn}» уже существует в базе."
+                })
+
+    def clean(self):
+        if not any([self.is_customer, self.is_licensee, self.is_laboratory, self.is_subcontractor]):
+            raise ValidationError("Необходимо выбрать хотя бы одну роль организации.")
+
+
+# ---------- СПРАВОЧНИК СТАДИЙ ПОДПИСАНИЯ ----------
+class SigningStage(models.Model):
+    """Справочник стадий подписания договора."""
+    name = models.CharField("Название стадии", max_length=50, unique=True)
+    slug = models.SlugField("Код стадии", max_length=50, unique=True)
+    order = models.PositiveSmallIntegerField("Порядок отображения", default=0)
+    is_final = models.BooleanField(
+        "Финальная стадия",
+        default=False,
+        help_text="Например, Подписан, Расторжение"
+    )
+
+    class Meta:
+        verbose_name = "Стадия подписания"
+        verbose_name_plural = "Стадии подписания"
+        ordering = ["order", "name"]
+
+    def __str__(self):
         return self.name
 
 
-    def clean(self):
-        # проверка «хотя бы одна роль» (уже было)
-        if not any((self.is_customer, self.is_licensee, self.is_laboratory, self.is_subcontractor)):
-            raise ValidationError("Необходимо выбрать хотя бы одну роль организации.")
+# ---------- ТЕКУЩАЯ СТАДИЯ ПОДПИСАНИЯ ДОГОВОРА ----------
+class ContractSigningStage(models.Model):
+    """Текущая стадия подписания конкретного договора (одна на договор)."""
+    contract = models.OneToOneField(
+        'Contract',
+        on_delete=models.CASCADE,
+        related_name='signing_stage',
+        verbose_name="Договор"
+    )
+    stage = models.ForeignKey(
+        SigningStage,
+        on_delete=models.PROTECT,
+        verbose_name="Текущая стадия"
+    )
+    changed_at = models.DateTimeField("Дата изменения", auto_now=True)
+    changed_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name="Кто изменил",
+        related_name="changed_signing_stages",
+        editable=False,
+    )
+    note = models.TextField("Примечание", blank=True, max_length=200)
 
-        # дружелюбное сообщение при дубле ИНН
-        if self.inn:  # заполнено
-            qs = Company.objects.filter(inn=self.inn)
-            if self.pk:  # редактирование – исключаем себя
-                qs = qs.exclude(pk=self.pk)
-            if qs.exists():
-                raise ValidationError(
-                    {"inn": f"Компания с ИНН «{self.inn}» уже существует в базе. "
-                            f"Проверьте справочник или обратитесь к администратору."}
-                )
+    def save(self, *args, **kwargs):
+        current_user = get_current_user()
+        if current_user and not self.pk:
+            self.changed_by = current_user
+        super().save(*args, **kwargs)
+
+    class Meta:
+        verbose_name = "Стадия подписания договора"
+        verbose_name_plural = "Стадии подписания договоров"
+        ordering = ["changed_at"]
+        permissions = [
+            ("can_edit_signing_stages", "Может редактировать стадии подписания"),
+        ]
+
+    def __str__(self):
+        try:
+            return f"{self.contract} — {self.stage}"
+        except:
+            return f"Стадия для договора {self.contract_id}"
 
 
-# ---------- КОНТРАКТ (основная модель) ----------
+# ---------- СПРАВОЧНИК СИСТЕМ ----------
+class SystemType(models.Model):
+    """Справочник систем, которые нужно проверять/отмечать."""
+    name = models.CharField("Название системы", max_length=100, unique=True)
+    slug = models.SlugField("Слаг системы", max_length=50, unique=True)
+    description = models.TextField("Описание", blank=True)
+    is_active = models.BooleanField("Активна", default=True)
+
+    class Meta:
+        verbose_name = "Тип системы"
+        verbose_name_plural = "Типы систем"
+        ordering = ["name"]
+
+    def __str__(self):
+        return self.name
 
 
+# ---------- ОТМЕТКИ ПО СИСТЕМАМ ----------
+class ContractSystemCheck(models.Model):
+    """Отметка проверки/действия по конкретной системе для договора."""
+    contract = models.ForeignKey(
+        'Contract',
+        on_delete=models.CASCADE,
+        related_name='system_checks',
+        verbose_name="Договор"
+    )
+    system_type = models.ForeignKey(
+        SystemType,
+        on_delete=models.PROTECT,
+        verbose_name="Система"
+    )
+    last_checked = models.DateField(
+        "Дата последней отметки",
+        null=True,
+        blank=True,
+        verbose_name="Дата проверки"
+    )
+    checked_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name="Кто отметил",
+        related_name="system_checks",
+        editable=False,
+    )
+    note = models.CharField("Примечание", max_length=200, blank=True)
+
+    def save(self, *args, **kwargs):
+        current_user = get_current_user()
+        if current_user and not self.pk:
+            self.checked_by = current_user
+        super().save(*args, **kwargs)
+
+    class Meta:
+        verbose_name = "Проверка системы"
+        verbose_name_plural = "Проверки систем"
+        unique_together = ('contract', 'system_type')
+        ordering = ['system_type__name']
+        permissions = [
+            ("can_edit_system_checklist", "Может редактировать чек-лист систем"),
+        ]
+        indexes = [
+            models.Index(fields=['last_checked']),
+        ]
+
+    def __str__(self):
+        date_str = self.last_checked.strftime("%d.%m.%Y") if self.last_checked else "не отмечено"
+        try:
+            return f"{self.contract} — {self.system_type} ({date_str})"
+        except:
+            return f"Проверка системы для договора {self.contract_id}"
+
+
+# ---------- КОНТРАКТ (ОСНОВНАЯ МОДЕЛЬ) ----------
 class Contract(models.Model):
-    # аналогично Work
     class Type(models.TextChoices):
         ONEOFF_LICENSEE = "oneoff_licensee", "Разовый (лицензиат)"
         LONGTERM_TO_LICENSEE = "longterm_to_licensee", "Долгосрочный ТО (лицензиат)"
@@ -191,7 +320,7 @@ class Contract(models.Model):
     type = models.CharField("Тип договора", max_length=25, choices=Type.choices, db_index=True)
     number = models.CharField("Номер договора", max_length=50, blank=True, null=True)
     date_concluded = models.DateField("Дата заключения", blank=True, null=True)
-    # заказчик
+
     customer = models.ForeignKey(
         Company,
         on_delete=models.PROTECT,
@@ -201,39 +330,25 @@ class Contract(models.Model):
     )
     date_start = models.DateField("Начало действия")
     date_end = models.DateField("Окончание действия")
-    # исполнитель
+
     executor = models.ForeignKey(
         Company,
         on_delete=models.PROTECT,
-        limit_choices_to={"is_licensee": True, "is_laboratory": True},  # проверить синтаксис
+        limit_choices_to=Q(is_licensee=True) | Q(is_laboratory=True),
         verbose_name="Исполнитель",
         related_name="contracts_executor",
     )
-    # работы
+
     work = models.ForeignKey(
         Work,
-        on_delete=models.PROTECT,  # ← ВАЖНО: не позволит удалить работу, если она используется в контрактах
-        related_name="contracts",  # contracts.work — все контракты с этой работой
+        on_delete=models.PROTECT,
+        related_name="contracts",
         verbose_name="Вид работы",
     )
+
     note = models.TextField("Примечание", blank=True, null=True)
 
-    # ---------- ЧЕК-ЛИСТ: СИСТЕМЫ ----------
-    gos_services = models.DateField(blank=True, null=True, verbose_name="Госуслуги")
-    oko          = models.DateField(blank=True, null=True, verbose_name="ОКО")
-    spolokh      = models.DateField(blank=True, null=True, verbose_name="Сполох")
-
-    # ---------- ЧЕК-ЛИСТ: СТАДИЯ ПОДПИСАНИЯ ----------
-    contract_to_be_signed              = models.BooleanField(default=True, verbose_name="На подписании")
-    contract_signed                    = models.BooleanField(default=False, verbose_name="Подписан")
-    contract_signed_in_trading_platform= models.BooleanField(default=False, verbose_name="Торги")
-    contract_signed_in_EDO             = models.BooleanField(default=False, verbose_name="ЭДО")
-    contract_original_received         = models.BooleanField(default=False, verbose_name="Бумажный оригинал")
-    contract_termination               = models.BooleanField(default=False, verbose_name="Расторжение")
-    note_on_the_signing_stages = models.TextField(
-        "Примечание к стадиям подписания", max_length=50, blank=True, null=True)
-
-    # Файлы (1 шт., необязательные)
+    # Файлы
     file = models.FileField(
         "Файл договора",
         upload_to="contracts/%Y/%m/%d",
@@ -248,12 +363,11 @@ class Contract(models.Model):
     advance = models.DecimalField("Аванс", max_digits=12, decimal_places=2, default=0.00)
 
     # Статус
-    STATUS_PENDING = "pending"               # ожидание
-    STATUS_ACTIVE = "active"                 # действует
-    STATUS_ACTIVE_EXPIRES = "active_expires" # истекает
-    STATUS_ACTIVE_EXPIRED = "active_expired" # истёк
-    STATUS_COMPLETED = "completed"            # завершён
-
+    STATUS_PENDING = "pending"
+    STATUS_ACTIVE = "active"
+    STATUS_ACTIVE_EXPIRES = "active_expires"
+    STATUS_ACTIVE_EXPIRED = "active_expired"
+    STATUS_COMPLETED = "completed"
     STATUS_CHOICES = (
         (STATUS_PENDING, "Ожидание"),
         (STATUS_ACTIVE, "Действует"),
@@ -262,22 +376,37 @@ class Contract(models.Model):
         (STATUS_COMPLETED, "Завершён"),
     )
     status = models.CharField(
-        "Статус", max_length=15, choices=STATUS_CHOICES,
-        default=STATUS_PENDING, db_index=True)
-
-    # Акт итоговый
-    final_act_date = models.DateField("Дата итогового акта", blank=True, null=True)
-    final_act_present = models.BooleanField("Итоговый акт сформирован", default=False, editable=False)
+        "Статус",
+        max_length=15,
+        choices=STATUS_CHOICES,
+        default=STATUS_PENDING,
+        db_index=True
+    )
 
     # Служебные
     created_at = models.DateTimeField("Создан", auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField("Изменён", auto_now=True)
-    # как автоматом получить Юзера????
-    creator = models.ForeignKey(User, on_delete=models.PROTECT, verbose_name="Автор", related_name="contracts_created")
-    updater = models.ForeignKey(User, on_delete=models.PROTECT, verbose_name="Обновил", related_name="contracts_updated")
 
-    # менеджер
-    objects = ContractManager()    # разобраться в apps/contract_core/managers.py
+    creator = models.ForeignKey(
+        User,
+        on_delete=models.PROTECT,
+        verbose_name="Автор",
+        related_name="contracts_created",
+        null=True,
+        blank=True,
+        editable=False,
+    )
+    updater = models.ForeignKey(
+        User,
+        on_delete=models.PROTECT,
+        verbose_name="Обновил",
+        related_name="contracts_updated",
+        null=True,
+        blank=True,
+        editable=False,
+    )
+
+    objects = ContractManager()
 
     class Meta:
         verbose_name = "Договор"
@@ -290,24 +419,80 @@ class Contract(models.Model):
             models.Index(fields=["is_archived"]),
         ]
 
-    # --------- служебные методы ---------
     def save(self, *args, **kwargs):
-        # Вычисляем статус перед сохранением
+        current_user = get_current_user()
+        if current_user:
+            if not self.pk:  # создание
+                self.creator = current_user
+            self.updater = current_user  # всегда обновляем
+
+        # Пересчёт статуса
         new_status = ContractStatusCalculator.calculate_status(self)
         if new_status != self.status:
             self.status = new_status
 
         super().save(*args, **kwargs)
 
-    # --------- представления ---------
     def __str__(self):
-        return f"{self.number or 'б/н'} ({self.get_type_display()})" # нужен метод этот?
+        try:
+            return f"{self.number or 'б/н'} ({self.get_type_display()})"
+        except:
+            return f"Договор {self.pk}"
 
 
+# ---------- ИТОГОВЫЙ АКТ ----------
+class FinalAct(models.Model):
+    """Итоговый акт по договору (один на договор)."""
+    contract = models.OneToOneField(
+        'Contract',
+        on_delete=models.CASCADE,
+        related_name='final_act',
+        verbose_name="Договор"
+    )
+    present = models.BooleanField("Акт сформирован", default=False)
+    date = models.DateField("Дата итогового акта", blank=True, null=True)
+    file = models.FileField(
+        "Файл акта",
+        upload_to="acts_final/%Y/%m/%d",
+        blank=True,
+        null=True,
+        validators=[file_validator],
+        help_text="Любой формат, кроме .exe и пр. До 100 МБ",
+    )
+    checked_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name="Кто отметил",
+        related_name="final_acts_checked",
+        editable=False,
+    )
+    checked_at = models.DateTimeField("Дата отметки", auto_now_add=True, blank=True)
+    note = models.TextField("Примечание к акту", blank=True, max_length=200)
 
-# ---------- СВЯЗАННЫЕ МОДЕЛИ ----------
+    class Meta:
+        verbose_name = "Итоговый акт"
+        verbose_name_plural = "Итоговые акты"
+        permissions = [
+            ("can_mark_final_act", "Может отмечать итоговый акт сформированным"),
+        ]
+
+    def __str__(self):
+        status = "сформирован" if self.present else "не сформирован"
+        try:
+            return f"Акт по {self.contract} — {status}"
+        except:
+            return f"Акт {self.pk}"
+
+    def mark_as_present(self, user: User):
+        self.present = True
+        self.checked_by = user
+        self.checked_at = timezone.now()
+        self.save(update_fields=['present', 'checked_by', 'checked_at'])
 
 
+# ---------- ПРОМЕЖУТОЧНЫЙ АКТ ----------
 class InterimAct(models.Model):
     """Промежуточный этапный акт (много штук к одному договору)."""
     contract = models.ForeignKey(Contract, on_delete=models.CASCADE, related_name="interim_acts")
@@ -325,20 +510,33 @@ class InterimAct(models.Model):
         verbose_name = "Промежуточный акт"
         verbose_name_plural = "Промежуточные акты"
         ordering = ["date"]
+        permissions = [
+            ("can_edit_interim_act", "Может редактировать промежуточные акты"),
+        ]
 
     def __str__(self):
-        return f"{self.title} от {self.date} (договор {self.contract.number or 'б/н'})"
+        try:
+            return f"{self.title} от {self.date} (договор {self.contract.number or self.contract.pk})"
+        except:
+            return f"Промежуточный акт {self.pk}"
 
 
+# ---------- ОБЪЕКТЫ ЗАЩИТЫ ----------
 class ProtectionObject(models.Model):
     """Объект защиты (много штук к одному договору)."""
-    contract = models.ForeignKey(Contract, on_delete=models.CASCADE, related_name="objects") # разобраться с on_delete
+    contract = models.ForeignKey(Contract, on_delete=models.CASCADE, related_name="objects")
     name = models.CharField("Наименование", max_length=255)
-    region = models.ForeignKey(Region, on_delete=models.PROTECT, verbose_name="Регион", related_name="objects")
-    district = models.ForeignKey(District, on_delete=models.PROTECT, verbose_name="Район", related_name="objects")
+    district = models.ForeignKey(
+        District,
+        on_delete=models.PROTECT,
+        verbose_name="Район",
+        related_name="protection_objects",
+        null=True,
+        blank=True
+    )
     address = models.TextField("Адрес")
     contacts = models.TextField("Контакты", blank=True, null=True)
-    # субподрядчик
+
     subcontractor = models.ForeignKey(
         Company,
         on_delete=models.PROTECT,
@@ -348,11 +546,23 @@ class ProtectionObject(models.Model):
         null=True,
         related_name="protection_objects_sub",
     )
-    # финансы субподрядчик
+
     total_sum_subcontract = models.DecimalField(
-        "Сумма субконтракта общая", max_digits=12, decimal_places=2, default=0.00)
+        "Сумма субконтракта общая",
+        max_digits=12,
+        decimal_places=2,
+        default=0.00
+    )
     monthly_sum_subcontract = models.DecimalField(
-        "Сумма субконтракта в месяц", max_digits=12, decimal_places=2, default=0.00)
+        "Сумма субконтракта в месяц",
+        max_digits=12,
+        decimal_places=2,
+        default=0.00
+    )
+
+    @property
+    def region(self):
+        return self.district.region if self.district else None
 
     class Meta:
         verbose_name = "Объект защиты"
@@ -360,33 +570,26 @@ class ProtectionObject(models.Model):
         ordering = ["name"]
 
     def __str__(self):
-        return f"{self.name} ({self.region} – {self.district})"
+        loc = f" ({self.region} – {self.district})" if self.district else ""
+        return f"{self.name}{loc}"
 
 
+# ---------- АБОНЕНТСКИЕ КОМПЛЕКТЫ ----------
 class Ak(models.Model):
-    """Абонентский комплект (много-ко-многим к объектам защиты + регион/район)."""
-    # связь M2M с ProtectionObject (чтобы один и тот же АК мог висеть у разных объектов)
+    """Абонентский комплект (много-ко-многим к объектам защиты)."""
     protection_objects = models.ManyToManyField(
         ProtectionObject,
         related_name="aks",
         verbose_name="Объекты защиты",
         blank=True,
     )
-    region = models.ForeignKey(
-        Region,
-        on_delete=models.PROTECT,
-        verbose_name="Регион установки",
-        null=True,
-        blank=True,
-    )
     district = models.ForeignKey(
         District,
         on_delete=models.PROTECT,
         verbose_name="Район установки",
-        null=True,
         blank=True,
+        null=True,
     )
-
     number = models.PositiveIntegerField(
         "Номер АК",
         validators=[MinValueValidator(1), MaxValueValidator(99999999)],
@@ -395,17 +598,18 @@ class Ak(models.Model):
     name = models.CharField("Наименование", max_length=255)
     address = models.TextField("Адрес установки")
 
-    # защита от физического удаления – запретим в админке / signals
+    @property
+    def region(self):
+        return self.district.region if self.district else None
+
     class Meta:
         verbose_name = "Абонентский комплект (АК)"
         verbose_name_plural = "Абонентские комплекты (АК)"
-        unique_together = ("number", "region", "district")   # уникальность по номеру + регион + район
+        unique_together = ("number", "district")
         ordering = ["number"]
-
-        # быстрый поиск по номеру + регион/район
         indexes = [
             models.Index(fields=["number"], name="ak_number_idx"),
-            models.Index(fields=["region", "district"], name="ak_region_district_idx"),
+            models.Index(fields=["district"], name="ak_district_idx"),
         ]
 
     def __str__(self):

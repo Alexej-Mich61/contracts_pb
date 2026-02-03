@@ -1,80 +1,36 @@
 # apps/contract_core/resources.py
-from import_export import resources, fields
-
-from .models import Ak
-
-
-class AkResource(resources.ModelResource):
-    """
-    Ресурс для импорта/экспорта АК.
-    Порядок колонок: number, name, address
-    """
-
-    class Meta:
-        model = Ak
-        fields = ('number', 'name', 'address')
-        import_id_fields = ()  # Всегда создавать новые записи, не обновлять
-        skip_unchanged = True
-
-    def before_import(self, dataset, **kwargs):
-        """
-        Валидация данных перед импортом.
-        """
-        errors = []
-        headers = dataset.headers or ['number', 'name', 'address']  # assume order
-        for i, row in enumerate(dataset, start=1):  # rows start from 1 after header
-            row_dict = dict(zip(headers, row))
-            number = row_dict.get('number')
-            name = row_dict.get('name')
-            address = row_dict.get('address')
-
-            # Проверка обязательных полей
-            if not number or not name or not address:
-                errors.append(f"Строка {i}: Все поля обязательны (number, name, address).")
-                continue
-
-            # Убрал проверку уникальности, так как может быть несколько АК с одинаковым номером в разных регионах/районах
-
-        if errors:
-            raise ValueError("Ошибки в данных таблицы:\n" + "\n".join(errors))
-
-    def before_import_row(self, row, **kwargs):
-        """
-        Подготовка строки перед импортом (уже валидировано в before_import).
-        """
-        # Можно добавить дополнительную обработку, если нужно
-        pass
-
+from import_export import resources
+from import_export.widgets import BooleanWidget
+from .models import Company, Ak
+from .validators import inn_validator
+from django.core.exceptions import ValidationError
 
 
 class CompanyResource(resources.ModelResource):
-    """
-    Ресурс для импорта/экспорта компаний.
-    Порядок колонок: name, inn, is_customer, is_licensee, is_lab, is_subcontractor
-    """
-
+    """Ресурс для импорта/экспорта компаний."""
     class Meta:
         model = Company
-        fields = ('name', 'inn', 'is_customer', 'is_licensee', 'is_lab', 'is_subcontractor')
-        import_id_fields = ()  # Всегда создавать новые записи, не обновлять
+        fields = ('name', 'inn', 'is_customer', 'is_licensee', 'is_laboratory', 'is_subcontractor')
+        export_order = fields
+        import_id_fields = ()  # всегда создавать новые записи
         skip_unchanged = True
 
     def before_import(self, dataset, **kwargs):
-        """
-        Валидация данных перед импортом.
-        """
+        """Валидация данных перед импортом."""
         errors = []
-        headers = dataset.headers or ['name', 'inn', 'is_customer', 'is_licensee', 'is_lab', 'is_subcontractor']  # assume order
-        for i, row in enumerate(dataset, start=1):  # rows start from 1 after header
+        headers = dataset.headers or ['name', 'inn', 'is_customer', 'is_licensee', 'is_laboratory', 'is_subcontractor']
+
+        for i, row in enumerate(dataset, start=1):
             row_dict = dict(zip(headers, row))
+
             name = row_dict.get('name')
             inn = row_dict.get('inn')
             is_customer = row_dict.get('is_customer')
             is_licensee = row_dict.get('is_licensee')
-            is_lab = row_dict.get('is_lab')
+            is_laboratory = row_dict.get('is_laboratory')
             is_subcontractor = row_dict.get('is_subcontractor')
 
-            # Проверка обязательных полей
+            # Обязательные поля
             if not name or not inn:
                 errors.append(f"Строка {i}: Поля name и inn обязательны.")
                 continue
@@ -83,26 +39,61 @@ class CompanyResource(resources.ModelResource):
             try:
                 inn_validator(inn)
             except ValidationError as e:
-                errors.append(f"Строка {i}: Неверный ИНН - {e.message}")
+                errors.append(f"Строка {i}: {e.message}")
                 continue
 
-            # Проверка уникальности ИНН в БД
+            # Уникальность ИНН в базе
             if Company.objects.filter(inn=inn).exists():
-                errors.append(f"Строка {i}: Компания с ИНН {inn} уже существует в базе данных.")
+                errors.append(f"Строка {i}: ИНН {inn} уже существует в базе.")
                 continue
 
-            # Проверка ролей: хотя бы одна True
-            roles = [is_customer, is_licensee, is_lab, is_subcontractor]
+            # Хотя бы одна роль True
+            roles = [is_customer, is_licensee, is_laboratory, is_subcontractor]
             if not any(roles):
-                errors.append(f"Строка {i}: Хотя бы одна роль (is_customer, is_licensee, is_lab, is_subcontractor) должна быть True.")
+                errors.append(f"Строка {i}: Хотя бы одна роль должна быть True.")
                 continue
 
         if errors:
-            raise ValueError("Ошибки в данных таблицы:\n" + "\n".join(errors))
+            raise ValueError("Ошибки импорта:\n" + "\n".join(errors))
 
     def before_import_row(self, row, **kwargs):
-        """
-        Подготовка строки перед импортом (уже валидировано в before_import).
-        """
-        # Можно добавить дополнительную обработку, если нужно
-        pass
+        """Преобразование булевых значений из разных форматов."""
+        for field in ['is_customer', 'is_licensee', 'is_laboratory', 'is_subcontractor']:
+            val = row.get(field)
+            if val in ('True', '1', 'Да', 'yes', 'true', 't', 'Y'):
+                row[field] = True
+            elif val in ('False', '0', 'Нет', 'no', 'false', 'f', 'N', ''):
+                row[field] = False
+            else:
+                row[field] = False  # fallback
+
+
+class AkResource(resources.ModelResource):
+    """Ресурс для импорта/экспорта АК."""
+    class Meta:
+        model = Ak
+        fields = ('number', 'name', 'address', 'district')
+        export_order = fields
+        import_id_fields = ()
+        skip_unchanged = True
+
+    def before_import(self, dataset, **kwargs):
+        """Валидация перед импортом."""
+        errors = []
+        for i, row in enumerate(dataset, start=1):
+            number = row[0] if len(row) > 0 else None
+            name = row[1] if len(row) > 1 else None
+            address = row[2] if len(row) > 2 else None
+            district_id = row[3] if len(row) > 3 else None
+
+            if not number or not name or not address:
+                errors.append(f"Строка {i}: Поля number, name, address обязательны.")
+                continue
+
+            # Уникальность: номер + район
+            if district_id and Ak.objects.filter(number=number, district_id=district_id).exists():
+                errors.append(f"Строка {i}: АК с номером {number} уже существует в этом районе.")
+                continue
+
+        if errors:
+            raise ValueError("Ошибки импорта:\n" + "\n".join(errors))
