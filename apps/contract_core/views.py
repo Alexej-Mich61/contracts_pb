@@ -43,7 +43,7 @@ class AkListView(LoginRequiredMixin, ListView):
 class AkCreateView(LoginRequiredMixin, CreateView):
     model = Ak
     template_name = "catalogs/ak_form.html"
-    fields = ['number', 'name', 'address', 'region', 'district']
+    fields = ['number', 'name', 'address', 'district']
     success_url = reverse_lazy('contract_core:ak_list')
 
     def form_valid(self, form):
@@ -58,7 +58,7 @@ class CompaniesListView(LoginRequiredMixin, ListView):
 class CompanyCreateView(LoginRequiredMixin, CreateView):
     model = Company
     template_name = "catalogs/company_form.html"
-    fields = ['name', 'inn', 'fias_code', 'is_customer', 'is_licensee', 'is_lab', 'is_subcontractor']
+    fields = ['name', 'inn', 'fias_code', 'is_customer', 'is_licensee', 'is_laboratory', 'is_subcontractor']
     success_url = reverse_lazy('contract_core:companies_list')
 
     def form_valid(self, form):

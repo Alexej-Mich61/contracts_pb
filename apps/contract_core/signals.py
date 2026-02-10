@@ -8,6 +8,8 @@ from .models import (
     SigningStage, SystemType, FinalAct
 )
 
+
+
 @receiver(pre_delete, sender=Ak)
 def protect_ak_from_delete(sender, instance, **kwargs):
     if instance.protection_objects.exists():
@@ -48,3 +50,13 @@ def create_final_act_on_contract_creation(sender, instance, created, **kwargs):
     """
     if created:
         FinalAct.objects.get_or_create(contract=instance)
+
+@receiver(post_save, sender=FinalAct)
+def update_contract_status_on_final_act(sender, instance, created, **kwargs):
+    from .services import ContractStatusCalculator
+    if not created and instance.present:
+        contract = instance.contract
+        new_status = ContractStatusCalculator.calculate_status(contract)
+        if new_status != contract.status:
+            contract.status = new_status
+            contract.save(update_fields=['status'])

@@ -4,7 +4,7 @@
 
 {% block content %}
 <h1>Справочник Компаний</h1>
-<a href="{% url 'identity:company_create' %}" class="btn btn-primary mb-3">Добавить Компанию</a>
+<a href="{% url 'contract_core:company_create' %}" class="btn btn-primary mb-3">Добавить Компанию</a>
 <table class="table table-striped">
     <thead>
         <tr>
@@ -21,7 +21,7 @@
             <td>
                 {% if company.is_customer %}Заказчик {% endif %}
                 {% if company.is_licensee %}Лицензиат {% endif %}
-                {% if company.is_lab %}Лаборатория {% endif %}
+                {% if company.is_laboratory %}Лаборатория {% endif %}
                 {% if company.is_subcontractor %}Субподрядчик {% endif %}
             </td>
         </tr>

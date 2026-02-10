@@ -1,6 +1,6 @@
 # apps/contract_core/services/status_service.py
 from django.utils import timezone
-from apps.contract_core.models import Contract, ContractSettings
+
 
 
 class ContractStatusCalculator:
@@ -12,7 +12,7 @@ class ContractStatusCalculator:
     """
 
     @staticmethod
-    def calculate_status(contract: Contract) -> str:
+    def calculate_status(contract: 'Contract') -> str:
         """
         Вычисляет актуальный статус договора.
 
@@ -22,6 +22,9 @@ class ContractStatusCalculator:
         Returns:
             строка из Contract.STATUS_CHOICES (например, 'active', 'active_expires')
         """
+        # Импортируем модели внутри метода — цикл не возникает
+        from apps.contract_core.models import Contract, ContractSettings
+
         if contract.date_start is None or contract.date_end is None:
             return Contract.STATUS_PENDING
 

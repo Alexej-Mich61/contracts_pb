@@ -36,6 +36,7 @@ THIRD_PARTY_APPS = [
 ]
 
 LOCAL_APPS = [
+    "simple_history",
     "apps.identity",
     "apps.contract_core",
     "apps.audit",
@@ -55,6 +56,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'simple_history.middleware.HistoryRequestMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'config.middleware.CurrentUserMiddleware',  # ← мой middleware.py, путь указан от корня проекта

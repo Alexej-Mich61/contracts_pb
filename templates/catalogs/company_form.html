@@ -42,8 +42,8 @@
             </label>
         </div>
         <div class="form-check">
-            {{ form.is_lab }}
-            <label class="form-check-label" for="{{ form.is_lab.id_for_label }}">
+            {{ form.is_laboratory }}
+            <label class="form-check-label" for="{{ form.is_laboratory.id_for_label }}">
                 Лаборатория
             </label>
         </div>
@@ -58,6 +58,6 @@
         {% endif %}
     </div>
     <button type="submit" class="btn btn-primary">Сохранить</button>
-    <a href="{% url 'identity:companies_list' %}" class="btn btn-secondary">Отмена</a>
+    <a href="{% url 'contract_core:companies_list' %}" class="btn btn-secondary">Отмена</a>
 </form>
 {% endblock %}

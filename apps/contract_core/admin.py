@@ -1,6 +1,7 @@
 # apps/contract_core/admin.py
 from django.contrib import admin
 from import_export.admin import ImportExportModelAdmin
+from simple_history.admin import SimpleHistoryAdmin
 
 from .models import (
     ContractSettings, Region, District, Work, Company,
@@ -9,6 +10,15 @@ from .models import (
     ProtectionObject, Ak
 )
 from .resources import CompanyResource, AkResource
+
+
+class HistoryAdminMixin(SimpleHistoryAdmin):
+    """Базовый класс для всех админок с историей."""
+    history_list_display = [
+        'history_date',
+        'history_user',
+        'history_type'
+    ]
 
 
 # ---------- ИНЛАЙНЫ ----------
@@ -123,7 +133,7 @@ class SystemTypeAdmin(admin.ModelAdmin):
 
 
 @admin.register(Contract)
-class ContractAdmin(ImportExportModelAdmin):
+class ContractAdmin(HistoryAdminMixin, ImportExportModelAdmin):
     list_display = ('number', 'type', 'status', 'customer', 'executor', 'date_start', 'date_end')
     list_filter = ('type', 'status', 'is_trash', 'is_archived')
     search_fields = ('number', 'customer__name', 'executor__name')
@@ -153,7 +163,7 @@ class ContractAdmin(ImportExportModelAdmin):
 
 
 @admin.register(FinalAct)
-class FinalActAdmin(admin.ModelAdmin):
+class FinalActAdmin(HistoryAdminMixin):
     list_display = ('contract', 'present', 'date', 'checked_by', 'checked_at')
     list_filter = ('present',)
     search_fields = ('contract__number',)
@@ -161,28 +171,28 @@ class FinalActAdmin(admin.ModelAdmin):
 
 
 @admin.register(InterimAct)
-class InterimActAdmin(admin.ModelAdmin):
+class InterimActAdmin(HistoryAdminMixin):
     list_display = ('title', 'date', 'contract')
     list_filter = ('date',)
     search_fields = ('title', 'contract__number')
 
 
 @admin.register(ContractSigningStage)
-class ContractSigningStageAdmin(admin.ModelAdmin):
+class ContractSigningStageAdmin(HistoryAdminMixin):
     list_display = ('contract', 'stage', 'changed_at', 'changed_by')
     list_filter = ('stage',)
     search_fields = ('contract__number',)
 
 
 @admin.register(ContractSystemCheck)
-class ContractSystemCheckAdmin(admin.ModelAdmin):
+class ContractSystemCheckAdmin(HistoryAdminMixin):
     list_display = ('contract', 'system_type', 'last_checked', 'checked_by')
     list_filter = ('system_type', 'last_checked')
     search_fields = ('contract__number', 'system_type__name')
 
 
 @admin.register(ProtectionObject)
-class ProtectionObjectAdmin(admin.ModelAdmin):
+class ProtectionObjectAdmin(HistoryAdminMixin):
     list_display = ('name', 'contract', 'district', 'region_property', 'subcontractor')
     list_filter = ('district__region', 'subcontractor')
     search_fields = ('name', 'address', 'contract__number')

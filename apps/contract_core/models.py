@@ -8,13 +8,13 @@ from django.db.models import Q
 from django.db import models
 from django.utils import timezone
 import datetime
+from simple_history.models import HistoricalRecords
 
 from config.middleware import get_current_user
 from .managers import ContractManager
 from .validators import inn_validator, file_validator
 from .services import ContractStatusCalculator
 
-User = get_user_model()
 
 
 # ---------- НАСТРОЙКА ДЛЯ СТАТУСОВ КОНТРАКТОВ ----------
@@ -38,9 +38,7 @@ class ContractSettings(models.Model):
     class Meta:
         verbose_name = "Настройки статусов договоров"
         verbose_name_plural = "Настройки статусов договоров"
-        constraints = [
-            models.UniqueConstraint(fields=['pk'], name='singleton_settings'),
-        ]
+
 
     def __str__(self):
         return f"До «Истекает» {self.days_before_expires} дн., обновления в {self.longterm_status_time} и {self.oneoff_status_time}"
@@ -200,7 +198,7 @@ class ContractSigningStage(models.Model):
     )
     changed_at = models.DateTimeField("Дата изменения", auto_now=True)
     changed_by = models.ForeignKey(
-        User,
+        'identity.User',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
@@ -209,6 +207,10 @@ class ContractSigningStage(models.Model):
         editable=False,
     )
     note = models.TextField("Примечание", blank=True, max_length=200)
+
+    history = HistoricalRecords(
+        history_user_id_field=models.ForeignKey('identity.User', on_delete=models.SET_NULL, null=True),
+    )
 
     def save(self, *args, **kwargs):
         current_user = get_current_user()
@@ -263,13 +265,12 @@ class ContractSystemCheck(models.Model):
         verbose_name="Система"
     )
     last_checked = models.DateField(
-        "Дата последней отметки",
+        verbose_name="Дата последней отметки",
         null=True,
         blank=True,
-        verbose_name="Дата проверки"
     )
     checked_by = models.ForeignKey(
-        User,
+        'identity.User',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
@@ -278,6 +279,13 @@ class ContractSystemCheck(models.Model):
         editable=False,
     )
     note = models.CharField("Примечание", max_length=200, blank=True)
+
+    history = HistoricalRecords(
+        history_user_id_field=models.ForeignKey(
+            'identity.User',
+            on_delete=models.SET_NULL,
+            null=True),
+    )
 
     def save(self, *args, **kwargs):
         current_user = get_current_user()
@@ -388,7 +396,7 @@ class Contract(models.Model):
     updated_at = models.DateTimeField("Изменён", auto_now=True)
 
     creator = models.ForeignKey(
-        User,
+        'identity.User',
         on_delete=models.PROTECT,
         verbose_name="Автор",
         related_name="contracts_created",
@@ -397,7 +405,7 @@ class Contract(models.Model):
         editable=False,
     )
     updater = models.ForeignKey(
-        User,
+        'identity.User',
         on_delete=models.PROTECT,
         verbose_name="Обновил",
         related_name="contracts_updated",
@@ -407,6 +415,10 @@ class Contract(models.Model):
     )
 
     objects = ContractManager()
+
+    history = HistoricalRecords(
+        history_user_id_field=models.ForeignKey('identity.User', on_delete=models.SET_NULL, null=True),
+    )
 
     class Meta:
         verbose_name = "Договор"
@@ -460,7 +472,7 @@ class FinalAct(models.Model):
         help_text="Любой формат, кроме .exe и пр. До 100 МБ",
     )
     checked_by = models.ForeignKey(
-        User,
+        'identity.User',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
@@ -470,6 +482,10 @@ class FinalAct(models.Model):
     )
     checked_at = models.DateTimeField("Дата отметки", auto_now_add=True, blank=True)
     note = models.TextField("Примечание к акту", blank=True, max_length=200)
+
+    history = HistoricalRecords(
+        history_user_id_field=models.ForeignKey('identity.User', on_delete=models.SET_NULL, null=True),
+    )
 
     class Meta:
         verbose_name = "Итоговый акт"
@@ -485,7 +501,9 @@ class FinalAct(models.Model):
         except:
             return f"Акт {self.pk}"
 
-    def mark_as_present(self, user: User):
+    def mark_as_present(self, user: 'identity.User') -> None:
+        if not user or not user.is_authenticated:
+            raise ValueError("Нельзя отметить акт без пользователя")
         self.present = True
         self.checked_by = user
         self.checked_at = timezone.now()
@@ -504,6 +522,10 @@ class InterimAct(models.Model):
         blank=True,
         validators=[file_validator],
         help_text="Любой формат, кроме .exe и пр. До 100 МБ",
+    )
+
+    history = HistoricalRecords(
+        history_user_id_field=models.ForeignKey('identity.User', on_delete=models.SET_NULL, null=True),
     )
 
     class Meta:
@@ -558,6 +580,10 @@ class ProtectionObject(models.Model):
         max_digits=12,
         decimal_places=2,
         default=0.00
+    )
+
+    history = HistoricalRecords(
+        history_user_id_field=models.ForeignKey('identity.User', on_delete=models.SET_NULL, null=True),
     )
 
     @property
