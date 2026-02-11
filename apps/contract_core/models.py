@@ -165,7 +165,7 @@ class Company(models.Model):
 class SigningStage(models.Model):
     """Справочник стадий подписания договора."""
     name = models.CharField("Название стадии", max_length=50, unique=True)
-    slug = models.SlugField("Код стадии", max_length=50, unique=True)
+    slug = models.SlugField("Слаг стадии", max_length=50, unique=True)
     order = models.PositiveSmallIntegerField("Порядок отображения", default=0)
     is_final = models.BooleanField(
         "Финальная стадия",
@@ -208,9 +208,15 @@ class ContractSigningStage(models.Model):
     )
     note = models.TextField("Примечание", blank=True, max_length=200)
 
-    history = HistoricalRecords(
-        history_user_id_field=models.ForeignKey('identity.User', on_delete=models.SET_NULL, null=True),
-    )
+    # history = HistoricalRecords(
+    #     history_user_id_field=models.ForeignKey(
+    #         'identity.User',
+    #         on_delete=models.SET_NULL,
+    #         null=True,
+    #         db_constraint=False,
+    #     ),
+    #     history_change_reason_field=models.TextField(null=True, blank=True),
+    # )
 
     def save(self, *args, **kwargs):
         current_user = get_current_user()
@@ -280,12 +286,15 @@ class ContractSystemCheck(models.Model):
     )
     note = models.CharField("Примечание", max_length=200, blank=True)
 
-    history = HistoricalRecords(
-        history_user_id_field=models.ForeignKey(
-            'identity.User',
-            on_delete=models.SET_NULL,
-            null=True),
-    )
+    # history = HistoricalRecords(
+    #     history_user_id_field=models.ForeignKey(
+    #         'identity.User',
+    #         on_delete=models.SET_NULL,
+    #         null=True,
+    #         db_constraint=False,
+    #     ),
+    #     history_change_reason_field=models.TextField(null=True, blank=True),
+    # )
 
     def save(self, *args, **kwargs):
         current_user = get_current_user()
@@ -416,9 +425,15 @@ class Contract(models.Model):
 
     objects = ContractManager()
 
-    history = HistoricalRecords(
-        history_user_id_field=models.ForeignKey('identity.User', on_delete=models.SET_NULL, null=True),
-    )
+    # history = HistoricalRecords(
+    #     history_user_id_field=models.ForeignKey(
+    #         'identity.User',
+    #         on_delete=models.SET_NULL,
+    #         null=True,
+    #         db_constraint=False,
+    #     ),
+    #     history_change_reason_field=models.TextField(null=True, blank=True),
+    # )
 
     class Meta:
         verbose_name = "Договор"
@@ -483,9 +498,15 @@ class FinalAct(models.Model):
     checked_at = models.DateTimeField("Дата отметки", auto_now_add=True, blank=True)
     note = models.TextField("Примечание к акту", blank=True, max_length=200)
 
-    history = HistoricalRecords(
-        history_user_id_field=models.ForeignKey('identity.User', on_delete=models.SET_NULL, null=True),
-    )
+    # history = HistoricalRecords(
+    #     history_user_id_field=models.ForeignKey(
+    #         'identity.User',
+    #         on_delete=models.SET_NULL,
+    #         null=True,
+    #         db_constraint=False,
+    #     ),
+    #     history_change_reason_field=models.TextField(null=True, blank=True),
+    # )
 
     class Meta:
         verbose_name = "Итоговый акт"
@@ -524,9 +545,15 @@ class InterimAct(models.Model):
         help_text="Любой формат, кроме .exe и пр. До 100 МБ",
     )
 
-    history = HistoricalRecords(
-        history_user_id_field=models.ForeignKey('identity.User', on_delete=models.SET_NULL, null=True),
-    )
+    # history = HistoricalRecords(
+    #     history_user_id_field=models.ForeignKey(
+    #         'identity.User',
+    #         on_delete=models.SET_NULL,
+    #         null=True,
+    #         db_constraint=False,
+    #     ),
+    #     history_change_reason_field=models.TextField(null=True, blank=True),
+    # )
 
     class Meta:
         verbose_name = "Промежуточный акт"
@@ -582,9 +609,15 @@ class ProtectionObject(models.Model):
         default=0.00
     )
 
-    history = HistoricalRecords(
-        history_user_id_field=models.ForeignKey('identity.User', on_delete=models.SET_NULL, null=True),
-    )
+    # history = HistoricalRecords(
+    #     history_user_id_field=models.ForeignKey(
+    #         'identity.User',
+    #         on_delete=models.SET_NULL,
+    #         null=True,
+    #         db_constraint=False,
+    #     ),
+    #     history_change_reason_field=models.TextField(null=True, blank=True),
+    # )
 
     @property
     def region(self):

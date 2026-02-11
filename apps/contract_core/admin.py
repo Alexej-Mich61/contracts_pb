@@ -29,7 +29,7 @@ class FinalActInline(admin.StackedInline):
     fields = ('present', 'date', 'file', 'note', 'checked_by', 'checked_at')
     readonly_fields = ('checked_by', 'checked_at')
     verbose_name = "Итоговый акт"
-    verbose_name_plural = "Итоговый акт"
+    verbose_name_plural = "Итоговые акты"
 
 
 class InterimActInline(admin.TabularInline):
@@ -46,8 +46,8 @@ class ContractSigningStageInline(admin.StackedInline):
     can_delete = False
     fields = ('stage', 'changed_at', 'changed_by', 'note')
     readonly_fields = ('changed_at', 'changed_by')
-    verbose_name = "Стадия подписания"
-    verbose_name_plural = "Стадия подписания"
+    verbose_name = "Стадия подписания (по договору)"
+    verbose_name_plural = "Стадии подписания (по договору)"
 
 
 class ContractSystemCheckInline(admin.TabularInline):
@@ -55,8 +55,8 @@ class ContractSystemCheckInline(admin.TabularInline):
     extra = 0
     fields = ('system_type', 'last_checked', 'checked_by', 'note')
     readonly_fields = ('checked_by',)
-    verbose_name = "Проверка системы"
-    verbose_name_plural = "Проверки систем"
+    verbose_name = "Проверка системы (чек-лист конкретного договора)"
+    verbose_name_plural = "Проверки систем (чек-лист конкретного договора)"
 
 
 class ProtectionObjectInline(admin.TabularInline):
