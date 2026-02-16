@@ -21,9 +21,13 @@ class CompanyForm(forms.ModelForm):
         model = Company
         fields = ['name', 'inn', 'fias_code', 'is_customer', 'is_licensee', 'is_laboratory', 'is_subcontractor']
         widgets = {
-            'name': forms.TextInput(attrs={'class': 'form-control'}),
-            'inn': forms.TextInput(attrs={'class': 'form-control'}),
+            'name': forms.TextInput(attrs={'class': 'form-control', 'required': 'required'}),
+            'inn': forms.TextInput(attrs={'class': 'form-control', 'required': 'required'}),
             'fias_code': forms.TextInput(attrs={'class': 'form-control'}),
+            'is_customer': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'is_licensee': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'is_laboratory': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'is_subcontractor': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
 
     def clean(self):

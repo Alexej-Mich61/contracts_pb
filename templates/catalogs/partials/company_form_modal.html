@@ -1,0 +1,98 @@
+<!-- templates/catalogs/partials/company_form_modal.html -->
+
+<div class="modal fade" id="companyModal" tabindex="-1" aria-labelledby="companyModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="companyModalLabel">{{ modal_title }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+
+      <div class="modal-body">
+        <form method="post">
+          {% csrf_token %}
+
+          {% if form.errors %}
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+              <strong>Ошибка заполнения формы</strong>
+              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+              <ul class="mb-0 mt-2">
+                {% for field in form %}
+                  {% for error in field.errors %}
+                    <li>{{ field.label }}: {{ error }}</li>
+                  {% endfor %}
+                {% endfor %}
+                {% for error in form.non_field_errors %}
+                  <li>{{ error }}</li>
+                {% endfor %}
+              </ul>
+            </div>
+          {% endif %}
+
+          <!-- Название -->
+          <div class="mb-3">
+            <label class="form-label">Название <span class="text-danger">*</span></label>
+            {{ form.name }}
+            {% if form.name.errors %}
+              <div class="invalid-feedback d-block">{{ form.name.errors|join:", " }}</div>
+            {% endif %}
+          </div>
+
+          <!-- ИНН -->
+          <div class="mb-3">
+            <label class="form-label">ИНН <span class="text-danger">*</span></label>
+            {{ form.inn }}
+            {% if form.inn.errors %}
+              <div class="invalid-feedback d-block">{{ form.inn.errors|join:", " }}</div>
+            {% endif %}
+          </div>
+
+          <!-- Код ФИАС -->
+          <div class="mb-3">
+            <label class="form-label">Код ФИАС (необязательно)</label>
+            {{ form.fias_code }}
+          </div>
+
+          <!-- Роли -->
+          <div class="mb-4">
+            <label class="form-label">Роли <span class="text-danger">*</span></label>
+            <div class="row g-3">
+              <div class="col-6 col-md-3">
+                <div class="form-check">
+                  {{ form.is_customer }}
+                  <label class="form-check-label" for="{{ form.is_customer.id_for_label }}">Заказчик</label>
+                </div>
+              </div>
+              <div class="col-6 col-md-3">
+                <div class="form-check">
+                  {{ form.is_licensee }}
+                  <label class="form-check-label" for="{{ form.is_licensee.id_for_label }}">Лицензиат МЧС</label>
+                </div>
+              </div>
+              <div class="col-6 col-md-3">
+                <div class="form-check">
+                  {{ form.is_laboratory }}
+                  <label class="form-check-label" for="{{ form.is_laboratory.id_for_label }}">Лаборатория</label>
+                </div>
+              </div>
+              <div class="col-6 col-md-3">
+                <div class="form-check">
+                  {{ form.is_subcontractor }}
+                  <label class="form-check-label" for="{{ form.is_subcontractor.id_for_label }}">Субподрядчик</label>
+                </div>
+              </div>
+            </div>
+            {% if form.non_field_errors %}
+              <div class="invalid-feedback d-block mt-2">{{ form.non_field_errors|join:", " }}</div>
+            {% endif %}
+          </div>
+
+          <div class="d-flex justify-content-end gap-2 mt-4">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+            <button type="submit" class="btn btn-primary">Сохранить</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>

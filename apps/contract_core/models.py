@@ -52,9 +52,26 @@ class ContractSettings(models.Model):
 
 # ---------- СПРАВОЧНИКИ (регион/район) ----------
 class Region(models.Model):
-    name = models.CharField("Наименование", max_length=100, unique=True)
-    fias_code = models.CharField("Код ФИАС", max_length=50, blank=True, null=True)
-    region_code = models.CharField("Код региона", max_length=50, blank=True, null=True)
+    name = models.CharField(
+        "Наименование",
+        max_length=100,
+        unique=True,
+        help_text="Например: Ростовская область"
+    )
+    fias_code = models.CharField(
+        "Код ФИАС",
+        max_length=50,
+        blank=True,
+        null=True,
+        help_text="Код ФИАС (необязательно)"
+    )
+    region_code = models.CharField(
+        "Код региона",
+        max_length=50,
+        blank=True,
+        null=True,
+        help_text="Код региона (необязательно)"
+    )
 
     class Meta:
         verbose_name = "Регион"
@@ -67,9 +84,25 @@ class Region(models.Model):
 
 class District(models.Model):
     region = models.ForeignKey(Region, on_delete=models.PROTECT, related_name="districts")
-    name = models.CharField("Наименование", max_length=100)
-    fias_code = models.CharField("Код ФИАС", max_length=50, blank=True, null=True)
-    district_code = models.CharField("Код района", max_length=50, blank=True, null=True)
+    name = models.CharField(
+        "Наименование",
+        max_length=100,
+        help_text="Укажите район (муниципальное образование). Например: Тарасовский район или город Азов"
+    )
+    fias_code = models.CharField(
+        "Код ФИАС",
+        max_length=50,
+        blank=True,
+        null=True,
+        help_text="Код ФИАС (необязательно)"
+    )
+    district_code = models.CharField(
+        "Код района",
+        max_length=50,
+        blank=True,
+        null=True,
+        help_text="Код района (необязательно)"
+    )
 
     class Meta:
         verbose_name = "Район"
@@ -89,7 +122,12 @@ class Work(models.Model):
         LONGTERM_TO_LICENSEE = "work_longterm_to_licensee", "Периодическая работа ТО (лицензиат)"
         ONEOFF_LAB = "work_oneoff_lab", "Разовая работа (лаборатория)"
 
-    name = models.CharField("Наименование работы", max_length=255, db_index=True)
+    name = models.CharField(
+        "Наименование работы",
+        max_length=255,
+        db_index=True,
+        help_text="Например: Монтаж СПС"
+    )
     is_active = models.BooleanField("Активна", default=True)
     work_type = models.CharField("Тип работы", max_length=25, choices=WorkType.choices, db_index=True)
 
@@ -113,7 +151,11 @@ class Company(models.Model):
     is_laboratory = models.BooleanField("Лаборатория", default=False, db_index=True)
     is_subcontractor = models.BooleanField("Субподрядчик", default=False, db_index=True)
 
-    name = models.CharField("Название", max_length=255, db_index=True)
+    name = models.CharField(
+        "Название",
+        max_length=255,
+        help_text="Укажите краткое название, например: ООО Ромашка или МБДОУ Д/с № 1",
+        db_index=True)
     inn = models.CharField(
         "ИНН",
         max_length=12,
@@ -164,13 +206,17 @@ class Company(models.Model):
 # ---------- СПРАВОЧНИК СТАДИЙ ПОДПИСАНИЯ ----------
 class SigningStage(models.Model):
     """Справочник стадий подписания договора."""
-    name = models.CharField("Название стадии", max_length=50, unique=True)
+    name = models.CharField(
+        "Название стадии",
+        max_length=50,
+        unique=True,
+        help_text="Например: Подписан или Расторжение"
+    )
     slug = models.SlugField("Слаг стадии", max_length=50, unique=True)
     order = models.PositiveSmallIntegerField("Порядок отображения", default=0)
     is_final = models.BooleanField(
         "Финальная стадия",
-        default=False,
-        help_text="Например, Подписан, Расторжение"
+        default=False
     )
 
     class Meta:
@@ -242,7 +288,13 @@ class ContractSigningStage(models.Model):
 # ---------- СПРАВОЧНИК СИСТЕМ ----------
 class SystemType(models.Model):
     """Справочник систем, которые нужно проверять/отмечать."""
-    name = models.CharField("Название системы", max_length=100, unique=True)
+    name = models.CharField(
+        "Название системы",
+        max_length=100,
+        unique=True,
+        help_text="Например: Сполох"
+    )
+
     slug = models.SlugField("Слаг системы", max_length=50, unique=True)
     description = models.TextField("Описание", blank=True)
     is_active = models.BooleanField("Активна", default=True)
@@ -375,8 +427,16 @@ class Contract(models.Model):
     )
 
     # Финансы
-    total_sum = models.DecimalField("Сумма контракта общая", max_digits=12, decimal_places=2, default=0.00)
-    monthly_sum = models.DecimalField("Сумма контракта в месяц", max_digits=12, decimal_places=2, default=0.00)
+    total_sum = models.DecimalField(
+        "Сумма контракта общая",
+        max_digits=12,
+        decimal_places=2,
+        default=0.00)
+    monthly_sum = models.DecimalField(
+        "Сумма контракта в месяц",
+        max_digits=12,
+        decimal_places=2,
+        default=0.00)
     advance = models.DecimalField("Аванс", max_digits=12, decimal_places=2, default=0.00)
 
     # Статус
@@ -496,7 +556,12 @@ class FinalAct(models.Model):
         editable=False,
     )
     checked_at = models.DateTimeField("Дата отметки", auto_now_add=True, blank=True)
-    note = models.TextField("Примечание к акту", blank=True, max_length=200)
+    note = models.TextField(
+        "Примечание к акту",
+        blank=True,
+        max_length=200,
+        help_text="Примечание (необязательно)"
+    )
 
     # history = HistoricalRecords(
     #     history_user_id_field=models.ForeignKey(
@@ -574,7 +639,12 @@ class InterimAct(models.Model):
 class ProtectionObject(models.Model):
     """Объект защиты (много штук к одному договору)."""
     contract = models.ForeignKey(Contract, on_delete=models.CASCADE, related_name="objects")
-    name = models.CharField("Наименование", max_length=255)
+    name = models.CharField(
+        "Наименование объекта защиты",
+        max_length=255,
+        help_text = "Назовите объект (здание или помещение), ориентируясь на спецификацию договора, "
+                    "например: Гараж МБУЗ ЦРБ или Главный корпус МБДОУ ДС №1"
+    )
     district = models.ForeignKey(
         District,
         on_delete=models.PROTECT,
@@ -583,8 +653,17 @@ class ProtectionObject(models.Model):
         null=True,
         blank=True
     )
-    address = models.TextField("Адрес")
-    contacts = models.TextField("Контакты", blank=True, null=True)
+    address = models.TextField(
+        "Адрес",
+        max_length=700,
+        help_text="Укажите почтовый адрес"
+    )
+    contacts = models.TextField(
+        "Контакты",
+        blank=True,
+        null=True,
+        help_text="Укажите контакты (необязательно)"
+    )
 
     subcontractor = models.ForeignKey(
         Company,
@@ -652,10 +731,18 @@ class Ak(models.Model):
     number = models.PositiveIntegerField(
         "Номер АК",
         validators=[MinValueValidator(1), MaxValueValidator(99999999)],
-        help_text="Макс. 8 цифр",
+        help_text="Макс. 8 цифр. Номер из базы ОКО, например 6001",
     )
-    name = models.CharField("Наименование", max_length=255)
-    address = models.TextField("Адрес установки")
+    name = models.CharField(
+        "Наименование",
+        max_length=255,
+        help_text="Укажите название АК (см. базу ОКО)"
+    )
+    address = models.TextField(
+        "Адрес установки",
+        max_length=700,
+        help_text="Укажите адрес АК (см. базу ОКО)"
+    )
 
     @property
     def region(self):

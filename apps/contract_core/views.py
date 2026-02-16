@@ -1,9 +1,10 @@
 # apps/contract_core/views.py
+from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse_lazy
 from django.contrib import messages
-from django.views.generic import TemplateView, ListView, CreateView
+from django.views.generic import TemplateView, ListView, CreateView, UpdateView
 from django.db.models import Q
 
 from .models import Ak, Company, Contract
@@ -59,7 +60,7 @@ class ContractListView(LoginRequiredMixin, ListView):
         return qs
 
 
-# История
+# История договоров
 class ContractHistoryView(LoginRequiredMixin, TemplateView):
     template_name = "contracts/contract_history.html"
 
@@ -92,7 +93,7 @@ class AkListView(LoginRequiredMixin, ListView):
 
 class AkCreateView(LoginRequiredMixin, CreateView):
     model = Ak
-    form_class = AkForm  # создадим ниже
+    form_class = AkForm
     template_name = "catalogs/ak_form.html"
     success_url = reverse_lazy('contract_core:ak_list')
 
@@ -109,14 +110,45 @@ class CompaniesListView(LoginRequiredMixin, ListView):
     ordering = ['name']
 
 
-
 class CompanyCreateView(LoginRequiredMixin, CreateView):
     model = Company
-    form_class = CompanyForm  # создадим ниже
-    template_name = "catalogs/company_form.html"
-    success_url = reverse_lazy('contract_core:companies_list')
+    form_class = CompanyForm
+    template_name = "catalogs/partials/company_form_modal.html"
+    # success_url = reverse_lazy('contract_core:companies_list')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['form'] = self.get_form()  # ← обязательно!
+        context['modal_title'] = "Добавить компанию"
+        return context
 
     def form_valid(self, form):
-        messages.success(self.request, "Компания успешно добавлена.")
-        return super().form_valid(form)
+        form.save()
+        messages.success(self.request, "Компания успешно добавлена!")
+        return HttpResponseRedirect(self.success_url)
+
+    def form_invalid(self, form):
+        return render(self.request, self.template_name, {'form': form})
+
+
+
+class CompanyUpdateView(LoginRequiredMixin, UpdateView):
+    model = Company
+    form_class = CompanyForm
+    template_name = "catalogs/partials/company_form_modal.html"
+    # success_url = reverse_lazy('contract_core:companies_list')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['form'] = self.get_form()  # ← обязательно!
+        context['modal_title'] = f"Редактировать компанию {self.object.name}"
+        return context
+
+    def form_valid(self, form):
+        form.save()
+        messages.success(self.request, "Компания успешно обновлена!")
+        return HttpResponseRedirect(self.success_url)
+
+    def form_invalid(self, form):
+        return render(self.request, self.template_name, {'form': form})
 

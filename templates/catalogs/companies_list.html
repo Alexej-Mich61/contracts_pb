@@ -1,14 +1,23 @@
+<!--templates/catalogs/companies_list.html-->
 {% extends "base.html" %}
-{% block title %}Справочник Компаний{% endblock %}
+{% block title %}Справочник компаний{% endblock %}
 
 {% block content %}
-<h1>Справочник Компаний</h1>
+<h1>Справочник компаний</h1>
 
-<a href="{% url 'contract_core:company_create' %}" class="btn btn-primary mb-3">Добавить Компанию</a>
+<!-- Кнопка добавления -->
+<a href="{% url 'contract_core:company_create' %}"
+   class="btn btn-primary mb-3"
+   data-bs-toggle="modal"
+   data-bs-target="#companyModal">
+    + Добавить компанию
+</a>
 
-<table class="table table-striped">
+<!-- Таблица -->
+<table class="table table-striped table-hover">
   <thead>
     <tr>
+      <th>ID</th>
       <th>Название</th>
       <th>ИНН</th>
       <th>Роли</th>
@@ -17,36 +26,39 @@
   <tbody>
     {% for company in companies %}
       <tr>
-        <td>{{ company.name }}</td>
+        <td>
+          <a href="{% url 'contract_core:company_update' company.pk %}"
+             data-bs-toggle="modal"
+             data-bs-target="#companyModal">
+            {{ company.pk }}
+          </a>
+        </td>
+        <td>
+          <a href="{% url 'contract_core:company_update' company.pk %}"
+             data-bs-toggle="modal"
+             data-bs-target="#companyModal">
+            {{ company.name }}
+          </a>
+        </td>
         <td>{{ company.inn }}</td>
         <td>
-          {% if company.is_customer %}Заказчик {% endif %}
-          {% if company.is_licensee %}Лицензиат {% endif %}
-          {% if company.is_laboratory %}Лаборатория {% endif %}
-          {% if company.is_subcontractor %}Субподрядчик {% endif %}
+          {% if company.is_customer %}Заказчик{% endif %}
+          {% if company.is_licensee %}Лицензиат{% endif %}
+          {% if company.is_laboratory %}Лаборатория{% endif %}
+          {% if company.is_subcontractor %}Субподрядчик{% endif %}
         </td>
       </tr>
     {% empty %}
       <tr>
-        <td colspan="3" class="text-center">Нет компаний в базе.</td>
+        <td colspan="4" class="text-center">Нет компаний в базе</td>
       </tr>
     {% endfor %}
   </tbody>
 </table>
 
-{% if is_paginated %}
-  <nav aria-label="Page navigation">
-    <ul class="pagination">
-      {% if page_obj.has_previous %}
-        <li class="page-item"><a class="page-link" href="?page=1">«</a></li>
-        <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}">‹</a></li>
-      {% endif %}
-      <li class="page-item disabled"><span class="page-link">Страница {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}</span></li>
-      {% if page_obj.has_next %}
-        <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}">›</a></li>
-        <li class="page-item"><a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">»</a></li>
-      {% endif %}
-    </ul>
-  </nav>
-{% endif %}
+<!-- Подключаем модальное окно -->
+{% include "catalogs/partials/company_form_modal.html" %}
+
 {% endblock %}
+
+
