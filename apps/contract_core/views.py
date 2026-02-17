@@ -102,33 +102,55 @@ class AkCreateView(LoginRequiredMixin, CreateView):
         return super().form_valid(form)
 
 
+# class CompaniesListView(LoginRequiredMixin, ListView):
+#     model = Company
+#     template_name = "catalogs/companies_list.html"
+#     context_object_name = "companies"
+#     paginate_by = 30
+#     ordering = ['name']
+
+
 class CompaniesListView(LoginRequiredMixin, ListView):
     model = Company
     template_name = "catalogs/companies_list.html"
     context_object_name = "companies"
     paginate_by = 30
-    ordering = ['name']
+    ordering = ['-id']  # или ['-pk']
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+
+        # Поиск
+        q = self.request.GET.get('q', '').strip()
+        if q:
+            # Проверяем, является ли поиск числом (ID)
+            if q.isdigit():
+                qs = qs.filter(Q(id=q) | Q(inn__icontains=q) | Q(name__icontains=q))
+            else:
+                qs = qs.filter(Q(inn__icontains=q) | Q(name__icontains=q))
+
+        # Фильтр по ролям
+        roles = self.request.GET.getlist('role')
+        if roles:
+            role_filters = Q()
+            if 'customer' in roles:
+                role_filters |= Q(is_customer=True)
+            if 'licensee' in roles:
+                role_filters |= Q(is_licensee=True)
+            if 'laboratory' in roles:
+                role_filters |= Q(is_laboratory=True)
+            if 'subcontractor' in roles:
+                role_filters |= Q(is_subcontractor=True)
+            qs = qs.filter(role_filters)
+
+        return qs.distinct()
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['selected_roles'] = self.request.GET.getlist('role')
+        return context
 
 
-# class CompanyCreateView(LoginRequiredMixin, CreateView):
-#     model = Company
-#     form_class = CompanyForm
-#     template_name = "catalogs/partials/company_form_modal.html"
-#     # success_url = reverse_lazy('contract_core:companies_list')
-#
-#     def get_context_data(self, **kwargs):
-#         context = super().get_context_data(**kwargs)
-#         context['form'] = self.get_form()  # ← обязательно!
-#         context['modal_title'] = "Добавить компанию"
-#         return context
-#
-#     def form_valid(self, form):
-#         form.save()
-#         messages.success(self.request, "Компания успешно добавлена!")
-#         return HttpResponseRedirect(self.success_url)
-#
-#     def form_invalid(self, form):
-#         return render(self.request, self.template_name, {'form': form})
 
 
 # c HTMX
@@ -160,26 +182,6 @@ class CompanyCreateView(LoginRequiredMixin, CreateView):
         return self.render_to_response(self.get_context_data(form=form))
 
 
-
-# class CompanyUpdateView(LoginRequiredMixin, UpdateView):
-#     model = Company
-#     form_class = CompanyForm
-#     template_name = "catalogs/partials/company_form_modal.html"
-#     # success_url = reverse_lazy('contract_core:companies_list')
-#
-#     def get_context_data(self, **kwargs):
-#         context = super().get_context_data(**kwargs)
-#         context['form'] = self.get_form()  # ← обязательно!
-#         context['modal_title'] = f"Редактировать компанию {self.object.name}"
-#         return context
-#
-#     def form_valid(self, form):
-#         form.save()
-#         messages.success(self.request, "Компания успешно обновлена!")
-#         return HttpResponseRedirect(self.success_url)
-#
-#     def form_invalid(self, form):
-#         return render(self.request, self.template_name, {'form': form})
 
 # c HTMX
 class CompanyUpdateView(LoginRequiredMixin, UpdateView):
