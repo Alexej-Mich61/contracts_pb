@@ -110,45 +110,99 @@ class CompaniesListView(LoginRequiredMixin, ListView):
     ordering = ['name']
 
 
+# class CompanyCreateView(LoginRequiredMixin, CreateView):
+#     model = Company
+#     form_class = CompanyForm
+#     template_name = "catalogs/partials/company_form_modal.html"
+#     # success_url = reverse_lazy('contract_core:companies_list')
+#
+#     def get_context_data(self, **kwargs):
+#         context = super().get_context_data(**kwargs)
+#         context['form'] = self.get_form()  # ← обязательно!
+#         context['modal_title'] = "Добавить компанию"
+#         return context
+#
+#     def form_valid(self, form):
+#         form.save()
+#         messages.success(self.request, "Компания успешно добавлена!")
+#         return HttpResponseRedirect(self.success_url)
+#
+#     def form_invalid(self, form):
+#         return render(self.request, self.template_name, {'form': form})
+
+
+# c HTMX
 class CompanyCreateView(LoginRequiredMixin, CreateView):
     model = Company
     form_class = CompanyForm
     template_name = "catalogs/partials/company_form_modal.html"
-    # success_url = reverse_lazy('contract_core:companies_list')
+    success_url = reverse_lazy('contract_core:companies_list')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['form'] = self.get_form()  # ← обязательно!
         context['modal_title'] = "Добавить компанию"
         return context
 
     def form_valid(self, form):
-        form.save()
+        self.object = form.save()
         messages.success(self.request, "Компания успешно добавлена!")
+
+        if self.request.headers.get('HX-Request'):
+            # HTMX запрос — закрываем модалку и обновляем страницу
+            return HttpResponse(
+                '<script>window.location.reload()</script>',
+                headers={'HX-Trigger': 'companySaved'}
+            )
         return HttpResponseRedirect(self.success_url)
 
     def form_invalid(self, form):
-        return render(self.request, self.template_name, {'form': form})
+        # Возвращаем форму с ошибками обратно в модалку
+        return self.render_to_response(self.get_context_data(form=form))
 
 
 
+# class CompanyUpdateView(LoginRequiredMixin, UpdateView):
+#     model = Company
+#     form_class = CompanyForm
+#     template_name = "catalogs/partials/company_form_modal.html"
+#     # success_url = reverse_lazy('contract_core:companies_list')
+#
+#     def get_context_data(self, **kwargs):
+#         context = super().get_context_data(**kwargs)
+#         context['form'] = self.get_form()  # ← обязательно!
+#         context['modal_title'] = f"Редактировать компанию {self.object.name}"
+#         return context
+#
+#     def form_valid(self, form):
+#         form.save()
+#         messages.success(self.request, "Компания успешно обновлена!")
+#         return HttpResponseRedirect(self.success_url)
+#
+#     def form_invalid(self, form):
+#         return render(self.request, self.template_name, {'form': form})
+
+# c HTMX
 class CompanyUpdateView(LoginRequiredMixin, UpdateView):
     model = Company
     form_class = CompanyForm
     template_name = "catalogs/partials/company_form_modal.html"
-    # success_url = reverse_lazy('contract_core:companies_list')
+    success_url = reverse_lazy('contract_core:companies_list')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['form'] = self.get_form()  # ← обязательно!
-        context['modal_title'] = f"Редактировать компанию {self.object.name}"
+        context['modal_title'] = f"Редактировать компанию: {self.object.name}"
         return context
 
     def form_valid(self, form):
         form.save()
         messages.success(self.request, "Компания успешно обновлена!")
+
+        if self.request.headers.get('HX-Request'):
+            return HttpResponse(
+                '<script>window.location.reload()</script>',
+                headers={'HX-Trigger': 'companySaved'}
+            )
         return HttpResponseRedirect(self.success_url)
 
     def form_invalid(self, form):
-        return render(self.request, self.template_name, {'form': form})
-
+        return self.render_to_response(self.get_context_data(form=form))
