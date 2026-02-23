@@ -56,9 +56,12 @@
         </div>
     </div>
 
-    <!-- Вторая строка: кнопка справа -->
+    <!-- Вторая строка: кнопки справа -->
     <div class="row">
-        <div class="col-12 d-flex justify-content-end">
+        <div class="col-12 d-flex justify-content-end gap-2">
+            <a href="{% url 'contract_core:companies_list' %}" class="btn btn-outline-secondary">
+                <i class="bi bi-x-circle"></i> Сбросить
+            </a>
             <button type="submit" class="btn btn-outline-primary">
                 <i class="bi bi-funnel"></i> Применить
             </button>
