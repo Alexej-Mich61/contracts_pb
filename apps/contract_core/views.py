@@ -8,8 +8,15 @@ from django.views.generic import TemplateView, ListView, CreateView, UpdateView,
 from django.db.models import Q
 from django.db.models import Count
 
-from .models import Ak, Company, Contract
-from .models import Contract, ProtectionObject, Ak, FinalAct, InterimAct
+from .models import (
+    Ak,
+    Company,
+    Contract,
+    ProtectionObject,
+    FinalAct,
+    Region,
+    District,
+    )
 from .forms import ContractForm
 from .forms import AkForm, CompanyForm
 
@@ -110,27 +117,123 @@ class SubcontractorsReportsView(LoginRequiredMixin, TemplateView):
     template_name = "reports/subcontractors_reports.html"
 
 
-# Справочники
+# Справочник AK
 class AkListView(LoginRequiredMixin, ListView):
     model = Ak
     template_name = "catalogs/ak_list.html"
     context_object_name = "aks"
     paginate_by = 25
-    ordering = ['-number']
+    ordering = ['-id']
 
     def get_queryset(self):
-        return super().get_queryset().select_related('district__region')
+        qs = Ak.objects.all().select_related('district__region').order_by('-id')
+
+        # Поиск по ID
+        id_search = self.request.GET.get('id', '').strip()
+        if id_search and id_search.isdigit():
+            qs = qs.filter(id=int(id_search))
+
+        # Поиск по номеру АК
+        number_search = self.request.GET.get('number', '').strip()
+        if number_search and number_search.isdigit():
+            qs = qs.filter(number=int(number_search))
+
+        # Поиск по названию
+        name_search = self.request.GET.get('name', '').strip()
+        if name_search:
+            qs = qs.filter(name__icontains=name_search)
+
+        # Поиск по адресу
+        address_search = self.request.GET.get('address', '').strip()
+        if address_search:
+            qs = qs.filter(address__icontains=address_search)
+
+        # Фильтр по региону
+        region_id = self.request.GET.get('region', '').strip()
+        if region_id and region_id.isdigit():
+            qs = qs.filter(district__region_id=int(region_id))
+
+        # Фильтр по району (только если выбран регион)
+        district_id = self.request.GET.get('district', '').strip()
+        if district_id and district_id.isdigit():
+            qs = qs.filter(district_id=int(district_id))
+
+        return qs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        # Все регионы для выпадающего списка
+        context['regions'] = Region.objects.all().order_by('name')
+
+        # Районы для выбранного региона (или все, если регион не выбран)
+        region_id = self.request.GET.get('region', '').strip()
+        if region_id and region_id.isdigit():
+            context['districts'] = District.objects.filter(region_id=int(region_id)).order_by('name')
+        else:
+            context['districts'] = District.objects.none()
+
+        # Сохраняем выбранные значения для формы
+        context['selected_region'] = region_id
+        context['selected_district'] = self.request.GET.get('district', '')
+        context['search_id'] = self.request.GET.get('id', '')
+        context['search_number'] = self.request.GET.get('number', '')
+        context['search_name'] = self.request.GET.get('name', '')
+        context['search_address'] = self.request.GET.get('address', '')
+
+        return context
 
 
 class AkCreateView(LoginRequiredMixin, CreateView):
     model = Ak
     form_class = AkForm
-    template_name = "catalogs/ak_form.html"
+    template_name = "catalogs/partials/ak_form_modal.html"
     success_url = reverse_lazy('contract_core:ak_list')
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['modal_title'] = "Добавить АК"
+        return context
+
     def form_valid(self, form):
-        messages.success(self.request, "АК успешно добавлен.")
-        return super().form_valid(form)
+        self.object = form.save()
+        messages.success(self.request, "АК успешно добавлен!")
+
+        if self.request.headers.get('HX-Request'):
+            return HttpResponse(
+                '<script>window.location.reload()</script>',
+                headers={'HX-Trigger': 'akSaved'}
+            )
+        return HttpResponseRedirect(self.success_url)
+
+    def form_invalid(self, form):
+        return self.render_to_response(self.get_context_data(form=form))
+
+
+class AkUpdateView(LoginRequiredMixin, UpdateView):
+    model = Ak
+    form_class = AkForm
+    template_name = "catalogs/partials/ak_form_modal.html"
+    success_url = reverse_lazy('contract_core:ak_list')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['modal_title'] = f"Редактировать АК №{self.object.number}"
+        return context
+
+    def form_valid(self, form):
+        form.save()
+        messages.success(self.request, "АК успешно обновлён!")
+
+        if self.request.headers.get('HX-Request'):
+            return HttpResponse(
+                '<script>window.location.reload()</script>',
+                headers={'HX-Trigger': 'akSaved'}
+            )
+        return HttpResponseRedirect(self.success_url)
+
+    def form_invalid(self, form):
+        return self.render_to_response(self.get_context_data(form=form))
 
 
 

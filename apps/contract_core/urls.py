@@ -29,6 +29,7 @@ urlpatterns = [
     # Справочники АК
     path("catalogs/ak/", views.AkListView.as_view(), name="ak_list"),
     path("catalogs/ak/add/", views.AkCreateView.as_view(), name="ak_create"),
+    path("catalogs/ak/<int:pk>/edit/", views.AkUpdateView.as_view(), name="ak_update"),
 
     # Справочники Компании
     path("catalogs/companies/", views.CompaniesListView.as_view(), name="companies_list"),

@@ -9,12 +9,17 @@ class AkForm(forms.ModelForm):
         model = Ak
         fields = ['number', 'name', 'address', 'district']
         widgets = {
+            'number': forms.NumberInput(attrs={'class': 'form-control', 'min': '1', 'max': '99999999'}),
+            'name': forms.TextInput(attrs={'class': 'form-control'}),
+            'address': forms.TextInput(attrs={'class': 'form-control'}),
             'district': forms.Select(attrs={'class': 'form-control'}),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['district'].queryset = District.objects.select_related('region').order_by('region__name', 'name')
+        self.fields['district'].label_from_instance = lambda obj: f"{obj.region.name} – {obj.name}"
+
 
 
 class CompanyForm(forms.ModelForm):

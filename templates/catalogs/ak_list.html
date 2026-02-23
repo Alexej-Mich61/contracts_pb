@@ -1,13 +1,94 @@
+<!--templates/catalogs/ak_list.html-->
 {% extends "base.html" %}
 
 {% block title %}Справочник АК{% endblock %}
 
 {% block content %}
-<h1>Справочник АК</h1>
-<a href="{% url 'contract_core:ak_create' %}" class="btn btn-primary mb-3">Добавить АК</a>
-<table class="table table-striped">
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="mb-0">Справочник АК</h1>
+    <span class="badge bg-secondary fs-5">{{ page_obj.paginator.count }}</span>
+</div>
+
+<!-- Форма поиска и фильтров -->
+<form method="get" class="mb-3" hx-get="{% url 'contract_core:ak_list' %}" hx-target="body" hx-push-url="true">
+    <!-- Первая строка: ID, номер АК, название -->
+    <div class="row g-2 mb-2">
+        <div class="col-md-2">
+            <label class="form-label small text-muted mb-1">ID</label>
+            <input type="number" name="id" class="form-control form-control-sm" placeholder="ID..." value="{{ search_id }}" min="1">
+        </div>
+        <div class="col-md-2">
+            <label class="form-label small text-muted mb-1">Номер АК</label>
+            <input type="number" name="number" class="form-control form-control-sm" placeholder="Пример - 6001" value="{{ search_number }}" min="1">
+        </div>
+        <div class="col-md-4">
+            <label class="form-label small text-muted mb-1">Наименование</label>
+            <input type="text" name="name" class="form-control form-control-sm" placeholder="Название АК..." value="{{ search_name }}">
+        </div>
+        <div class="col-md-4">
+            <label class="form-label small text-muted mb-1">Адрес</label>
+            <input type="text" name="address" class="form-control form-control-sm" placeholder="Адрес установки..." value="{{ search_address }}">
+        </div>
+    </div>
+
+    <!-- Вторая строка: регион и район -->
+    <div class="row g-2 mb-2 align-items-end">
+        <div class="col-md-5">
+            <label class="form-label small text-muted mb-1">Регион</label>
+            <select name="region" class="form-select form-select-sm"
+                    hx-get="{% url 'contract_core:ak_list' %}"
+                    hx-target="#district-wrapper"
+                    hx-select="#district-wrapper"
+                    hx-swap="outerHTML"
+                    hx-vals='{"id": "{{ search_id }}", "number": "{{ search_number }}", "name": "{{ search_name }}", "address": "{{ search_address }}"}'>
+                <option value="">Все регионы</option>
+                {% for region in regions %}
+                    <option value="{{ region.pk }}" {% if selected_region == region.pk|stringformat:"i" %}selected{% endif %}>
+                        {{ region.name }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="col-md-5" id="district-wrapper">
+            <label class="form-label small text-muted mb-1">Район</label>
+            <select name="district" class="form-select form-select-sm" {% if not districts %}disabled{% endif %}>
+                <option value="">Все районы</option>
+                {% for district in districts %}
+                    <option value="{{ district.pk }}" {% if selected_district == district.pk|stringformat:"i" %}selected{% endif %}>
+                        {{ district.name }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Кнопки -->
+        <div class="col-md-2 d-flex justify-content-end gap-2">
+            <a href="{% url 'contract_core:ak_list' %}" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-x-circle"></i> Сбросить
+            </a>
+            <button type="submit" class="btn btn-outline-primary btn-sm">
+                <i class="bi bi-funnel"></i> Применить
+            </button>
+        </div>
+    </div>
+</form>
+
+<!-- Кнопка добавления -->
+<button type="button"
+        class="btn btn-primary mb-3"
+        hx-get="{% url 'contract_core:ak_create' %}"
+        hx-target="#modalContent"
+        data-bs-toggle="modal"
+        data-bs-target="#akModal">
+    + Добавить АК
+</button>
+
+<!-- Таблица -->
+<table class="table table-striped table-hover">
     <thead>
         <tr>
+            <th>ID</th>
             <th>Номер</th>
             <th>Наименование</th>
             <th>Адрес</th>
@@ -18,17 +99,99 @@
     <tbody>
         {% for ak in aks %}
         <tr>
-            <td>{{ ak.number }}</td>
-            <td>{{ ak.name }}</td>
+            <td>
+                <a href="#"
+                   hx-get="{% url 'contract_core:ak_update' ak.pk %}"
+                   hx-target="#modalContent"
+                   data-bs-toggle="modal"
+                   data-bs-target="#akModal">
+                    {{ ak.pk }}
+                </a>
+            </td>
+            <td>
+                <a href="#"
+                   hx-get="{% url 'contract_core:ak_update' ak.pk %}"
+                   hx-target="#modalContent"
+                   data-bs-toggle="modal"
+                   data-bs-target="#akModal">
+                    {{ ak.number }}
+                </a>
+            </td>
+            <td>
+                <a href="#"
+                   hx-get="{% url 'contract_core:ak_update' ak.pk %}"
+                   hx-target="#modalContent"
+                   data-bs-toggle="modal"
+                   data-bs-target="#akModal">
+                    {{ ak.name }}
+                </a>
+            </td>
             <td>{{ ak.address }}</td>
-            <td>{{ ak.region }}</td>
-            <td>{{ ak.district }}</td>
+            <td>{{ ak.district.region.name|default:"-" }}</td>
+            <td>{{ ak.district.name|default:"-" }}</td>
         </tr>
         {% empty %}
         <tr>
-            <td colspan="5" class="text-center">Нет АК в базе.</td>
+            <td colspan="6" class="text-center text-muted py-4">
+                {% if search_id or search_number or search_name or search_address or selected_region or selected_district %}
+                    Ничего не найдено
+                {% else %}
+                    Нет АК в базе.
+                {% endif %}
+            </td>
         </tr>
         {% endfor %}
     </tbody>
 </table>
+
+<!-- Пагинация Bootstrap -->
+{% if page_obj.has_other_pages %}
+<nav aria-label="Навигация по страницам">
+  <ul class="pagination justify-content-center">
+    {% if page_obj.has_previous %}
+      <li class="page-item">
+        <a class="page-link" href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">«</a>
+      </li>
+      <li class="page-item">
+        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">‹</a>
+      </li>
+    {% else %}
+      <li class="page-item disabled"><span class="page-link">«</span></li>
+      <li class="page-item disabled"><span class="page-link">‹</span></li>
+    {% endif %}
+
+    {% for num in page_obj.paginator.page_range %}
+      {% if page_obj.number == num %}
+        <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+      {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+        <li class="page-item">
+          <a class="page-link" href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ num }}</a>
+        </li>
+      {% endif %}
+    {% endfor %}
+
+    {% if page_obj.has_next %}
+      <li class="page-item">
+        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">›</a>
+      </li>
+      <li class="page-item">
+        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">»</a>
+      </li>
+    {% else %}
+      <li class="page-item disabled"><span class="page-link">›</span></li>
+      <li class="page-item disabled"><span class="page-link">»</span></li>
+    {% endif %}
+  </ul>
+</nav>
+{% endif %}
+
+<!-- Модальное окно -->
+<div class="modal fade" id="akModal" tabindex="-1" aria-labelledby="akModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content" id="modalContent">
+      <!-- Сюда подгружается форма через HTMX -->
+    </div>
+  </div>
+</div>
+
 {% endblock %}
