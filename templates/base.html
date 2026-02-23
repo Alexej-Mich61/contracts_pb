@@ -56,8 +56,6 @@
                             </a>
                             <ul class="dropdown-menu" aria-labelledby="contractsDropdown">
                                 <li><a class="dropdown-item" href="{% url 'contract_core:contract_oneoff_licensee' %}">Разовые Лицензиат</a></li>
-                                <li><a class="dropdown-item" href="{% url 'contract_core:contract_longterm_to_licensee' %}">ТО Лицензиат</a></li>
-                                <li><a class="dropdown-item" href="{% url 'contract_core:contract_oneoff_lab' %}">Лаборатория</a></li>
                                 <li><a class="dropdown-item" href="{% url 'contract_core:contract_history' %}">История</a></li>
                             </ul>
                         </li>
@@ -66,7 +64,6 @@
                                 Отчеты
                             </a>
                             <ul class="dropdown-menu" aria-labelledby="reportsDropdown">
-                                <li><a class="dropdown-item" href="{% url 'contract_core:contract_list_all' %}">Все договоры</a></li>
                                 <li><a class="dropdown-item" href="{% url 'contract_core:customer_reports' %}">Заказчики</a></li>
                                 <li><a class="dropdown-item" href="{% url 'contract_core:executor_reports' %}">Исполнители</a></li>
                                 <li><a class="dropdown-item" href="{% url 'contract_core:subcontractors_reports' %}">Субподрядчики</a></li>

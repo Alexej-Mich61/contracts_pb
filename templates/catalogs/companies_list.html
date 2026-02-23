@@ -8,42 +8,61 @@
     <span class="badge bg-secondary fs-5">{{ companies|length }} из {{ page_obj.paginator.count }}</span>
 </div>
 
-<!-- Поиск и фильтры в одну строку -->
-<form method="get" class="row g-2 align-items-end mb-3" hx-get="{% url 'contract_core:companies_list' %}" hx-target="body" hx-push-url="true">
-    <!-- Поиск -->
-    <div class="col-md-4">
-        <label class="form-label small text-muted">Поиск (название, ИНН, ID)</label>
-        <input type="text" name="q" class="form-control" placeholder="Введите название, ИНН или ID..." value="{{ request.GET.q|default:'' }}">
-    </div>
+<!-- Информация о лимите -->
+{% if is_limited %}
+<div class="alert alert-info alert-dismissible fade show py-2 mb-3">
+    <small><i class="bi bi-info-circle"></i> Показаны <strong>10 последних</strong> добавленных компаний. Используйте поиск или фильтры для просмотра всех записей.</small>
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+{% endif %}
 
-    <!-- Фильтр ролей -->
-    <div class="col-md-6">
-        <label class="form-label small text-muted">Роли</label>
-        <div class="d-flex flex-wrap gap-3 border rounded p-2 bg-light">
-            <div class="form-check form-check-inline mb-0">
-                <input class="form-check-input" type="checkbox" name="role" value="customer" id="role_customer" {% if 'customer' in selected_roles or not selected_roles %}checked{% endif %}>
-                <label class="form-check-label" for="role_customer">Заказчик</label>
-            </div>
-            <div class="form-check form-check-inline mb-0">
-                <input class="form-check-input" type="checkbox" name="role" value="licensee" id="role_licensee" {% if 'licensee' in selected_roles or not selected_roles %}checked{% endif %}>
-                <label class="form-check-label" for="role_licensee">Лицензиат</label>
-            </div>
-            <div class="form-check form-check-inline mb-0">
-                <input class="form-check-input" type="checkbox" name="role" value="laboratory" id="role_laboratory" {% if 'laboratory' in selected_roles or not selected_roles %}checked{% endif %}>
-                <label class="form-check-label" for="role_laboratory">Лаборатория</label>
-            </div>
-            <div class="form-check form-check-inline mb-0">
-                <input class="form-check-input" type="checkbox" name="role" value="subcontractor" id="role_subcontractor" {% if 'subcontractor' in selected_roles or not selected_roles %}checked{% endif %}>
-                <label class="form-check-label" for="role_subcontractor">Субподрядчик</label>
+<!-- Форма поиска -->
+<form method="get" hx-get="{% url 'contract_core:companies_list' %}" hx-target="body" hx-push-url="true">
+    <!-- Первая строка: поля ввода и роли -->
+    <div class="row g-2 align-items-end mb-2">
+        <!-- Поиск по ID -->
+        <div class="col-md-2">
+            <label class="form-label small text-muted mb-1">ID</label>
+            <input type="number" name="id" class="form-control form-control-sm" placeholder="ID..." value="{{ request.GET.id|default:'' }}" min="1">
+        </div>
+
+        <!-- Поиск по названию/ИНН -->
+        <div class="col-md-3">
+            <label class="form-label small text-muted mb-1">Название или ИНН</label>
+            <input type="text" name="q" class="form-control form-control-sm" placeholder="Название или ИНН..." value="{{ request.GET.q|default:'' }}">
+        </div>
+
+        <!-- Фильтр ролей -->
+        <div class="col-md-7">
+            <label class="form-label small text-muted mb-1">Роли</label>
+            <div class="d-flex flex-wrap gap-3 border rounded px-3 py-2 bg-light">
+                <div class="form-check form-check-inline mb-0">
+                    <input class="form-check-input" type="checkbox" name="role" value="customer" id="role_customer" {% if 'customer' in selected_roles or not selected_roles %}checked{% endif %}>
+                    <label class="form-check-label small" for="role_customer">Заказчик</label>
+                </div>
+                <div class="form-check form-check-inline mb-0">
+                    <input class="form-check-input" type="checkbox" name="role" value="licensee" id="role_licensee" {% if 'licensee' in selected_roles or not selected_roles %}checked{% endif %}>
+                    <label class="form-check-label small" for="role_licensee">Лицензиат</label>
+                </div>
+                <div class="form-check form-check-inline mb-0">
+                    <input class="form-check-input" type="checkbox" name="role" value="laboratory" id="role_laboratory" {% if 'laboratory' in selected_roles or not selected_roles %}checked{% endif %}>
+                    <label class="form-check-label small" for="role_laboratory">Лаборатория</label>
+                </div>
+                <div class="form-check form-check-inline mb-0">
+                    <input class="form-check-input" type="checkbox" name="role" value="subcontractor" id="role_subcontractor" {% if 'subcontractor' in selected_roles or not selected_roles %}checked{% endif %}>
+                    <label class="form-check-label small" for="role_subcontractor">Субподрядчик</label>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Кнопка применить -->
-    <div class="col-md-2">
-        <button type="submit" class="btn btn-outline-primary w-100">
-            <i class="bi bi-funnel"></i> Применить
-        </button>
+    <!-- Вторая строка: кнопка справа -->
+    <div class="row">
+        <div class="col-12 d-flex justify-content-end">
+            <button type="submit" class="btn btn-outline-primary">
+                <i class="bi bi-funnel"></i> Применить
+            </button>
+        </div>
     </div>
 </form>
 
@@ -99,8 +118,8 @@
     {% empty %}
       <tr>
         <td colspan="4" class="text-center text-muted py-4">
-            {% if request.GET.q %}
-                Ничего не найдено по запросу "{{ request.GET.q }}"
+            {% if request.GET.q or request.GET.id %}
+                Ничего не найдено
             {% else %}
                 Нет компаний в базе
             {% endif %}

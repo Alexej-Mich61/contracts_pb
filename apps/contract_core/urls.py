@@ -7,23 +7,12 @@ from . import views
 app_name = "contract_core"
 
 urlpatterns = [
-    # Договоры по типам (объединённый подход)
+    # Договоры (объединённый подход)
     path("contracts/oneoff-licensee/", views.OneoffLicenseeListView.as_view(), name="contract_oneoff_licensee"),
     path("contracts/<int:pk>/", views.ContractDetailView.as_view(), name="contract_detail"),
     path("contracts/add/", views.ContractCreateView.as_view(), name="contract_create"),
     path("contracts/<int:pk>/edit/", views.ContractUpdateView.as_view(), name="contract_update"),
 
-
-    path("contracts/longterm-licensee/", views.ContractLongtermToLicenseeView.as_view(),
-         name="contract_longterm_to_licensee"),
-    path("contracts/oneoff-lab/", views.ContractOneoffLabView.as_view(),
-         name="contract_oneoff_lab"),
-
-    # Универсальный (общий) список договоров
-    path("contracts/", views.ContractListView.as_view(),
-         name="contract_list_all"),
-    path("contracts/<slug:type_slug>/", views.ContractListView.as_view(),
-         name="contract_list_by_type"),
 
     # История
     path("contracts/history/", views.ContractHistoryView.as_view(), name="contract_history"),

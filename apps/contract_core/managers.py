@@ -5,7 +5,9 @@ from django.db.models import Manager
 class ContractManager(Manager):
     def for_user(self, user):
         """
-        Возвращает queryset договоров, которые может видеть данный пользователь.
+        Возвращает queryset договоров, которые может видеть данный пользователь
+        Суперюзер видит все контракты, неавторизованный - никакие, остальные пользователи -- контракты
+        компаний, где он добавлен в сотрудники
         """
         if not user or not user.is_authenticated:
             return self.none()

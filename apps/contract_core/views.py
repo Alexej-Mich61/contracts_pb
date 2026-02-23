@@ -10,25 +10,11 @@ from django.db.models import Count
 
 from .models import Ak, Company, Contract
 from .models import Contract, ProtectionObject, Ak, FinalAct, InterimAct
-from .forms import ContractForm  # создадим ниже
+from .forms import ContractForm
 from .forms import AkForm, CompanyForm
 
 
 # Create your views here.
-
-# Базовый класс для страниц с типами договоров
-class ContractTypeView(LoginRequiredMixin, TemplateView):
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        type_slug = self.kwargs.get('type_slug', '')
-        type_display = {
-            'oneoff-licensee': 'Разовый (лицензиат)',
-            'longterm-licensee': 'Долгосрочный ТО (лицензиат)',
-            'oneoff-lab': 'Разовый (лаборатория)',
-        }.get(type_slug, 'Неизвестный тип')
-        context['contract_type'] = type_display
-        context['type_slug'] = type_slug
-        return context
 
 
 class OneoffLicenseeListView(LoginRequiredMixin, ListView):
@@ -105,34 +91,6 @@ class ContractUpdateView(LoginRequiredMixin, UpdateView):
         return super().form_valid(form)
 
 
-class ContractLongtermToLicenseeView(ContractTypeView):
-    template_name = "contracts/contract_longterm_to_licensee.html"
-
-
-class ContractOneoffLabView(ContractTypeView):
-    template_name = "contracts/contract_oneoff_lab.html"
-
-
-# Универсальный список договоров с фильтром по типу
-class ContractListView(LoginRequiredMixin, ListView):
-    model = Contract
-    template_name = "contracts/contract_list_all.html"
-    context_object_name = "contracts"
-    paginate_by = 20
-
-    def get_queryset(self):
-        qs = super().get_queryset().filter(is_trash=False, is_archived=False)
-        type_slug = self.kwargs.get('type_slug')
-        if type_slug:
-            type_map = {
-                'oneoff-licensee': self.model.Type.ONEOFF_LICENSEE,
-                'longterm-licensee': self.model.Type.LONGTERM_TO_LICENSEE,
-                'oneoff-lab': self.model.Type.ONEOFF_LAB,
-            }
-            qs = qs.filter(type=type_map.get(type_slug))
-        return qs
-
-
 # История договоров
 class ContractHistoryView(LoginRequiredMixin, TemplateView):
     template_name = "contracts/contract_history.html"
@@ -184,21 +142,35 @@ class CompaniesListView(LoginRequiredMixin, ListView):
     template_name = "catalogs/companies_list.html"
     context_object_name = "companies"
     paginate_by = 30
-    ordering = ['-id']  # или ['-pk']
+    ordering = ['-id']
+
+    def get_paginate_by(self, queryset):
+        # Если есть любой фильтр — убираем лимит в 10 записей
+        if self.request.GET.get('q') or self.request.GET.get('id') or self.request.GET.getlist('role'):
+            return self.paginate_by
+        # По умолчанию — только 10 последних
+        return 10
 
     def get_queryset(self):
-        qs = super().get_queryset()
+        # Сначала получаем базовый queryset
+        qs = Company.objects.all().order_by('-id')
 
-        # Поиск
+        # Проверяем, есть ли активные фильтры
+        has_filters = (
+                self.request.GET.get('q') or
+                self.request.GET.get('id') or
+                self.request.GET.getlist('role')
+        )
+
+        # Применяем фильтры (до distinct и среза!)
+        id_search = self.request.GET.get('id', '').strip()
+        if id_search and id_search.isdigit():
+            qs = qs.filter(id=int(id_search))
+
         q = self.request.GET.get('q', '').strip()
         if q:
-            # Проверяем, является ли поиск числом (ID)
-            if q.isdigit():
-                qs = qs.filter(Q(id=q) | Q(inn__icontains=q) | Q(name__icontains=q))
-            else:
-                qs = qs.filter(Q(inn__icontains=q) | Q(name__icontains=q))
+            qs = qs.filter(Q(inn__icontains=q) | Q(name__icontains=q))
 
-        # Фильтр по ролям
         roles = self.request.GET.getlist('role')
         if roles:
             role_filters = Q()
@@ -212,11 +184,24 @@ class CompaniesListView(LoginRequiredMixin, ListView):
                 role_filters |= Q(is_subcontractor=True)
             qs = qs.filter(role_filters)
 
-        return qs.distinct()
+        # Теперь distinct (до среза!)
+        qs = qs.distinct()
+
+        # И только потом срез, если нужно
+        if not has_filters:
+            qs = qs[:10]
+
+        return qs
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['selected_roles'] = self.request.GET.getlist('role')
+        # Флаг для шаблона — показывать ли сообщение о лимите
+        context['is_limited'] = not (
+                self.request.GET.get('q') or
+                self.request.GET.get('id') or
+                self.request.GET.getlist('role')
+        )
         return context
 
 
