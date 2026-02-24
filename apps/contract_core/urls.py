@@ -8,7 +8,7 @@ app_name = "contract_core"
 
 urlpatterns = [
     # Договоры (объединённый подход)
-    path("contracts/oneoff-licensee/", views.OneoffLicenseeListView.as_view(), name="contract_oneoff_licensee"),
+    path("contracts/contract_list/", views.ContractListView.as_view(), name="contract_list"),
     path("contracts/<int:pk>/", views.ContractDetailView.as_view(), name="contract_detail"),
     path("contracts/add/", views.ContractCreateView.as_view(), name="contract_create"),
     path("contracts/<int:pk>/edit/", views.ContractUpdateView.as_view(), name="contract_update"),

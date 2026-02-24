@@ -17,23 +17,21 @@ from .models import (
     Region,
     District,
     )
-from .forms import ContractForm
-from .forms import AkForm, CompanyForm
+from .forms import AkForm, CompanyForm, ContractForm
 
 
 # Create your views here.
 
 
-class OneoffLicenseeListView(LoginRequiredMixin, ListView):
+class ContractListView(LoginRequiredMixin, ListView):
     model = Contract
-    template_name = "contracts/contract_oneoff_licensee.html"
+    template_name = "contracts/contract_list.html"
     context_object_name = "contracts"
     paginate_by = 10
     ordering = ['-created_at']
 
     def get_queryset(self):
-        return super().get_queryset().filter(
-            type=Contract.Type.ONEOFF_LICENSEE,
+        qs = super().get_queryset().filter(
             is_trash=False,
             is_archived=False
         ).select_related(
@@ -51,9 +49,17 @@ class OneoffLicenseeListView(LoginRequiredMixin, ListView):
             ak_count=Count('objects__aks')
         )
 
+        # Фильтр по типу (если передан в GET)
+        contract_type = self.request.GET.get('type')
+        if contract_type:
+            qs = qs.filter(type=contract_type)
+
+        return qs
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['total_count'] = self.get_queryset().count()
+        context['current_type'] = self.request.GET.get('type', 'all')
         return context
 
 
@@ -80,7 +86,9 @@ class ContractCreateView(LoginRequiredMixin, CreateView):
     model = Contract
     form_class = ContractForm
     template_name = "contracts/contract_form.html"
-    success_url = reverse_lazy('contract_core:contract_oneoff_licensee')
+
+    def get_success_url(self):
+        return reverse_lazy('contract_core:contract_list')
 
     def form_valid(self, form):
         messages.success(self.request, "Договор успешно создан")
@@ -91,7 +99,9 @@ class ContractUpdateView(LoginRequiredMixin, UpdateView):
     model = Contract
     form_class = ContractForm
     template_name = "contracts/contract_form.html"
-    success_url = reverse_lazy('contract_core:contract_oneoff_licensee')
+
+    def get_success_url(self):
+        return reverse_lazy('contract_core:contract_list')
 
     def form_valid(self, form):
         messages.success(self.request, "Договор успешно обновлён")
