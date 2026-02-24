@@ -38,8 +38,89 @@ class ContractHistoryView(LoginRequiredMixin, ListView):
     paginate_by = 20
 
     def get_queryset(self):
-        self.contract = get_object_or_404(Contract, pk=self.kwargs['pk'])
-        return LogEntry.objects.get_for_object(self.contract).select_related('actor').order_by('-timestamp')
+        contract_pk = self.kwargs['pk']
+        self.contract = get_object_or_404(Contract, pk=contract_pk)
+
+        # Получаем ContentType для всех моделей
+        content_types = ContentType.objects.get_for_models(
+            Contract, FinalAct, InterimAct, ContractSigningStage,
+            ContractSystemCheck, ProtectionObject, Ak
+        )
+
+        # Начинаем с Q-объекта для самого Contract
+        q_objects = Q(
+            content_type=content_types[Contract],
+            object_id=str(contract_pk)
+        )
+
+        # Собираем ID связанных объектов и добавляем в фильтр
+
+        # 1. FinalAct (OneToOne)
+        try:
+            final_act = FinalAct.objects.get(contract_id=contract_pk)
+            q_objects |= Q(
+                content_type=content_types[FinalAct],
+                object_id=str(final_act.pk)
+            )
+        except FinalAct.DoesNotExist:
+            pass
+
+        # 2. InterimAct (ForeignKey)
+        interim_ids = InterimAct.objects.filter(
+            contract_id=contract_pk
+        ).values_list('id', flat=True)
+        if interim_ids:
+            q_objects |= Q(
+                content_type=content_types[InterimAct],
+                object_id__in=[str(i) for i in interim_ids]
+            )
+
+        # 3. ContractSigningStage (OneToOne)
+        try:
+            signing_stage = ContractSigningStage.objects.get(contract_id=contract_pk)
+            q_objects |= Q(
+                content_type=content_types[ContractSigningStage],
+                object_id=str(signing_stage.pk)
+            )
+        except ContractSigningStage.DoesNotExist:
+            pass
+
+        # 4. ContractSystemCheck (ForeignKey)
+        system_check_ids = ContractSystemCheck.objects.filter(
+            contract_id=contract_pk
+        ).values_list('id', flat=True)
+        if system_check_ids:
+            q_objects |= Q(
+                content_type=content_types[ContractSystemCheck],
+                object_id__in=[str(i) for i in system_check_ids]
+            )
+
+        # 5. ProtectionObject (ForeignKey)
+        protection_ids = ProtectionObject.objects.filter(
+            contract_id=contract_pk
+        ).values_list('id', flat=True)
+        protection_ids_list = list(protection_ids)
+
+        if protection_ids_list:
+            q_objects |= Q(
+                content_type=content_types[ProtectionObject],
+                object_id__in=[str(i) for i in protection_ids_list]
+            )
+
+            # 6. Ak — связан через ProtectionObject (ManyToMany)
+            ak_ids = Ak.objects.filter(
+                protection_objects__id__in=protection_ids_list
+            ).values_list('id', flat=True).distinct()
+
+            if ak_ids:
+                q_objects |= Q(
+                    content_type=content_types[Ak],
+                    object_id__in=[str(i) for i in ak_ids]
+                )
+
+        return LogEntry.objects.filter(q_objects).select_related(
+            'actor', 'content_type'
+        ).order_by('-timestamp')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

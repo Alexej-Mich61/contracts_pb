@@ -8,6 +8,7 @@
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 class="mb-0">История изменений договора №{{ contract.pk }}</h1>
+
     </div>
 
     <div class="alert alert-info">
@@ -21,9 +22,10 @@
             <table class="table table-striped table-hover">
                 <thead class="table-dark">
                     <tr>
-                        <th width="80">ID</th>
-                        <th width="100">Действие</th>
-                        <th width="150">Дата</th>
+                        <th width="60">ID</th>
+                        <th width="120">Объект</th>
+                        <th width="90">Действие</th>
+                        <th width="140">Дата</th>
                         <th width="150">Пользователь</th>
                         <th>Изменённые поля</th>
                     </tr>
@@ -32,6 +34,11 @@
                 {% for log in logs %}
                     <tr>
                         <td class="text-muted">{{ log.id }}</td>
+                        <td>
+                            <span class="badge bg-secondary">
+                                {{ log.content_type.name }}
+                            </span>
+                        </td>
                         <td>
                             {% if log.action == 0 %}
                                 <span class="badge bg-success">Создание</span>
@@ -50,10 +57,10 @@
                                     <li class="mb-1">
                                         <span class="badge bg-light text-dark">{{ field }}</span>:
                                         {% if change.0 %}
-                                            <s class="text-muted">{{ change.0|default:"—"|truncatechars:30 }}</s>
-                                            <i class="bi bi-arrow-right mx-1"></i>
+                                            <s class="text-muted">{{ change.0|default:"—"|truncatechars:25 }}</s>
+                                            →
                                         {% endif %}
-                                        <strong>{{ change.1|default:"—"|truncatechars:30 }}</strong>
+                                        <strong>{{ change.1|default:"—"|truncatechars:25 }}</strong>
                                     </li>
                                 {% endfor %}
                                 </ul>
@@ -67,7 +74,6 @@
             </table>
         </div>
 
-        <!-- Пагинация -->
         {% if is_paginated %}
             <nav aria-label="Пагинация">
                 <ul class="pagination justify-content-center">
@@ -90,7 +96,7 @@
     {% else %}
         <div class="alert alert-warning text-center py-5">
             <h4>Нет записей в истории</h4>
-            <p>Изменения по этому договору ещё не фиксировались.</p>
+            <p>Изменения по этому договору и связанным объектам ещё не фиксировались.</p>
         </div>
     {% endif %}
 </div>
