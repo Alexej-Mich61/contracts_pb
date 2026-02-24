@@ -9,6 +9,7 @@ from django.db import models
 from django.utils import timezone
 import datetime
 from simple_history.models import HistoricalRecords
+from auditlog.registry import auditlog
 
 from config.middleware import get_current_user
 from .managers import ContractManager
@@ -760,3 +761,14 @@ class Ak(models.Model):
 
     def __str__(self):
         return f"АК №{self.number} – {self.name}"
+
+# auditlog
+auditlog.register(Contract)
+auditlog.register(FinalAct)
+auditlog.register(InterimAct)
+auditlog.register(ContractSigningStage)
+auditlog.register(ContractSystemCheck)
+auditlog.register(ProtectionObject)
+auditlog.register(Ak)
+auditlog.register(Company)
+

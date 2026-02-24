@@ -3,6 +3,8 @@ from django.contrib import admin
 from import_export.admin import ImportExportModelAdmin
 from simple_history.admin import SimpleHistoryAdmin
 
+#from simple_history.admin import SimpleHistoryAdmin
+
 from .models import (
     ContractSettings, Region, District, Work, Company,
     SigningStage, ContractSigningStage, SystemType,
@@ -10,6 +12,10 @@ from .models import (
     ProtectionObject, Ak
 )
 from .resources import CompanyResource, AkResource
+from auditlog.models import LogEntry
+from auditlog.admin import LogEntryAdmin as BaseLogEntryAdmin
+
+
 
 
 class HistoryAdminMixin(SimpleHistoryAdmin):
@@ -19,6 +25,45 @@ class HistoryAdminMixin(SimpleHistoryAdmin):
         'history_user',
         'history_type'
     ]
+
+
+# Отменяем старую регистрацию
+admin.site.unregister(LogEntry)
+
+
+@admin.register(LogEntry)
+class LogEntryAdmin(BaseLogEntryAdmin):
+    # Добавляем ID и другие поля в список
+    list_display = [
+        'id',  # ID записи лога
+        'timestamp',  # Created
+        'actor',  # Пользователь
+        'action',  # Action
+        'object_pk',  # ID объекта
+        'content_type',  # Ресурс (модель)
+        'changes',  # Changes
+        #'correlation_id',
+    ]
+
+    # Фильтры
+    list_filter = [
+        'action',
+        'content_type',
+        'timestamp',
+    ]
+
+    # Поиск
+    search_fields = [
+        'id',
+        'object_pk',  # Поиск по ID объекта
+        'object_repr',  # Поиск по строковому представлению
+        'actor__username',
+        'actor__first_name',
+        'actor__last_name',
+    ]
+
+    # Сделаем ссылки кликабельными
+    list_display_links = ['id', 'timestamp', 'object_pk', 'content_type',]
 
 
 # ---------- ИНЛАЙНЫ ----------

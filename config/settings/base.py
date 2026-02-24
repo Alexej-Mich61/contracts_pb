@@ -38,6 +38,7 @@ THIRD_PARTY_APPS = [
 
 LOCAL_APPS = [
     "simple_history",
+    "auditlog",
     "apps.identity",
     "apps.contract_core",
     "apps.audit",
@@ -60,7 +61,8 @@ MIDDLEWARE = [
     'simple_history.middleware.HistoryRequestMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'config.middleware.CurrentUserMiddleware',  # ← мой middleware.py, путь указан от корня проекта
+    'config.middleware.CurrentUserMiddleware', # ← мой middleware.py, путь указан от корня проекта
+    'auditlog.middleware.AuditlogMiddleware',
 ]
 
 ROOT_URLCONF = "config.urls"

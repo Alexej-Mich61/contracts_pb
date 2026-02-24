@@ -12,10 +12,8 @@ urlpatterns = [
     path("contracts/<int:pk>/", views.ContractDetailView.as_view(), name="contract_detail"),
     path("contracts/add/", views.ContractCreateView.as_view(), name="contract_create"),
     path("contracts/<int:pk>/edit/", views.ContractUpdateView.as_view(), name="contract_update"),
+    path('contracts/<int:pk>/history/', views.ContractHistoryView.as_view(), name='contract_history'),
 
-
-    # История
-    path("contracts/history/", views.ContractHistoryView.as_view(), name="contract_history"),
 
     # Корзина
     path("contracts/trash/", views.ContractTrashView.as_view(), name="contract_trash"),

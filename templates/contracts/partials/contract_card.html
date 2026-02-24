@@ -134,6 +134,8 @@
         <div class="card-body p-3 small text-center">
             <a href="{% url 'contract_core:contract_detail' contract.pk %}" class="btn btn-sm btn-outline-primary mb-2 d-block">Подробнее</a>
             <a href="{% url 'contract_core:contract_update' contract.pk %}" class="btn btn-sm btn-outline-secondary d-block">Редактировать</a>
+            <a href="{% url 'contract_core:contract_history' contract.pk %}" class="btn btn-sm btn-outline-info d-block"><i class="bi bi-clock-history"></i> История
+    </a>
         </div>
     </div>
 </div>

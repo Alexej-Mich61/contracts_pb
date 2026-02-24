@@ -1,12 +1,16 @@
 # apps/contract_core/views.py
+import logging
 from django.http import HttpResponse, HttpResponseRedirect
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse_lazy
 from django.contrib import messages
 from django.views.generic import TemplateView, ListView, CreateView, UpdateView, DetailView
 from django.db.models import Q
 from django.db.models import Count
+from auditlog.models import LogEntry
+from django.contrib.contenttypes.models import ContentType
+from django.views.generic.base import View
 
 from .models import (
     Ak,
@@ -16,11 +20,31 @@ from .models import (
     FinalAct,
     Region,
     District,
+    InterimAct,
+    ContractSigningStage,
+    ContractSystemCheck,
     )
 from .forms import AkForm, CompanyForm, ContractForm
 
 
+
 # Create your views here.
+
+# auditlog
+class ContractHistoryView(LoginRequiredMixin, ListView):
+    model = LogEntry
+    template_name = "contracts/contract_history.html"
+    context_object_name = "logs"
+    paginate_by = 20
+
+    def get_queryset(self):
+        self.contract = get_object_or_404(Contract, pk=self.kwargs['pk'])
+        return LogEntry.objects.get_for_object(self.contract).select_related('actor').order_by('-timestamp')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['contract'] = self.contract
+        return context
 
 
 class ContractListView(LoginRequiredMixin, ListView):
@@ -108,9 +132,7 @@ class ContractUpdateView(LoginRequiredMixin, UpdateView):
         return super().form_valid(form)
 
 
-# История договоров
-class ContractHistoryView(LoginRequiredMixin, TemplateView):
-    template_name = "contracts/contract_history.html"
+
 
 # Корзина договоров
 class ContractTrashView(LoginRequiredMixin, TemplateView):
