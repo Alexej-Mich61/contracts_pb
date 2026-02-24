@@ -1,5 +1,4 @@
 # apps/contract_core/views.py
-import logging
 from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render, get_object_or_404
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -10,7 +9,7 @@ from django.db.models import Q
 from django.db.models import Count
 from auditlog.models import LogEntry
 from django.contrib.contenttypes.models import ContentType
-from django.views.generic.base import View
+from .services.history_service import ContractHistoryService
 
 from .models import (
     Ak,
@@ -32,95 +31,16 @@ from .forms import AkForm, CompanyForm, ContractForm
 
 # auditlog
 class ContractHistoryView(LoginRequiredMixin, ListView):
-    model = LogEntry
+    """Отображение истории изменений договора и связанных объектов"""
+    model = LogEntry  # для ListView
     template_name = "contracts/contract_history.html"
     context_object_name = "logs"
     paginate_by = 20
 
     def get_queryset(self):
-        contract_pk = self.kwargs['pk']
-        self.contract = get_object_or_404(Contract, pk=contract_pk)
-
-        # Получаем ContentType для всех моделей
-        content_types = ContentType.objects.get_for_models(
-            Contract, FinalAct, InterimAct, ContractSigningStage,
-            ContractSystemCheck, ProtectionObject, Ak
-        )
-
-        # Начинаем с Q-объекта для самого Contract
-        q_objects = Q(
-            content_type=content_types[Contract],
-            object_id=str(contract_pk)
-        )
-
-        # Собираем ID связанных объектов и добавляем в фильтр
-
-        # 1. FinalAct (OneToOne)
-        try:
-            final_act = FinalAct.objects.get(contract_id=contract_pk)
-            q_objects |= Q(
-                content_type=content_types[FinalAct],
-                object_id=str(final_act.pk)
-            )
-        except FinalAct.DoesNotExist:
-            pass
-
-        # 2. InterimAct (ForeignKey)
-        interim_ids = InterimAct.objects.filter(
-            contract_id=contract_pk
-        ).values_list('id', flat=True)
-        if interim_ids:
-            q_objects |= Q(
-                content_type=content_types[InterimAct],
-                object_id__in=[str(i) for i in interim_ids]
-            )
-
-        # 3. ContractSigningStage (OneToOne)
-        try:
-            signing_stage = ContractSigningStage.objects.get(contract_id=contract_pk)
-            q_objects |= Q(
-                content_type=content_types[ContractSigningStage],
-                object_id=str(signing_stage.pk)
-            )
-        except ContractSigningStage.DoesNotExist:
-            pass
-
-        # 4. ContractSystemCheck (ForeignKey)
-        system_check_ids = ContractSystemCheck.objects.filter(
-            contract_id=contract_pk
-        ).values_list('id', flat=True)
-        if system_check_ids:
-            q_objects |= Q(
-                content_type=content_types[ContractSystemCheck],
-                object_id__in=[str(i) for i in system_check_ids]
-            )
-
-        # 5. ProtectionObject (ForeignKey)
-        protection_ids = ProtectionObject.objects.filter(
-            contract_id=contract_pk
-        ).values_list('id', flat=True)
-        protection_ids_list = list(protection_ids)
-
-        if protection_ids_list:
-            q_objects |= Q(
-                content_type=content_types[ProtectionObject],
-                object_id__in=[str(i) for i in protection_ids_list]
-            )
-
-            # 6. Ak — связан через ProtectionObject (ManyToMany)
-            ak_ids = Ak.objects.filter(
-                protection_objects__id__in=protection_ids_list
-            ).values_list('id', flat=True).distinct()
-
-            if ak_ids:
-                q_objects |= Q(
-                    content_type=content_types[Ak],
-                    object_id__in=[str(i) for i in ak_ids]
-                )
-
-        return LogEntry.objects.filter(q_objects).select_related(
-            'actor', 'content_type'
-        ).order_by('-timestamp')
+        self.contract = get_object_or_404(Contract, pk=self.kwargs['pk'])
+        service = ContractHistoryService(self.contract)
+        return service.get_all_logs()
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
