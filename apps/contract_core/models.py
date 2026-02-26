@@ -8,7 +8,7 @@ from django.db.models import Q
 from django.db import models
 from django.utils import timezone
 import datetime
-from simple_history.models import HistoricalRecords
+#from simple_history.models import HistoricalRecords
 from auditlog.registry import auditlog
 
 from config.middleware import get_current_user
@@ -255,16 +255,6 @@ class ContractSigningStage(models.Model):
     )
     note = models.TextField("Примечание", blank=True, max_length=200)
 
-    # history = HistoricalRecords(
-    #     history_user_id_field=models.ForeignKey(
-    #         'identity.User',
-    #         on_delete=models.SET_NULL,
-    #         null=True,
-    #         db_constraint=False,
-    #     ),
-    #     history_change_reason_field=models.TextField(null=True, blank=True),
-    # )
-
     def save(self, *args, **kwargs):
         current_user = get_current_user()
         if current_user and not self.pk:
@@ -338,16 +328,6 @@ class ContractSystemCheck(models.Model):
         editable=False,
     )
     note = models.CharField("Примечание", max_length=200, blank=True)
-
-    # history = HistoricalRecords(
-    #     history_user_id_field=models.ForeignKey(
-    #         'identity.User',
-    #         on_delete=models.SET_NULL,
-    #         null=True,
-    #         db_constraint=False,
-    #     ),
-    #     history_change_reason_field=models.TextField(null=True, blank=True),
-    # )
 
     def save(self, *args, **kwargs):
         current_user = get_current_user()
@@ -486,16 +466,6 @@ class Contract(models.Model):
 
     objects = ContractManager()
 
-    # history = HistoricalRecords(
-    #     history_user_id_field=models.ForeignKey(
-    #         'identity.User',
-    #         on_delete=models.SET_NULL,
-    #         null=True,
-    #         db_constraint=False,
-    #     ),
-    #     history_change_reason_field=models.TextField(null=True, blank=True),
-    # )
-
     class Meta:
         verbose_name = "Договор"
         verbose_name_plural = "Договоры"
@@ -564,16 +534,6 @@ class FinalAct(models.Model):
         help_text="Примечание (необязательно)"
     )
 
-    # history = HistoricalRecords(
-    #     history_user_id_field=models.ForeignKey(
-    #         'identity.User',
-    #         on_delete=models.SET_NULL,
-    #         null=True,
-    #         db_constraint=False,
-    #     ),
-    #     history_change_reason_field=models.TextField(null=True, blank=True),
-    # )
-
     class Meta:
         verbose_name = "Итоговый акт"
         verbose_name_plural = "Итоговые акты"
@@ -610,16 +570,6 @@ class InterimAct(models.Model):
         validators=[file_validator],
         help_text="Любой формат, кроме .exe и пр. До 100 МБ",
     )
-
-    # history = HistoricalRecords(
-    #     history_user_id_field=models.ForeignKey(
-    #         'identity.User',
-    #         on_delete=models.SET_NULL,
-    #         null=True,
-    #         db_constraint=False,
-    #     ),
-    #     history_change_reason_field=models.TextField(null=True, blank=True),
-    # )
 
     class Meta:
         verbose_name = "Промежуточный акт"
@@ -688,16 +638,6 @@ class ProtectionObject(models.Model):
         decimal_places=2,
         default=0.00
     )
-
-    # history = HistoricalRecords(
-    #     history_user_id_field=models.ForeignKey(
-    #         'identity.User',
-    #         on_delete=models.SET_NULL,
-    #         null=True,
-    #         db_constraint=False,
-    #     ),
-    #     history_change_reason_field=models.TextField(null=True, blank=True),
-    # )
 
     @property
     def region(self):

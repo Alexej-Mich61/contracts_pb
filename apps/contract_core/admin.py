@@ -17,16 +17,6 @@ from auditlog.admin import LogEntryAdmin as BaseLogEntryAdmin
 
 
 
-
-class HistoryAdminMixin(SimpleHistoryAdmin):
-    """Базовый класс для всех админок с историей."""
-    history_list_display = [
-        'history_date',
-        'history_user',
-        'history_type'
-    ]
-
-
 # Отменяем старую регистрацию
 admin.site.unregister(LogEntry)
 
@@ -85,6 +75,7 @@ class InterimActInline(admin.TabularInline):
     verbose_name_plural = "Промежуточные акты"
 
 
+
 class ContractSigningStageInline(admin.StackedInline):
     model = ContractSigningStage
     extra = 0
@@ -111,6 +102,21 @@ class ProtectionObjectInline(admin.TabularInline):
               'total_sum_subcontract', 'monthly_sum_subcontract')
     verbose_name = "Объект защиты"
     verbose_name_plural = "Объекты защиты"
+
+
+# Новый инлайн для АК внутри объекта защиты
+class AkInline(admin.TabularInline):
+    model = ProtectionObject.aks.through  # ← через related_name
+    extra = 1
+    verbose_name = "Абонентский комплект"
+    verbose_name_plural = "Абонентские комплекты"
+
+    # Поля, которые показываем в инлайне
+    fields = ('ak',)
+
+    # Автодополнение с поиском
+    autocomplete_fields = ['ak']
+
 
 
 # ---------- АДМИНКИ ----------
@@ -178,7 +184,7 @@ class SystemTypeAdmin(admin.ModelAdmin):
 
 
 @admin.register(Contract)
-class ContractAdmin(HistoryAdminMixin, ImportExportModelAdmin):
+class ContractAdmin(ImportExportModelAdmin):
     list_display = ('number', 'type', 'status', 'customer', 'executor', 'date_start', 'date_end')
     list_filter = ('type', 'status', 'is_trash', 'is_archived')
     search_fields = ('number', 'customer__name', 'executor__name')
@@ -208,7 +214,7 @@ class ContractAdmin(HistoryAdminMixin, ImportExportModelAdmin):
 
 
 @admin.register(FinalAct)
-class FinalActAdmin(HistoryAdminMixin):
+class FinalActAdmin(admin.ModelAdmin):
     list_display = ('contract', 'present', 'date', 'checked_by', 'checked_at')
     list_filter = ('present',)
     search_fields = ('contract__number',)
@@ -216,34 +222,37 @@ class FinalActAdmin(HistoryAdminMixin):
 
 
 @admin.register(InterimAct)
-class InterimActAdmin(HistoryAdminMixin):
+class InterimActAdmin(admin.ModelAdmin):
     list_display = ('title', 'date', 'contract')
     list_filter = ('date',)
     search_fields = ('title', 'contract__number')
 
 
 @admin.register(ContractSigningStage)
-class ContractSigningStageAdmin(HistoryAdminMixin):
+class ContractSigningStageAdmin(admin.ModelAdmin):
     list_display = ('contract', 'stage', 'changed_at', 'changed_by')
     list_filter = ('stage',)
     search_fields = ('contract__number',)
 
 
 @admin.register(ContractSystemCheck)
-class ContractSystemCheckAdmin(HistoryAdminMixin):
+class ContractSystemCheckAdmin(admin.ModelAdmin):
     list_display = ('contract', 'system_type', 'last_checked', 'checked_by')
     list_filter = ('system_type', 'last_checked')
     search_fields = ('contract__number', 'system_type__name')
 
 
 @admin.register(ProtectionObject)
-class ProtectionObjectAdmin(HistoryAdminMixin):
+class ProtectionObjectAdmin(admin.ModelAdmin):  # или твой HistoryAdminMixin
     list_display = ('name', 'contract', 'district', 'region_property', 'subcontractor')
     list_filter = ('district__region', 'subcontractor')
     search_fields = ('name', 'address', 'contract__number')
 
+    inlines = [AkInline]  # ← добавляем
+
     def region_property(self, obj):
         return obj.region
+
     region_property.short_description = "Регион"
 
 
@@ -252,9 +261,11 @@ class AkAdmin(ImportExportModelAdmin):
     resource_class = AkResource
     list_display = ('number', 'name', 'district', 'region_property')
     list_filter = ('district__region',)
-    search_fields = ('number', 'name', 'address')
+    search_fields = ('number', 'name', 'address', 'district__name')  # ← поиск по району тоже
+    autocomplete_fields = []  # если нужно, можно добавить
 
     def region_property(self, obj):
         return obj.region
+
     region_property.short_description = "Регион"
 

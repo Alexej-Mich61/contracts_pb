@@ -37,7 +37,7 @@ THIRD_PARTY_APPS = [
 ]
 
 LOCAL_APPS = [
-    "simple_history",
+    #"simple_history",
     "auditlog",
     "apps.identity",
     "apps.contract_core",
@@ -189,5 +189,7 @@ LOGGING = {
         },
     },
 }
+
+ADMIN_AUTOCOMPLETE_FIELDS = True
 
 # Tailwind не используется
