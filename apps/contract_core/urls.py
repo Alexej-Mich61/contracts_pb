@@ -8,11 +8,16 @@ app_name = "contract_core"
 
 urlpatterns = [
     # Договоры (объединённый подход)
-    path("contracts/contract_list/", views.ContractListView.as_view(), name="contract_list"),
-    path("contracts/<int:pk>/", views.ContractDetailView.as_view(), name="contract_detail"),
+    # Список договоров (главная страница)
+    path("contracts/", views.ContractListView.as_view(), name="contract_list"),
+
+    # Форма создания/редактирования (отдельная страница)
     path("contracts/add/", views.ContractCreateView.as_view(), name="contract_create"),
     path("contracts/<int:pk>/edit/", views.ContractUpdateView.as_view(), name="contract_update"),
-    path('contracts/<int:pk>/history/', views.ContractHistoryView.as_view(), name='contract_history'),
+
+    # HTMX эндпоинты для модальных окон
+    path("contracts/<int:pk>/detail/", views.ContractDetailHtmxView.as_view(), name="contract_detail_htmx"),
+    path("contracts/<int:pk>/history/", views.ContractHistoryHtmxView.as_view(), name="contract_history_htmx"),
 
 
     # Корзина

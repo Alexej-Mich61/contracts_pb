@@ -1,0 +1,121 @@
+<!-- templates/contracts/partials/contract_detail_modal.html -->
+<div class="modal-header bg-primary text-white">
+    <h5 class="modal-title">Договор №{{ contract.number|default:"б/н" }} — {{ contract.get_type_display }}</h5>
+    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+</div>
+<div class="modal-body">
+    <div class="row g-3">
+        <!-- Основные сведения -->
+        <div class="col-md-6">
+            <div class="card border-primary h-100">
+                <div class="card-header fw-bold">Основные сведения</div>
+                <div class="card-body">
+                    <p><strong>ID:</strong> {{ contract.pk }}</p>
+                    <p><strong>Заказчик:</strong> {{ contract.customer.name }} (ИНН: {{ contract.customer.inn }})</p>
+                    <p><strong>Номер и дата:</strong> {{ contract.number|default:"б/н" }} от {{ contract.date_concluded|date:"d.m.Y"|default:"—" }}</p>
+                    <p><strong>Исполнитель:</strong> {{ contract.executor.name }}</p>
+                    <p><strong>Срок:</strong> {{ contract.date_start|date:"d.m.Y" }} — {{ contract.date_end|date:"d.m.Y" }}</p>
+                    <span class="badge {% if contract.status == 'active' %}bg-success{% elif contract.status == 'active_expires' %}bg-warning{% elif contract.status == 'active_expired' %}bg-danger{% elif contract.status == 'completed' %}bg-primary{% else %}bg-secondary{% endif %}">
+                        {{ contract.get_status_display }}
+                    </span>
+                    <span class="badge bg-secondary">{{ contract.work.name }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Финансы -->
+        <div class="col-md-6">
+            <div class="card border-success h-100">
+                <div class="card-header fw-bold">Финансы</div>
+                <div class="card-body">
+                    <p><strong>Сумма общая:</strong> {{ contract.total_sum|floatformat:2 }} руб.</p>
+                    <p><strong>Сумма в месяц:</strong> {{ contract.monthly_sum|floatformat:2 }} руб.</p>
+                    <p><strong>Аванс:</strong> {{ contract.advance|floatformat:2 }} руб.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Объекты защиты -->
+        <div class="col-12">
+            <div class="card border-info">
+                <div class="card-header fw-bold">Объекты защиты ({{ contract.objects.count }})</div>
+                <div class="card-body">
+                    {% for obj in contract.objects.all %}
+                        <div class="border rounded p-2 mb-2 bg-light">
+                            <strong>{{ obj.name }}</strong><br>
+                            Район: {{ obj.district.name|default:"—" }} ({{ obj.region.name|default:"—" }})<br>
+                            Адрес: {{ obj.address }}<br>
+                            Субподрядчик: {{ obj.subcontractor.name|default:"—" }}<br>
+                            АК: {% for ak in obj.aks.all %}{{ ak.number }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}
+                        </div>
+                    {% empty %}
+                        <p class="text-muted">Нет объектов защиты</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Подписание и системы -->
+        <div class="col-md-6">
+            <div class="card border-warning h-100">
+                <div class="card-header fw-bold">Подписание</div>
+                <div class="card-body">
+                    {% if contract.signing_stage %}
+                        <p><strong>{{ contract.signing_stage.stage.name }}</strong></p>
+                        <p class="small">Изменено: {{ contract.signing_stage.changed_at|date:"d.m.Y H:i" }}</p>
+                    {% else %}
+                        <p class="text-muted">Стадия не указана</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card border-warning h-100">
+                <div class="card-header fw-bold">Системы</div>
+                <div class="card-body">
+                    {% for check in contract.system_checks.all %}
+                        <div class="small mb-1">
+                            <strong>{{ check.system_type.name }}:</strong>
+                            {{ check.last_checked|date:"d.m.Y"|default:"не отмечено" }}
+                        </div>
+                    {% empty %}
+                        <p class="text-muted">Нет отметок</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Акты -->
+        <div class="col-md-6">
+            <div class="card border-danger h-100">
+                <div class="card-header fw-bold">Итоговый акт</div>
+                <div class="card-body">
+                    {% if contract.final_act %}
+                        <p>Сформирован: {{ contract.final_act.present|yesno:"Да,Нет" }}</p>
+                        <p>Дата: {{ contract.final_act.date|date:"d.m.Y"|default:"—" }}</p>
+                    {% else %}
+                        <p class="text-muted">Нет итогового акта</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card border-danger h-100">
+                <div class="card-header fw-bold">Промежуточные акты ({{ contract.interim_acts.count }})</div>
+                <div class="card-body">
+                    {% for act in contract.interim_acts.all %}
+                        <div class="small mb-1">{{ act.title }} — {{ act.date|date:"d.m.Y" }}</div>
+                    {% empty %}
+                        <p class="text-muted">Нет промежуточных актов</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="modal-footer">
+    <a href="{% url 'contract_core:contract_update' contract.pk %}" class="btn btn-primary">Редактировать</a>
+    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+</div>

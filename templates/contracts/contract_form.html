@@ -1,105 +1,108 @@
-<!--templates/contracts/contract_form.html-->
+<!-- templates/contracts/contract_form.html -->
 {% extends "base.html" %}
+
 {% block title %}{% if object %}Редактировать договор №{{ object.number|default:object.pk }}{% else %}Добавить договор{% endif %}{% endblock %}
 
 {% block content %}
-<div class="card shadow-sm border-0">
-    <div class="card-header bg-primary text-white">
-        <h4 class="mb-0">{% if object %}Редактировать договор №{{ object.number|default:object.pk }}{% else %}Добавить договор{% endif %}</h4>
-    </div>
-    <div class="card-body">
-        <form method="post" enctype="multipart/form-data">
-            {% csrf_token %}
+<div class="container mt-4">
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0">{% if object %}Редактировать договор №{{ object.number|default:object.pk }}{% else %}Добавить договор{% endif %}</h4>
+        </div>
+        <div class="card-body">
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
 
-            {% if form.errors %}
-                <div class="alert alert-danger mb-4">
-                    <strong>Ошибка заполнения формы:</strong>
-                    <ul>
-                        {% for field in form %}
-                            {% for error in field.errors %}
-                                <li>{{ field.label }}: {{ error }}</li>
+                {% if form.errors %}
+                    <div class="alert alert-danger mb-4">
+                        <strong>Ошибка заполнения формы:</strong>
+                        <ul>
+                            {% for field in form %}
+                                {% for error in field.errors %}
+                                    <li>{{ field.label }}: {{ error }}</li>
+                                {% endfor %}
                             {% endfor %}
-                        {% endfor %}
-                        {% for error in form.non_field_errors %}
-                            <li>{{ error }}</li>
-                        {% endfor %}
-                    </ul>
-                </div>
-            {% endif %}
+                            {% for error in form.non_field_errors %}
+                                <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                {% endif %}
 
-            <div class="row g-4">
-                <!-- Основные сведения -->
-                <div class="col-md-6">
-                    <h5 class="fw-bold mb-3">Основные сведения</h5>
-                    <div class="mb-3">
-                        <label class="form-label">Тип договора</label>
-                        {{ form.type }}
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Номер договора</label>
-                        {{ form.number }}
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Дата заключения</label>
-                        {{ form.date_concluded }}
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Заказчик</label>
-                        {{ form.customer }}
-                    </div>
-                    <div class="row">
-                        <div class="col-6 mb-3">
-                            <label class="form-label">Начало действия</label>
-                            {{ form.date_start }}
+                <div class="row g-4">
+                    <!-- Основные сведения -->
+                    <div class="col-md-6">
+                        <h5 class="fw-bold mb-3">Основные сведения</h5>
+                        <div class="mb-3">
+                            <label class="form-label">Тип договора</label>
+                            {{ form.type }}
                         </div>
-                        <div class="col-6 mb-3">
-                            <label class="form-label">Окончание действия</label>
-                            {{ form.date_end }}
+                        <div class="mb-3">
+                            <label class="form-label">Номер договора</label>
+                            {{ form.number }}
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Дата заключения</label>
+                            {{ form.date_concluded }}
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Заказчик</label>
+                            {{ form.customer }}
+                        </div>
+                        <div class="row">
+                            <div class="col-6 mb-3">
+                                <label class="form-label">Начало действия</label>
+                                {{ form.date_start }}
+                            </div>
+                            <div class="col-6 mb-3">
+                                <label class="form-label">Окончание действия</label>
+                                {{ form.date_end }}
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Исполнитель</label>
+                            {{ form.executor }}
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Вид работы</label>
+                            {{ form.work }}
                         </div>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">Исполнитель</label>
-                        {{ form.executor }}
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Вид работы</label>
-                        {{ form.work }}
+
+                    <!-- Финансы и примечание -->
+                    <div class="col-md-6">
+                        <h5 class="fw-bold mb-3">Финансы</h5>
+                        <div class="mb-3">
+                            <label class="form-label">Сумма общая</label>
+                            {{ form.total_sum }}
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Сумма в месяц</label>
+                            {{ form.monthly_sum }}
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Аванс</label>
+                            {{ form.advance }}
+                        </div>
+
+                        <h5 class="fw-bold mt-4 mb-3">Примечание и файл</h5>
+                        <div class="mb-3">
+                            <label class="form-label">Примечание</label>
+                            {{ form.note }}
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Файл договора</label>
+                            {{ form.file }}
+                        </div>
                     </div>
                 </div>
 
-                <!-- Финансы и примечание -->
-                <div class="col-md-6">
-                    <h5 class="fw-bold mb-3">Финансы</h5>
-                    <div class="mb-3">
-                        <label class="form-label">Сумма общая</label>
-                        {{ form.total_sum }}
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Сумма в месяц</label>
-                        {{ form.monthly_sum }}
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Аванс</label>
-                        {{ form.advance }}
-                    </div>
-
-                    <h5 class="fw-bold mt-4 mb-3">Примечание и файл</h5>
-                    <div class="mb-3">
-                        <label class="form-label">Примечание</label>
-                        {{ form.note }}
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Файл договора</label>
-                        {{ form.file }}
-                    </div>
+                <div class="d-flex justify-content-end gap-2 mt-4">
+                    <a href="{% url 'contract_core:contract_list' %}" class="btn btn-secondary">Отмена</a>
+                    <button type="submit" class="btn btn-primary">Сохранить</button>
                 </div>
-            </div>
-
-            <div class="d-flex justify-content-end gap-2 mt-4">
-                <a href="{% url 'contract_core:contract_list' %}" class="btn btn-secondary">Отмена</a>
-                <button type="submit" class="btn btn-primary">Сохранить</button>
-            </div>
-        </form>
+            </form>
+        </div>
     </div>
 </div>
 {% endblock %}

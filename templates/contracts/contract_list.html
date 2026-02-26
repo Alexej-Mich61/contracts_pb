@@ -1,49 +1,70 @@
-<!--templates/contracts/contract_list.html-->
+<!-- templates/contracts/contract_list.html -->
 {% extends "base.html" %}
-<!--{% load humanize %}-->
 
 {% block title %}Контракты (подробно){% endblock %}
 
 {% block content %}
 <div class="container mt-4">
+    <!-- Заголовок -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 class="mb-0">Контракты (подробно)</h1>
-        <span class="badge bg-secondary fs-5">
-            {{ page_obj.paginator.count }} из {{ total_count }}
+        <span class="badge bg-secondary fs-5" id="contract-count">
+            {{ page_obj.paginator.count|default:contracts|length }}
         </span>
     </div>
 
+    <!-- Кнопка создания -->
     <a href="{% url 'contract_core:contract_create' %}" class="btn btn-primary mb-4">
         + Новый договор
     </a>
 
-    {% if contracts %}
-        <div class="row g-3">
-            {% for contract in contracts %}
-                {% include "contracts/partials/contract_card.html" with contract=contract %}
-            {% endfor %}
-        </div>
+    <!-- Список договоров -->
+    <div id="contracts-container" class="row g-3">
+        {% for contract in contracts %}
+            {% include "contracts/partials/contract_card.html" %}
+        {% empty %}
+            <div class="col-12">
+                <div class="alert alert-info text-center py-5">
+                    Нет договоров в базе
+                </div>
+            </div>
+        {% endfor %}
+    </div>
 
-        <!-- Пагинация -->
-        {% if is_paginated %}
-            <nav aria-label="Пагинация" class="mt-4">
-                <ul class="pagination justify-content-center">
-                    {% if page_obj.has_previous %}
-                        <li class="page-item"><a class="page-link" href="?page=1">«</a></li>
-                        <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}">‹</a></li>
-                    {% endif %}
-                    <li class="page-item disabled"><span class="page-link">Страница {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}</span></li>
-                    {% if page_obj.has_next %}
-                        <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}">›</a></li>
-                        <li class="page-item"><a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">»</a></li>
-                    {% endif %}
-                </ul>
-            </nav>
-        {% endif %}
-    {% else %}
-        <div class="alert alert-info text-center py-5">
-            Нет договоров в базе
-        </div>
+    <!-- Пагинация -->
+    {% if is_paginated %}
+        <nav aria-label="Пагинация" class="mt-4">
+            <ul class="pagination justify-content-center">
+                {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page=1">«</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}">‹</a>
+                    </li>
+                {% endif %}
+                <li class="page-item disabled">
+                    <span class="page-link">Страница {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}</span>
+                </li>
+                {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}">›</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">»</a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
     {% endif %}
+</div>
+
+<!-- Модальное окно для деталей и истории -->
+<div class="modal fade" id="contractModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content" id="modal-content">
+            <!-- Контент загружается через HTMX -->
+        </div>
+    </div>
 </div>
 {% endblock %}

@@ -9,7 +9,7 @@ from django.db.models import Q
 from django.db.models import Count
 from auditlog.models import LogEntry
 from django.contrib.contenttypes.models import ContentType
-from .services.history_service import ContractHistoryService
+
 
 from .models import (
     Ak,
@@ -30,15 +30,17 @@ from .forms import AkForm, CompanyForm, ContractForm
 # Create your views here.
 
 # auditlog
-class ContractHistoryView(LoginRequiredMixin, ListView):
-    """Отображение истории изменений договора и связанных объектов"""
-    model = LogEntry  # для ListView
-    template_name = "contracts/contract_history.html"
+
+class ContractHistoryHtmxView(LoginRequiredMixin, ListView):
+    """HTMX эндпоинт для истории договора в модальном окне"""
+    model = LogEntry
+    template_name = "contracts/partials/contract_history_modal.html"
     context_object_name = "logs"
     paginate_by = 20
 
     def get_queryset(self):
         self.contract = get_object_or_404(Contract, pk=self.kwargs['pk'])
+        from .services.history_service import ContractHistoryService
         service = ContractHistoryService(self.contract)
         return service.get_all_logs()
 
@@ -48,6 +50,7 @@ class ContractHistoryView(LoginRequiredMixin, ListView):
         return context
 
 
+# представления договоров
 class ContractListView(LoginRequiredMixin, ListView):
     model = Contract
     template_name = "contracts/contract_list.html"
@@ -88,9 +91,10 @@ class ContractListView(LoginRequiredMixin, ListView):
         return context
 
 
-class ContractDetailView(LoginRequiredMixin, DetailView):
+class ContractDetailHtmxView(LoginRequiredMixin, DetailView):
+    """HTMX эндпоинт для деталей договора в модальном окне"""
     model = Contract
-    template_name = "contracts/contract_detail.html"
+    template_name = "contracts/partials/contract_detail_modal.html"
     context_object_name = "contract"
 
     def get_queryset(self):
