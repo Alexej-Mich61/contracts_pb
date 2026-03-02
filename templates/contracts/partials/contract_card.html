@@ -51,7 +51,7 @@
                         <p><strong>Аванс:</strong> {{ contract.advance|floatformat:0|intcomma }} ₽</p>
                     </div>
                     <p><strong>Объектов: {{ contract.object_count }}</strong> *** <strong>АК: {{ contract.ak_count }}</strong></p>
-                    {% for obj in contract.objects.all %}
+                    {% for obj in contract.contract_objects.all %}
                         <div class="border rounded p-2 mb-2 bg-white">
                             <strong>{{ obj.name }}</strong> — {{ obj.district.name|default:"—" }}<br>
                             Субподрядчик:<br><strong>{{ obj.subcontractor.name|default:"—" }}</strong><br>

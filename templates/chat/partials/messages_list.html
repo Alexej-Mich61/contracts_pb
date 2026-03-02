@@ -1,0 +1,4 @@
+<!-- chat/partials/messages_list.html -->
+{% for message in messages %}
+    {% include "chat/partials/message.html" with message=message current_user=current_user %}
+{% endfor %}

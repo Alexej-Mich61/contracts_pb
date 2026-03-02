@@ -13,6 +13,9 @@
         </span>
     </div>
 
+    <!-- Фильтр -->
+    {% include "contracts/partials/contract_filter.html" %}
+
     <!-- Кнопка создания -->
     <a href="{% url 'contract_core:contract_create' %}" class="btn btn-primary mb-4">
         + Новый договор

@@ -192,4 +192,12 @@ LOGGING = {
 
 ADMIN_AUTOCOMPLETE_FIELDS = True
 
+# # Добавить в CELERY_BEAT_SCHEDULE
+# CELERY_BEAT_SCHEDULE = {
+#     'update-online-statuses': {
+#         'task': 'apps.chat.tasks.update_online_statuses',
+#         'schedule': 60.0,  # каждую минуту
+#     },
+# }
+
 # Tailwind не используется

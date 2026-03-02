@@ -1,0 +1,123 @@
+<!--chat/dialogue.html-->
+{% extends "base.html" %}
+
+{% block title %}Диалог с {{ other_user.get_full_name|default:other_user.username }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid h-100">
+    <div class="row h-100">
+        <!-- Список пользователей (тот же, что в chat.html) -->
+        <div class="col-md-4 col-lg-3 border-end bg-light d-none d-md-block">
+            <div class="p-3 border-bottom">
+                <a href="{% url 'chat:chat' %}" class="text-decoration-none">
+                    <h5 class="mb-0">← Назад к чату</h5>
+                </a>
+            </div>
+            <div id="users-list"
+                 hx-get="{% url 'chat:user_list_partial' %}"
+                 hx-trigger="every 10s"
+                 hx-swap="innerHTML">
+                {% include "chat/partials/user_list.html" with users_list=users_list %}
+            </div>
+        </div>
+
+        <!-- Диалог -->
+        <div class="col-md-8 col-lg-9 d-flex flex-column h-100">
+            <!-- Заголовок -->
+            <div class="p-3 border-bottom bg-white">
+                <div class="d-flex align-items-center">
+                    <div class="position-relative me-3 d-md-none">
+                        <a href="{% url 'chat:chat' %}" class="btn btn-sm btn-outline-secondary">←</a>
+                    </div>
+                    <div class="position-relative">
+                        <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center"
+                             style="width: 40px; height: 40px;">
+                            {{ other_user.first_name|first|default:other_user.username|first|upper }}
+                        </div>
+                        <span class="position-absolute bottom-0 end-0 translate-middle p-1 border border-white rounded-circle {% if other_user.online_status.is_online %}bg-success{% else %}bg-secondary{% endif %}"
+                              style="width: 12px; height: 12px; display: block;">
+                        </span>
+                    </div>
+                    <div class="ms-3">
+                        <h5 class="mb-0">{{ other_user.get_full_name|default:other_user.username }}</h5>
+                        <small class="text-muted">
+                            {% if other_user.online_status.is_online %}
+                                онлайн
+                            {% else %}
+                                был {{ other_user.online_status.last_seen|timesince }} назад
+                            {% endif %}
+                        </small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Сообщения -->
+            <div id="messages-container"
+                 class="flex-grow-1 overflow-auto p-3 bg-light"
+                 hx-get="{% url 'chat:load_messages' dialogue.id %}?last_id={{ messages.last.id|default:0 }}"
+                 hx-trigger="every 3s"
+                 hx-swap="beforeend"
+                 hx-target="#messages-list">
+
+                <!-- Исправленный блок сообщений (строки 62-65) -->
+                <div id="messages-list" class="d-flex flex-column">
+                    {% for message in messages %}
+                    {% include "chat/partials/message.html" with message=message current_user=user %}
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Форма отправки -->
+            <div class="p-3 border-top bg-white">
+                <form hx-post="{% url 'chat:send_message' dialogue.id %}"
+                      hx-target="#messages-list"
+                      hx-swap="beforeend"
+                      hx-on::after-request="this.reset(); document.getElementById('message-input').focus();"
+                      class="d-flex gap-2">
+                    <input type="text"
+                           id="message-input"
+                           name="text"
+                           class="form-control"
+                           placeholder="Введите сообщение..."
+                           required
+                           autocomplete="off">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-send"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Прокрутка вниз при новых сообщениях
+document.addEventListener('htmx:afterSwap', function(evt) {
+    if (evt.detail.target.id === 'messages-list') {
+        const container = document.getElementById('messages-container');
+        container.scrollTop = container.scrollHeight;
+
+        // Воспроизведение звука при получении сообщения от другого
+        const lastMessage = evt.detail.target.lastElementChild;
+        if (lastMessage && lastMessage.dataset.isMe === 'false') {
+            if (window.ChatAudio) {
+                window.ChatAudio.playNotification();
+            }
+        }
+    }
+});
+
+// Прокрутка вниз при загрузке страницы
+window.addEventListener('load', function() {
+    const container = document.getElementById('messages-container');
+    container.scrollTop = container.scrollHeight;
+});
+</script>
+
+<!-- Ping онлайн -->
+<div hx-post="{% url 'chat:ping' %}"
+     hx-trigger="every 30s"
+     hx-swap="none"
+     style="display: none;">
+</div>
+{% endblock %}

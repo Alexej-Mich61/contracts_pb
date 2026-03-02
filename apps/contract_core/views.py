@@ -9,6 +9,8 @@ from django.db.models import Q
 from django.db.models import Count
 from auditlog.models import LogEntry
 from django.contrib.contenttypes.models import ContentType
+from django.http import JsonResponse
+from django.views import View
 
 
 from .models import (
@@ -52,42 +54,27 @@ class ContractHistoryHtmxView(LoginRequiredMixin, ListView):
 
 # представления договоров
 class ContractListView(LoginRequiredMixin, ListView):
+    """Главная страница списка договоров с фильтром"""
     model = Contract
     template_name = "contracts/contract_list.html"
     context_object_name = "contracts"
     paginate_by = 10
-    ordering = ['-created_at']
 
     def get_queryset(self):
-        qs = super().get_queryset().filter(
-            is_trash=False,
-            is_archived=False
-        ).select_related(
-            'customer', 'executor', 'work'
-        ).prefetch_related(
-            'objects__district__region',
-            'objects__subcontractor',
-            'objects__aks',
-            'final_act',
-            'interim_acts',
-            'signing_stage',
-            'system_checks__system_type'
-        ).annotate(
-            object_count=Count('objects'),
-            ak_count=Count('objects__aks')
-        )
-
-        # Фильтр по типу (если передан в GET)
-        contract_type = self.request.GET.get('type')
-        if contract_type:
-            qs = qs.filter(type=contract_type)
-
-        return qs
+        from .services.contract_filter_service import ContractFilterService
+        service = ContractFilterService(self.request)
+        return service.filter()
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['total_count'] = self.get_queryset().count()
-        context['current_type'] = self.request.GET.get('type', 'all')
+
+        from .services.contract_filter_service import ContractFilterService
+        context['filter_data'] = ContractFilterService.get_filter_choices()
+
+        # Для начального состояния районов
+        region_id = self.request.GET.get('region')
+        context['districts'] = ContractFilterService.get_districts_by_region(region_id)
+
         return context
 
 
@@ -109,6 +96,25 @@ class ContractDetailHtmxView(LoginRequiredMixin, DetailView):
             'signing_stage',
             'system_checks__system_type'
         )
+
+
+class ContractListHtmxView(LoginRequiredMixin, ListView):
+    """HTMX эндпоинт для фильтрованного списка договоров"""
+    model = Contract
+    template_name = "contracts/partials/contract_list_content.html"
+    context_object_name = "contracts"
+    paginate_by = 10
+
+    def get_queryset(self):
+        from .services.contract_filter_service import ContractFilterService
+        service = ContractFilterService(self.request)
+        return service.filter()
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['total_count'] = self.get_queryset().count()
+        return context
+
 
 
 class ContractCreateView(LoginRequiredMixin, CreateView):
@@ -136,6 +142,37 @@ class ContractUpdateView(LoginRequiredMixin, UpdateView):
         messages.success(self.request, "Договор успешно обновлён")
         return super().form_valid(form)
 
+
+class FilterWorksView(LoginRequiredMixin, View):
+    """HTMX: получить работы по типу договора"""
+
+    def get(self, request):
+        from .services.contract_filter_service import ContractFilterService
+
+        contract_type = request.GET.get('contract_type')
+        works = ContractFilterService.get_works_by_contract_type(contract_type)
+        selected_work = request.GET.get('work', '')
+
+        return render(request, 'contracts/partials/work_select.html', {
+            'works': works,
+            'selected_work': selected_work
+        })
+
+
+class FilterDistrictsView(LoginRequiredMixin, View):
+    """HTMX: получить районы по региону"""
+
+    def get(self, request):
+        from .services.contract_filter_service import ContractFilterService
+
+        region_id = request.GET.get('region')
+        districts = ContractFilterService.get_districts_by_region(region_id)
+        selected_district = request.GET.get('district', '')
+
+        return render(request, 'contracts/partials/district_select.html', {
+            'districts': districts,
+            'selected_district': selected_district
+        })
 
 
 

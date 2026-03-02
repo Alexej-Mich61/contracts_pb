@@ -589,7 +589,7 @@ class InterimAct(models.Model):
 # ---------- ОБЪЕКТЫ ЗАЩИТЫ ----------
 class ProtectionObject(models.Model):
     """Объект защиты (много штук к одному договору)."""
-    contract = models.ForeignKey(Contract, on_delete=models.CASCADE, related_name="objects")
+    contract = models.ForeignKey(Contract, on_delete=models.CASCADE, related_name="contract_objects") # было - objects
     name = models.CharField(
         "Наименование объекта защиты",
         max_length=255,

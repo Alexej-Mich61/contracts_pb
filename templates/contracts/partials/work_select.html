@@ -1,0 +1,9 @@
+<!-- templates/contracts/partials/work_select.html -->
+<select name="work" id="work-select" class="form-select form-select-sm">
+    <option value="">Все работы</option>
+    {% for work in works %}
+        <option value="{{ work.id }}" {% if selected_work == work.id|stringformat:"s" %}selected{% endif %}>
+            {{ work.name }}
+        </option>
+    {% endfor %}
+</select>

@@ -1,0 +1,11 @@
+<!-- chat/partials/message.html -->
+<div class="d-flex {% if message.sender == current_user %}justify-content-end{% else %}justify-content-start{% endif %} mb-2"
+     data-is-me="{% if message.sender == current_user %}true{% else %}false{% endif %}">
+    <div class="{% if message.sender == current_user %}bg-primary text-white{% else %}bg-white border{% endif %} rounded-3 px-3 py-2"
+         style="max-width: 70%;">
+        <div class="small {% if message.sender == current_user %}text-white-50{% else %}text-muted{% endif %} mb-1">
+            {{ message.sender.get_full_name|default:message.sender.username }} • {{ message.created_at|time:"H:i" }}
+        </div>
+        <div>{{ message.text|linebreaksbr }}</div>
+    </div>
+</div>

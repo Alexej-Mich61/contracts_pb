@@ -1,0 +1,9 @@
+<!-- templates/contracts/partials/district_select.html -->
+<select name="district" id="district-select" class="form-select form-select-sm">
+    <option value="">Все районы</option>
+    {% for district in districts %}
+        <option value="{{ district.id }}" {% if selected_district == district.id|stringformat:"s" %}selected{% endif %}>
+            {{ district.name }}
+        </option>
+    {% endfor %}
+</select>

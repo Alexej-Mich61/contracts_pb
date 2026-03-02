@@ -11,6 +11,12 @@ urlpatterns = [
     # Список договоров (главная страница)
     path("contracts/", views.ContractListView.as_view(), name="contract_list"),
 
+    # HTMX эндпоинты
+    path("contracts/filter/", views.ContractListHtmxView.as_view(), name="contract_list_htmx"),
+    path("contracts/filter/works/", views.FilterWorksView.as_view(), name="filter_works"),
+    path("contracts/filter/districts/", views.FilterDistrictsView.as_view(), name="filter_districts"),
+
+
     # Форма создания/редактирования (отдельная страница)
     path("contracts/add/", views.ContractCreateView.as_view(), name="contract_create"),
     path("contracts/<int:pk>/edit/", views.ContractUpdateView.as_view(), name="contract_update"),

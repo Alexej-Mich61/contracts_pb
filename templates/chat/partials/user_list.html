@@ -1,0 +1,39 @@
+<!--chat/partials/user_list.html-->
+<div class="list-group list-group-flush">
+    {% for item in users_list %}
+    <a href="{% url 'chat:dialogue' item.dialogue.id %}"
+       class="list-group-item list-group-item-action d-flex justify-content-between align-items-center {% if item.unread_count > 0 %}list-group-item-primary{% endif %}">
+        <div class="d-flex align-items-center">
+            <div class="position-relative">
+                <!-- Аватар (если есть) или инициалы -->
+                <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center"
+                     style="width: 40px; height: 40px; font-size: 14px;">
+                    {{ item.user.first_name|first|default:item.user.username|first|upper }}
+                </div>
+                <!-- Индикатор онлайн -->
+                <span class="position-absolute bottom-0 end-0 translate-middle p-1 border border-white rounded-circle {% if item.is_online %}bg-success{% else %}bg-secondary{% endif %}"
+                      style="width: 12px; height: 12px; display: block;"
+                      title="{% if item.is_online %}Онлайн{% else %}Был {{ item.last_seen|timesince }} назад{% endif %}">
+                </span>
+            </div>
+            <div class="ms-3">
+                <div class="fw-bold">{{ item.user.get_full_name|default:item.user.username }}</div>
+                <small class="text-muted text-truncate" style="max-width: 150px; display: block;">
+                    {% if item.last_message %}
+                        {{ item.last_message.text|truncatechars:30 }}
+                    {% else %}
+                        Нет сообщений
+                    {% endif %}
+                </small>
+            </div>
+        </div>
+        {% if item.unread_count > 0 %}
+        <span class="badge bg-danger rounded-pill">{{ item.unread_count }}</span>
+        {% endif %}
+    </a>
+    {% empty %}
+    <div class="text-center p-3 text-muted">
+        Нет доступных пользователей
+    </div>
+    {% endfor %}
+</div>

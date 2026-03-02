@@ -120,9 +120,40 @@
         {% block content %}{% endblock %}
     </main>
 
+    <!-- Базовый шаблон чата, подключение звуков -->
+    {% if user.is_authenticated %}
+    <div id="chat-sound-container"
+         data-sound-enabled="{{ user_settings.is_sound_enabled|yesno:'true,false' }}"
+         data-sound-volume="{{ user_settings.volume }}"
+         data-sound-url="{{ user_settings.get_sound_url|default:'' }}">
+    </div>
+
+    <script>
+        // Глобальный аудио контекст для чата
+        window.ChatAudio = {
+            playNotification() {
+                const container = document.getElementById('chat-sound-container');
+                if (!container) return;
+
+                const enabled = container.dataset.soundEnabled === 'true';
+                if (!enabled) return;
+
+                const url = container.dataset.soundUrl;
+                if (!url) return;
+
+                const volume = parseInt(container.dataset.soundVolume) / 100;
+
+                const audio = new Audio(url);
+                audio.volume = volume;
+                audio.play().catch(e => console.log('Audio play failed:', e));
+            }
+        };
+    </script>
+    {% endif %}
+
+
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
 
 
     <!-- Custom JS -->
