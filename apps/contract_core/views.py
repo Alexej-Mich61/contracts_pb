@@ -88,9 +88,9 @@ class ContractDetailHtmxView(LoginRequiredMixin, DetailView):
         return super().get_queryset().select_related(
             'customer', 'executor', 'work'
         ).prefetch_related(
-            'objects__district__region',
-            'objects__subcontractor',
-            'objects__aks',
+            'contract_objects__district__region',
+            'contract_objects__subcontractor',
+            'contract_objects__aks',
             'final_act',
             'interim_acts',
             'signing_stage',
