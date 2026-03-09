@@ -6,73 +6,105 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h1 class="mb-0">Справочник АК</h1>
-    <span class="badge bg-secondary fs-5">{{ page_obj.paginator.count }}</span>
+    <span class="badge bg-secondary fs-5">{{ aks|length }} из {{ page_obj.paginator.count }}</span>
 </div>
 
-<!-- Форма поиска и фильтров -->
-<form method="get" class="mb-3" hx-get="{% url 'contract_core:ak_list' %}" hx-target="body" hx-push-url="true">
-    <!-- Первая строка: ID, номер АК, название -->
-    <div class="row g-2 mb-2">
-        <div class="col-md-2">
-            <label class="form-label small text-muted mb-1">ID</label>
-            <input type="number" name="id" class="form-control form-control-sm" placeholder="ID..." value="{{ search_id }}" min="1">
-        </div>
-        <div class="col-md-2">
-            <label class="form-label small text-muted mb-1">Номер АК</label>
-            <input type="number" name="number" class="form-control form-control-sm" placeholder="Пример - 6001" value="{{ search_number }}" min="1">
-        </div>
-        <div class="col-md-4">
-            <label class="form-label small text-muted mb-1">Наименование</label>
-            <input type="text" name="name" class="form-control form-control-sm" placeholder="Название АК..." value="{{ search_name }}">
-        </div>
-        <div class="col-md-4">
-            <label class="form-label small text-muted mb-1">Адрес</label>
-            <input type="text" name="address" class="form-control form-control-sm" placeholder="Адрес установки..." value="{{ search_address }}">
-        </div>
-    </div>
+<!-- Информация о лимите -->
+{% if is_limited %}
+<div class="alert alert-info alert-dismissible fade show py-2 mb-3">
+    <small><i class="bi bi-info-circle"></i> Показаны <strong>10 последних</strong> добавленных АК. Используйте поиск или фильтры для просмотра всех записей.</small>
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+{% endif %}
 
-    <!-- Вторая строка: регион и район -->
-    <div class="row g-2 mb-2 align-items-end">
-        <div class="col-md-5">
-            <label class="form-label small text-muted mb-1">Регион</label>
-            <select name="region" class="form-select form-select-sm"
-                    hx-get="{% url 'contract_core:ak_list' %}"
-                    hx-target="#district-wrapper"
-                    hx-select="#district-wrapper"
-                    hx-swap="outerHTML"
-                    hx-vals='{"id": "{{ search_id }}", "number": "{{ search_number }}", "name": "{{ search_name }}", "address": "{{ search_address }}"}'>
-                <option value="">Все регионы</option>
-                {% for region in regions %}
-                    <option value="{{ region.pk }}" {% if selected_region == region.pk|stringformat:"i" %}selected{% endif %}>
-                        {{ region.name }}
-                    </option>
-                {% endfor %}
-            </select>
-        </div>
-
-        <div class="col-md-5" id="district-wrapper">
-            <label class="form-label small text-muted mb-1">Район</label>
-            <select name="district" class="form-select form-select-sm" {% if not districts %}disabled{% endif %}>
-                <option value="">Все районы</option>
-                {% for district in districts %}
-                    <option value="{{ district.pk }}" {% if selected_district == district.pk|stringformat:"i" %}selected{% endif %}>
-                        {{ district.name }}
-                    </option>
-                {% endfor %}
-            </select>
-        </div>
-
-        <!-- Кнопки -->
-        <div class="col-md-2 d-flex justify-content-end gap-2">
-            <a href="{% url 'contract_core:ak_list' %}" class="btn btn-outline-secondary btn-sm">
-                <i class="bi bi-x-circle"></i> Сбросить
-            </a>
-            <button type="submit" class="btn btn-outline-primary btn-sm">
-                <i class="bi bi-funnel"></i> Применить
+<!-- Фильтры в аккордеоне -->
+<div class="accordion mb-4" id="filterAccordion">
+    <div class="accordion-item">
+        <h2 class="accordion-header" id="filterHeading">
+            <button class="accordion-button {% if not is_limited %}collapsed{% endif %}"
+                    type="button"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#filterCollapse"
+                    aria-expanded="{{ is_limited|yesno:'false,true' }}"
+                    aria-controls="filterCollapse">
+                <i class="bi bi-funnel me-2"></i> Фильтры и поиск
+                {% if not is_limited %}
+                    <span class="badge bg-primary ms-2">Активны</span>
+                {% endif %}
             </button>
+        </h2>
+        <div id="filterCollapse"
+             class="accordion-collapse collapse {% if is_limited %}collapse{% endif %}"
+             aria-labelledby="filterHeading"
+             data-bs-parent="#filterAccordion">
+            <div class="accordion-body">
+                <form method="get" hx-get="{% url 'contract_core:ak_list' %}" hx-target="body" hx-push-url="true">
+                    <!-- Первая строка: ID, номер АК, название -->
+                    <div class="row g-2 mb-2">
+                        <div class="col-md-2">
+                            <label class="form-label small text-muted mb-1">ID</label>
+                            <input type="number" name="id" class="form-control form-control-sm" placeholder="ID..." value="{{ search_id }}" min="1">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small text-muted mb-1">Номер АК</label>
+                            <input type="number" name="number" class="form-control form-control-sm" placeholder="Пример - 6001" value="{{ search_number }}" min="1">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small text-muted mb-1">Наименование</label>
+                            <input type="text" name="name" class="form-control form-control-sm" placeholder="Название АК..." value="{{ search_name }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small text-muted mb-1">Адрес</label>
+                            <input type="text" name="address" class="form-control form-control-sm" placeholder="Адрес установки..." value="{{ search_address }}">
+                        </div>
+                    </div>
+
+                    <!-- Вторая строка: регион и район -->
+                    <div class="row g-2 mb-2 align-items-end">
+                        <div class="col-md-5">
+                            <label class="form-label small text-muted mb-1">Регион</label>
+                            <select name="region" class="form-select form-select-sm"
+                                    hx-get="{% url 'contract_core:ak_list' %}"
+                                    hx-target="#district-wrapper"
+                                    hx-select="#district-wrapper"
+                                    hx-swap="outerHTML"
+                                    hx-vals='{"id": "{{ search_id }}", "number": "{{ search_number }}", "name": "{{ search_name }}", "address": "{{ search_address }}"}'>
+                                <option value="">Все регионы</option>
+                                {% for region in regions %}
+                                    <option value="{{ region.pk }}" {% if selected_region == region.pk|stringformat:"i" %}selected{% endif %}>
+                                        {{ region.name }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col-md-5" id="district-wrapper">
+                            <label class="form-label small text-muted mb-1">Район</label>
+                            <select name="district" class="form-select form-select-sm" {% if not districts %}disabled{% endif %}>
+                                <option value="">Все районы</option>
+                                {% for district in districts %}
+                                    <option value="{{ district.pk }}" {% if selected_district == district.pk|stringformat:"i" %}selected{% endif %}>
+                                        {{ district.name }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Кнопки -->
+                        <div class="col-md-2 d-flex justify-content-end gap-2">
+                            <a href="{% url 'contract_core:ak_list' %}" class="btn btn-outline-secondary btn-sm">
+                                <i class="bi bi-x-circle"></i> Сбросить
+                            </a>
+                            <button type="submit" class="btn btn-outline-primary btn-sm">
+                                <i class="bi bi-funnel"></i> Применить
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
-</form>
+</div>
 
 <!-- Кнопка добавления -->
 <button type="button"

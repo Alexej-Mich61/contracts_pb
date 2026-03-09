@@ -12,7 +12,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.http import JsonResponse
 from django.views import View
 from .services.company_filter_service import CompanyFilterService
-
+from .services.ak_filter_service import AkFilterService
 
 from .models import (
     Ak,
@@ -32,8 +32,9 @@ from .forms import AkForm, CompanyForm, ContractForm
 
 # Create your views here.
 
-# auditlog
 
+
+# auditlog
 class ContractHistoryHtmxView(LoginRequiredMixin, ListView):
     """HTMX эндпоинт для истории договора в модальном окне"""
     model = LogEntry
@@ -200,61 +201,40 @@ class AkListView(LoginRequiredMixin, ListView):
     paginate_by = 25
     ordering = ['-id']
 
+    def get_paginate_by(self, queryset):
+        filter_service = AkFilterService(self.request.GET)
+        if filter_service.has_active_filters():
+            return self.paginate_by
+        return 10
+
     def get_queryset(self):
-        qs = Ak.objects.all().select_related('district__region').order_by('-id')
+        filter_service = AkFilterService(self.request.GET)
+        qs = filter_service.filter()
 
-        # Поиск по ID
-        id_search = self.request.GET.get('id', '').strip()
-        if id_search and id_search.isdigit():
-            qs = qs.filter(id=int(id_search))
-
-        # Поиск по номеру АК
-        number_search = self.request.GET.get('number', '').strip()
-        if number_search and number_search.isdigit():
-            qs = qs.filter(number=int(number_search))
-
-        # Поиск по названию
-        name_search = self.request.GET.get('name', '').strip()
-        if name_search:
-            qs = qs.filter(name__icontains=name_search)
-
-        # Поиск по адресу
-        address_search = self.request.GET.get('address', '').strip()
-        if address_search:
-            qs = qs.filter(address__icontains=address_search)
-
-        # Фильтр по региону
-        region_id = self.request.GET.get('region', '').strip()
-        if region_id and region_id.isdigit():
-            qs = qs.filter(district__region_id=int(region_id))
-
-        # Фильтр по району (только если выбран регион)
-        district_id = self.request.GET.get('district', '').strip()
-        if district_id and district_id.isdigit():
-            qs = qs.filter(district_id=int(district_id))
+        # Применяем срез если нет фильтров
+        if not filter_service.has_active_filters():
+            qs = qs[:10]
 
         return qs
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
+        filter_service = AkFilterService(self.request.GET)
+        context.update(filter_service.get_context_data())
+
+        # Флаг для шаблона — показывать ли сообщение о лимите
+        context['is_limited'] = not filter_service.has_active_filters()
+
         # Все регионы для выпадающего списка
         context['regions'] = Region.objects.all().order_by('name')
 
-        # Районы для выбранного региона (или все, если регион не выбран)
+        # Районы для выбранного региона
         region_id = self.request.GET.get('region', '').strip()
         if region_id and region_id.isdigit():
             context['districts'] = District.objects.filter(region_id=int(region_id)).order_by('name')
         else:
             context['districts'] = District.objects.none()
-
-        # Сохраняем выбранные значения для формы
-        context['selected_region'] = region_id
-        context['selected_district'] = self.request.GET.get('district', '')
-        context['search_id'] = self.request.GET.get('id', '')
-        context['search_number'] = self.request.GET.get('number', '')
-        context['search_name'] = self.request.GET.get('name', '')
-        context['search_address'] = self.request.GET.get('address', '')
 
         return context
 
@@ -402,3 +382,22 @@ class CompanyUpdateView(LoginRequiredMixin, UpdateView):
 
     def form_invalid(self, form):
         return self.render_to_response(self.get_context_data(form=form))
+
+
+
+class CompanyStatsView(LoginRequiredMixin, View):
+    """Возвращает статистику по компаниям для модального окна."""
+
+    def get(self, request, *args, **kwargs):
+        from django.db.models import Count, Q
+
+        stats = Company.objects.aggregate(
+            total=Count('id'),
+            customers=Count('id', filter=Q(is_customer=True)),
+            licensees=Count('id', filter=Q(is_licensee=True)),
+            laboratories=Count('id', filter=Q(is_laboratory=True)),
+            subcontractors=Count('id', filter=Q(is_subcontractor=True)),
+            notification_agreed=Count('id', filter=Q(notification_agreed=True)),
+        )
+
+        return render(request, 'catalogs/partials/company_stats_modal.html', stats)
