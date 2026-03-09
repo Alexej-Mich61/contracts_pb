@@ -223,12 +223,17 @@ class ContractFilterService:
 
     def _filter_by_acts(self, queryset):
         """Фильтр по актам"""
+        from django.db.models import Exists, OuterRef
+
+        # Итоговый акт (OneToOne)
         has_final_act = self.params.get('has_final_act')
         if has_final_act == 'yes':
+            # Договор есть в FinalAct (по OneToOne)
             queryset = queryset.filter(final_act__isnull=False)
         elif has_final_act == 'no':
             queryset = queryset.filter(final_act__isnull=True)
 
+        # Файл итогового акта
         has_final_act_file = self.params.get('has_final_act_file')
         if has_final_act_file == 'yes':
             queryset = queryset.filter(
@@ -243,11 +248,21 @@ class ContractFilterService:
                 Q(final_act__file='')
             )
 
+        # Промежуточные акты (ForeignKey с related_name='interim_acts')
         has_interim_acts = self.params.get('has_interim_acts')
         if has_interim_acts == 'yes':
-            queryset = queryset.filter(interim_acts__isnull=False)
+            # Используем Exists для корректной проверки
+            queryset = queryset.annotate(
+                has_interim=Exists(
+                    InterimAct.objects.filter(contract=OuterRef('pk'))
+                )
+            ).filter(has_interim=True)
         elif has_interim_acts == 'no':
-            queryset = queryset.filter(interim_acts__isnull=True)
+            queryset = queryset.annotate(
+                has_interim=Exists(
+                    InterimAct.objects.filter(contract=OuterRef('pk'))
+                )
+            ).filter(has_interim=False)
 
         return queryset
 

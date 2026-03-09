@@ -152,6 +152,14 @@ class Company(models.Model):
     is_laboratory = models.BooleanField("Лаборатория", default=False, db_index=True)
     is_subcontractor = models.BooleanField("Субподрядчик", default=False, db_index=True)
 
+
+    notification_agreed = models.BooleanField(
+        "Согласие на уведомление",
+        default=False,
+        db_index=True,
+        help_text="Компания дала согласие на получение уведомлений"
+    )
+
     name = models.CharField(
         "Название",
         max_length=255,
@@ -183,6 +191,7 @@ class Company(models.Model):
             models.Index(fields=["is_licensee", "name"]),
             models.Index(fields=["is_laboratory", "name"]),
             models.Index(fields=["is_subcontractor", "name"]),
+            models.Index(fields=["notification_agreed"]),  # новый индекс
         ]
 
     def __str__(self):

@@ -11,6 +11,7 @@ from auditlog.models import LogEntry
 from django.contrib.contenttypes.models import ContentType
 from django.http import JsonResponse
 from django.views import View
+from .services.company_filter_service import CompanyFilterService
 
 
 from .models import (
@@ -322,63 +323,26 @@ class CompaniesListView(LoginRequiredMixin, ListView):
     ordering = ['-id']
 
     def get_paginate_by(self, queryset):
-        # Если есть любой фильтр — убираем лимит в 10 записей
-        if self.request.GET.get('q') or self.request.GET.get('id') or self.request.GET.getlist('role'):
+        filter_service = CompanyFilterService(self.request.GET)
+        if filter_service.has_active_filters():
             return self.paginate_by
-        # По умолчанию — только 10 последних
         return 10
 
     def get_queryset(self):
-        # Сначала получаем базовый queryset
-        qs = Company.objects.all().order_by('-id')
+        filter_service = CompanyFilterService(self.request.GET)
+        qs = filter_service.filter()
 
-        # Проверяем, есть ли активные фильтры
-        has_filters = (
-                self.request.GET.get('q') or
-                self.request.GET.get('id') or
-                self.request.GET.getlist('role')
-        )
-
-        # Применяем фильтры (до distinct и среза!)
-        id_search = self.request.GET.get('id', '').strip()
-        if id_search and id_search.isdigit():
-            qs = qs.filter(id=int(id_search))
-
-        q = self.request.GET.get('q', '').strip()
-        if q:
-            qs = qs.filter(Q(inn__icontains=q) | Q(name__icontains=q))
-
-        roles = self.request.GET.getlist('role')
-        if roles:
-            role_filters = Q()
-            if 'customer' in roles:
-                role_filters |= Q(is_customer=True)
-            if 'licensee' in roles:
-                role_filters |= Q(is_licensee=True)
-            if 'laboratory' in roles:
-                role_filters |= Q(is_laboratory=True)
-            if 'subcontractor' in roles:
-                role_filters |= Q(is_subcontractor=True)
-            qs = qs.filter(role_filters)
-
-        # Теперь distinct (до среза!)
-        qs = qs.distinct()
-
-        # И только потом срез, если нужно
-        if not has_filters:
+        # Применяем срез если нет фильтров
+        if not filter_service.has_active_filters():
             qs = qs[:10]
 
         return qs
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['selected_roles'] = self.request.GET.getlist('role')
-        # Флаг для шаблона — показывать ли сообщение о лимите
-        context['is_limited'] = not (
-                self.request.GET.get('q') or
-                self.request.GET.get('id') or
-                self.request.GET.getlist('role')
-        )
+        filter_service = CompanyFilterService(self.request.GET)
+        context.update(filter_service.get_context_data())
+        context['is_limited'] = not filter_service.has_active_filters()
         return context
 
 

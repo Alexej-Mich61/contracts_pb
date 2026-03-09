@@ -18,24 +18,34 @@
 
 <!-- Форма поиска -->
 <form method="get" hx-get="{% url 'contract_core:companies_list' %}" hx-target="body" hx-push-url="true">
-    <!-- Первая строка: поля ввода и роли -->
-    <div class="row g-2 align-items-end mb-2">
+    <!-- Первая строка: ID, название/ИНН, уведомление -->
+    <div class="row g-2 mb-2">
         <!-- Поиск по ID -->
         <div class="col-md-2">
             <label class="form-label small text-muted mb-1">ID</label>
-            <input type="number" name="id" class="form-control form-control-sm" placeholder="ID..." value="{{ request.GET.id|default:'' }}" min="1">
+            <input type="number" name="id" class="form-control form-control-sm" placeholder="ID..." value="{{ search_id }}" min="1">
         </div>
 
         <!-- Поиск по названию/ИНН -->
         <div class="col-md-3">
             <label class="form-label small text-muted mb-1">Название или ИНН</label>
-            <input type="text" name="q" class="form-control form-control-sm" placeholder="Название или ИНН..." value="{{ request.GET.q|default:'' }}">
+            <input type="text" name="q" class="form-control form-control-sm" placeholder="Название или ИНН..." value="{{ search_q }}">
+        </div>
+
+        <!-- Фильтр по согласию на уведомление -->
+        <div class="col-md-3">
+            <label class="form-label small text-muted mb-1">Согласие на уведомление</label>
+            <select name="notification" class="form-select form-select-sm">
+                <option value="">Все</option>
+                <option value="yes" {% if selected_notification == 'yes' %}selected{% endif %}>Дано</option>
+                <option value="no" {% if selected_notification == 'no' %}selected{% endif %}>Не дано</option>
+            </select>
         </div>
 
         <!-- Фильтр ролей -->
-        <div class="col-md-7">
+        <div class="col-md-4">
             <label class="form-label small text-muted mb-1">Роли</label>
-            <div class="d-flex flex-wrap gap-3 border rounded px-3 py-2 bg-light">
+            <div class="d-flex flex-wrap gap-2 border rounded px-2 py-1 bg-light">
                 <div class="form-check form-check-inline mb-0">
                     <input class="form-check-input" type="checkbox" name="role" value="customer" id="role_customer" {% if 'customer' in selected_roles or not selected_roles %}checked{% endif %}>
                     <label class="form-check-label small" for="role_customer">Заказчик</label>
@@ -59,10 +69,10 @@
     <!-- Вторая строка: кнопки справа -->
     <div class="row">
         <div class="col-12 d-flex justify-content-end gap-2">
-            <a href="{% url 'contract_core:companies_list' %}" class="btn btn-outline-secondary">
+            <a href="{% url 'contract_core:companies_list' %}" class="btn btn-outline-secondary btn-sm">
                 <i class="bi bi-x-circle"></i> Сбросить
             </a>
-            <button type="submit" class="btn btn-outline-primary">
+            <button type="submit" class="btn btn-outline-primary btn-sm">
                 <i class="bi bi-funnel"></i> Применить
             </button>
         </div>
@@ -87,6 +97,7 @@
       <th>Название</th>
       <th>ИНН</th>
       <th>Роли</th>
+      <th>Уведомление</th>
     </tr>
   </thead>
   <tbody>
@@ -117,11 +128,18 @@
           {% if company.is_laboratory %}<span class="badge bg-info">Лаборатория</span>{% endif %}
           {% if company.is_subcontractor %}<span class="badge bg-warning text-dark">Субподрядчик</span>{% endif %}
         </td>
+        <td>
+          {% if company.notification_agreed %}
+            <span class="badge bg-success"><i class="bi bi-check-circle"></i> Дано</span>
+          {% else %}
+            <span class="badge bg-secondary"><i class="bi bi-x-circle"></i> Нет</span>
+          {% endif %}
+        </td>
       </tr>
     {% empty %}
       <tr>
-        <td colspan="4" class="text-center text-muted py-4">
-            {% if request.GET.q or request.GET.id %}
+        <td colspan="5" class="text-center text-muted py-4">
+            {% if search_q or search_id or selected_notification %}
                 Ничего не найдено
             {% else %}
                 Нет компаний в базе
@@ -183,5 +201,4 @@
 </div>
 
 {% endblock %}
-
 

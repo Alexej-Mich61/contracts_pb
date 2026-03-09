@@ -12,10 +12,11 @@
         </h2>
         <div id="filterCollapse" class="accordion-collapse collapse" data-bs-parent="#filterAccordion">
             <div class="accordion-body">
+                <!-- Убрали hx-trigger="change delay:300ms" -->
                 <form id="contract-filter-form"
                       hx-get="{% url 'contract_core:contract_list_htmx' %}"
                       hx-target="#contracts-container"
-                      hx-trigger="change delay:300ms, submit"
+                      hx-trigger="submit"
                       hx-indicator="#filter-spinner">
 
                     <div class="row g-3">
@@ -32,11 +33,10 @@
                         <!-- Тип договора -->
                         <div class="col-md-3">
                             <label class="form-label">Тип договора</label>
-                            <select name="contract_type" class="form-select form-select-sm"
-                                    hx-get="{% url 'contract_core:filter_works' %}"
-                                    hx-target="#work-select-container"
-                                    hx-trigger="change"
-                                    hx-include="[name='contract_type']">
+                            <!-- Убрали hx-trigger, добавили класс for-htmx для JS -->
+                            <select name="contract_type" class="form-select form-select-sm filter-dependent"
+                                    data-hx-url="{% url 'contract_core:filter_works' %}"
+                                    data-hx-target="#work-select-container">
                                 <option value="">Все типы</option>
                                 {% for value, label in filter_data.contract_types %}
                                     <option value="{{ value }}" {% if request.GET.contract_type == value %}selected{% endif %}>
@@ -46,7 +46,7 @@
                             </select>
                         </div>
 
-                        <!-- Вид работы (динамически обновляется) -->
+                        <!-- Вид работы -->
                         <div class="col-md-3">
                             <label class="form-label">Вид работы</label>
                             <div id="work-select-container">
@@ -56,7 +56,7 @@
 
                         <div class="col-md-3">
                             <label class="form-label">Статус</label>
-                            <select name="status" class="form-select form-select-sm" multiple size="2">
+                            <select name="status" class="form-select form-select-sm" multiple size="4">
                                 {% for value, label in filter_data.statuses %}
                                     <option value="{{ value }}" {% if value in request.GET.status %}selected{% endif %}>
                                         {{ label }}
@@ -115,7 +115,7 @@
 
                         <div class="col-md-3">
                             <label class="form-label">Текущая стадия</label>
-                            <select name="signing_stages" class="form-select form-select-sm" multiple size="2">
+                            <select name="signing_stages" class="form-select form-select-sm" multiple size="4">
                                 {% for stage in filter_data.signing_stages %}
                                     <option value="{{ stage.id }}" {% if stage.id|stringformat:"s" in request.GET.signing_stages %}selected{% endif %}>
                                         {{ stage.name }}{% if stage.is_final %} ★{% endif %}
@@ -127,11 +127,9 @@
                         <!-- География -->
                         <div class="col-md-3">
                             <label class="form-label">Регион</label>
-                            <select name="region" class="form-select form-select-sm"
-                                    hx-get="{% url 'contract_core:filter_districts' %}"
-                                    hx-target="#district-select-container"
-                                    hx-trigger="change"
-                                    hx-include="[name='region']">
+                            <select name="region" class="form-select form-select-sm filter-dependent"
+                                    data-hx-url="{% url 'contract_core:filter_districts' %}"
+                                    data-hx-target="#district-select-container">
                                 <option value="">Все регионы</option>
                                 {% for region in filter_data.regions %}
                                     <option value="{{ region.id }}" {% if request.GET.region == region.id|stringformat:"s" %}selected{% endif %}>
@@ -254,8 +252,7 @@
                     <!-- Кнопки -->
                     <div class="d-flex justify-content-between mt-3">
                         <button type="button" class="btn btn-outline-secondary btn-sm"
-                                onclick="document.getElementById('contract-filter-form').reset();
-                                         htmx.trigger('#contract-filter-form', 'submit');">
+                                onclick="resetFilter()">
                             <i class="bi bi-x-circle"></i> Сбросить фильтр
                         </button>
                         <button type="submit" class="btn btn-primary btn-sm">
@@ -268,3 +265,45 @@
         </div>
     </div>
 </div>
+
+<script>
+// Обработка зависимых полей (тип договора → работы, регион → районы)
+document.querySelectorAll('.filter-dependent').forEach(function(select) {
+    select.addEventListener('change', function() {
+        var url = this.dataset.hxUrl;
+        var target = this.dataset.hxTarget;
+        var params = new URLSearchParams();
+        params.append(this.name, this.value);
+
+        // Для района добавляем текущее значение
+        if (this.name === 'region') {
+            var districtSelect = document.querySelector('[name="district"]');
+            if (districtSelect) {
+                params.append('district', districtSelect.value);
+            }
+        }
+        // Для работы добавляем текущее значение
+        if (this.name === 'contract_type') {
+            var workSelect = document.querySelector('[name="work"]');
+            if (workSelect) {
+                params.append('work', workSelect.value);
+            }
+        }
+
+        fetch(url + '?' + params.toString())
+            .then(response => response.text())
+            .then(html => {
+                document.querySelector(target).innerHTML = html;
+            });
+    });
+});
+
+function resetFilter() {
+    document.getElementById('contract-filter-form').reset();
+    // Сбрасываем динамические списки
+    document.getElementById('work-select-container').innerHTML = '<select name="work" class="form-select form-select-sm"><option value="">Все работы</option></select>';
+    document.getElementById('district-select-container').innerHTML = '<select name="district" class="form-select form-select-sm"><option value="">Все районы</option></select>';
+    // Отправляем пустой фильтр
+    htmx.trigger('#contract-filter-form', 'submit');
+}
+</script>

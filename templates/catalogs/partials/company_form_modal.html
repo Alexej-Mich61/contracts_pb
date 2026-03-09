@@ -52,7 +52,7 @@
     </div>
 
     <!-- Роли -->
-    <div class="mb-4">
+    <div class="mb-3">
       <label class="form-label">Роли <span class="text-danger">*</span></label>
       <div class="row g-3">
         <div class="col-6 col-md-3">
@@ -83,6 +83,17 @@
       {% if form.non_field_errors %}
         <div class="invalid-feedback d-block mt-2">{{ form.non_field_errors|join:", " }}</div>
       {% endif %}
+    </div>
+
+    <!-- Согласие на уведомление -->
+    <div class="mb-4">
+      <div class="form-check">
+        {{ form.notification_agreed }}
+        <label class="form-check-label" for="{{ form.notification_agreed.id_for_label }}">
+          <strong>Согласие на уведомление</strong>
+        </label>
+        <div class="form-text text-muted">Отметьте, если компания дала согласие на получение уведомлений</div>
+      </div>
     </div>
 
     <div class="d-flex justify-content-end gap-2 mt-4">

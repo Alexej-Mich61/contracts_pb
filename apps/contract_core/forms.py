@@ -21,11 +21,15 @@ class AkForm(forms.ModelForm):
         self.fields['district'].label_from_instance = lambda obj: f"{obj.region.name} – {obj.name}"
 
 
-
+# форма КОМПАНИИ
 class CompanyForm(forms.ModelForm):
     class Meta:
         model = Company
-        fields = ['name', 'inn', 'fias_code', 'is_customer', 'is_licensee', 'is_laboratory', 'is_subcontractor']
+        fields = [
+            'name', 'inn', 'fias_code',
+            'is_customer', 'is_licensee', 'is_laboratory', 'is_subcontractor',
+            'notification_agreed'
+        ]
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control', 'required': 'required'}),
             'inn': forms.TextInput(attrs={'class': 'form-control', 'required': 'required'}),
@@ -34,6 +38,7 @@ class CompanyForm(forms.ModelForm):
             'is_licensee': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'is_laboratory': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'is_subcontractor': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'notification_agreed': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
 
     def clean(self):

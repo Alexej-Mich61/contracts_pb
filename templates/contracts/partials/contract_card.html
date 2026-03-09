@@ -1,168 +1,270 @@
 <!-- templates/contracts/partials/contract_card.html -->
 {% load humanize %}
-<div class="col-12">
-    <div class="row g-2">
-        <!-- Колонка 1: Основное -->
-        <div class="col-12 col-lg-2">
-            <div class="card h-100 shadow-sm border">
-                <div class="card-header bg-light fw-bold text-center">
-                    ID {{ contract.pk }}
+
+<div class="col-12 mb-3">
+    <div class="card shadow-sm border">
+        <!-- Шапка карточки: ключевая информация -->
+        <div class="card-header bg-white py-2">
+            <div class="row align-items-center g-2">
+                <!-- Заказчик и основное -->
+                <div class="col-12 col-lg-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge bg-secondary">#{{ contract.pk }}</span>
+                        <h5 class="mb-0">
+                            <a href="#"
+                               class="text-decoration-none fw-bold text-dark"
+                               hx-get="{% url 'contract_core:contract_detail_htmx' contract.pk %}"
+                               hx-target="#modal-content"
+                               data-bs-toggle="modal"
+                               data-bs-target="#contractModal">
+                                {{ contract.customer.name|truncatechars:30 }}
+                            </a>
+                        </h5>
+                    </div>
+                    <small class="text-muted">ИНН: {{ contract.customer.inn }}</small>
                 </div>
-                <div class="card-body p-3 small">
-                    <h5>
-                        <a href="#"
-                           class="text-decoration-none fw-bold"
-                           hx-get="{% url 'contract_core:contract_detail_htmx' contract.pk %}"
-                           hx-target="#modal-content"
-                           hx-trigger="click"
-                           data-bs-toggle="modal"
-                           data-bs-target="#contractModal">
-                            {{ contract.customer.name }}
-                        </a>
-                    </h5>
-                    <p class="mb-1 text-muted">ИНН: {{ contract.customer.inn }}</p>
-                    <hr class="my-2">
-                    <p class="mb-1">№ {{ contract.number|default:"б/н" }} от {{ contract.date_concluded|date:"d.m.Y"|default:"—" }}</p>
-                    <hr class="my-2">
-                    <p class="mb-1">Исполнитель:<br><strong>{{ contract.executor.name }}</strong></p>
-                    <p class="mb-1 text-muted">ИНН: {{ contract.executor.inn }}</p>
-                    <hr class="my-2">
-                    <p class="mb-1">Срок:<br>{{ contract.date_start|date:"d.m.Y" }} —<br>{{ contract.date_end|date:"d.m.Y" }}</p>
-                    <h4>
-                        <span class="badge {% if contract.status == 'active' %}bg-success{% elif contract.status == 'active_expires' %}bg-warning{% elif contract.status == 'active_expired' %}bg-danger{% elif contract.status == 'completed' %}bg-info{% else %}bg-secondary{% endif %} me-1">
-                            {{ contract.get_status_display }}
-                        </span>
-                    </h4>
-                    <hr class="my-2">
-                    <p class="mb-1">Работы:</p>
-                    <h4><span class="badge bg-dark">{{ contract.work.name }}</span></h4>
+
+                <!-- Финансы -->
+                <div class="col-6 col-lg-2 text-center border-start">
+                    <div class="small text-muted">Общая / мес.</div>
+                    <div class="fw-bold text-success">
+                        {{ contract.total_sum|floatformat:0|intcomma }} ₽
+                    </div>
+                    <div class="small text-muted">
+                        {{ contract.monthly_sum|floatformat:0|intcomma }} ₽/мес
+                    </div>
+                </div>
+
+                <!-- Объекты и АК -->
+                <div class="col-6 col-lg-1 text-center border-start">
+                    <div class="small text-muted">Объекты</div>
+                    <div class="fw-bold">{{ contract.object_count }}</div>
+                    <div class="small text-muted">АК: {{ contract.ak_count }}</div>
+                </div>
+
+                <!-- Срок и статус -->
+                <div class="col-6 col-lg-2 text-center border-start">
+                    <div class="small text-muted">Срок</div>
+                    <div class="small">
+                        {{ contract.date_start|date:"d.m.Y" }} — {{ contract.date_end|date:"d.m.Y" }}
+                    </div>
+                    <span class="badge {% if contract.status == 'active' %}bg-success{% elif contract.status == 'active_expires' %}bg-warning{% elif contract.status == 'active_expired' %}bg-danger{% elif contract.status == 'completed' %}bg-info{% else %}bg-secondary{% endif %}">
+                        {{ contract.get_status_display }}
+                    </span>
+                </div>
+
+                <!-- Стадия подписания -->
+                <div class="col-6 col-lg-2 text-center border-start">
+                    <div class="small text-muted">Подписание</div>
+                    {% if contract.signing_stage %}
+                        <div class="fw-bold small">{{ contract.signing_stage.stage.name }}</div>
+                        <small class="text-muted">{{ contract.signing_stage.changed_at|date:"d.m.Y" }}</small>
+                    {% else %}
+                        <span class="badge bg-light text-dark">Не указана</span>
+                    {% endif %}
+                </div>
+
+                <!-- Итоговый акт + работы -->
+                <div class="col-12 col-lg-2 text-center border-start">
+                    <div class="d-flex justify-content-center gap-2 align-items-center mb-1">
+                        <span class="badge bg-dark">{{ contract.work.name|truncatechars:15 }}</span>
+                        {% if contract.final_act and contract.final_act.present %}
+                            <span class="badge bg-success" title="Итоговый акт">Акт ✓</span>
+                        {% else %}
+                            <span class="badge bg-light text-dark border" title="Итоговый акт">Акт ✗</span>
+                        {% endif %}
+                    </div>
+                    <!-- Кнопка разворачивания -->
+                    <button class="btn btn-sm btn-outline-primary w-100"
+                            type="button"
+                            data-bs-toggle="collapse"
+                            data-bs-target="#contract-details-{{ contract.pk }}"
+                            aria-expanded="false">
+                        <i class="bi bi-chevron-down"></i> Детали
+                    </button>
                 </div>
             </div>
         </div>
 
-        <!-- Колонка 2: Финансы + объекты + АК -->
-        <div class="col-12 col-lg-4">
-            <div class="card h-100 shadow-sm border">
-                <div class="card-header bg-light fw-bold text-center">Финансы / Объекты</div>
-                <div class="card-body p-3 small">
-                    <div class="border rounded p-2 mb-2">
-                        <p><strong>Общая:</strong> {{ contract.total_sum|floatformat:0|intcomma }} ₽</p>
-                        <p><strong>В месяц:</strong> {{ contract.monthly_sum|floatformat:0|intcomma }} ₽</p>
-                        <p><strong>Аванс:</strong> {{ contract.advance|floatformat:0|intcomma }} ₽</p>
+        <!-- Детали (аккордеон) -->
+        <div class="collapse" id="contract-details-{{ contract.pk }}">
+            <div class="card-body bg-light border-top">
+                <div class="row g-3">
+                    <!-- Колонка 1: Договор и стороны -->
+                    <div class="col-12 col-md-6 col-lg-3">
+                        <h6 class="fw-bold text-primary mb-2">
+                            <i class="bi bi-file-text"></i> Договор
+                        </h6>
+                        <table class="table table-sm table-borderless mb-0 bg-white rounded">
+                            <tr>
+                                <td class="text-muted">Номер:</td>
+                                <td class="fw-bold">{{ contract.number|default:"б/н" }}</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">Дата:</td>
+                                <td>{{ contract.date_concluded|date:"d.m.Y"|default:"—" }}</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">Исполнитель:</td>
+                                <td>
+                                    <strong>{{ contract.executor.name }}</strong><br>
+                                    <small class="text-muted">ИНН: {{ contract.executor.inn }}</small>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">Файл:</td>
+                                <td>
+                                    {% if contract.file %}
+                                        <a href="{{ contract.file.url }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                            <i class="bi bi-download"></i> Скачать
+                                        </a>
+                                    {% else %}
+                                        <span class="text-muted">—</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        </table>
                     </div>
-                    <p><strong>Объектов: {{ contract.object_count }}</strong> *** <strong>АК: {{ contract.ak_count }}</strong></p>
-                    {% for obj in contract.contract_objects.all %}
-                        <div class="border rounded p-2 mb-2 bg-white">
-                            <strong>{{ obj.name }}</strong> — {{ obj.district.name|default:"—" }}<br>
-                            Субподрядчик:<br><strong>{{ obj.subcontractor.name|default:"—" }}</strong><br>
-                            ИНН: {{ obj.subcontractor.inn|default:"—" }}<br>
-                            Сумма общая (субконтракт): <strong>{{ obj.total_sum_subcontract|floatformat:0|intcomma }} ₽</strong><br>
-                            Сумма в месяц (субконтракт): <strong>{{ obj.monthly_sum_subcontract|floatformat:0|intcomma }} ₽</strong><br>
-                            <div class="mt-1 ms-2">
-                                {% for ak in obj.aks.all %}
-                                    <div><strong>АК {{ ak.number }}</strong> — {{ ak.name }}</div>
+
+                    <!-- Колонка 2: Финансы детально -->
+                    <div class="col-12 col-md-6 col-lg-3">
+                        <h6 class="fw-bold text-success mb-2">
+                            <i class="bi bi-cash-stack"></i> Финансы
+                        </h6>
+                        <table class="table table-sm table-borderless mb-0 bg-white rounded">
+                            <tr>
+                                <td class="text-muted">Общая сумма:</td>
+                                <td class="fw-bold">{{ contract.total_sum|floatformat:2|intcomma }} ₽</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">В месяц:</td>
+                                <td class="fw-bold">{{ contract.monthly_sum|floatformat:2|intcomma }} ₽</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">Аванс:</td>
+                                <td>{{ contract.advance|floatformat:2|intcomma }} ₽</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">Кол-во объектов:</td>
+                                <td>{{ contract.object_count }}</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">Кол-во АК:</td>
+                                <td>{{ contract.ak_count }}</td>
+                            </tr>
+                        </table>
+                    </div>
+
+                    <!-- Колонка 3: Объекты и субподряд -->
+                    <div class="col-12 col-md-6 col-lg-3">
+                        <h6 class="fw-bold text-info mb-2">
+                            <i class="bi bi-building"></i> Объекты и субподряд
+                        </h6>
+                        {% for obj in contract.contract_objects.all %}
+                            <div class="bg-white rounded p-2 mb-2 small">
+                                <div class="fw-bold">{{ obj.name }}</div>
+                                <div class="text-muted">{{ obj.district.name|default:"—" }}</div>
+                                {% if obj.subcontractor %}
+                                    <div class="mt-1 pt-1 border-top">
+                                        <span class="text-muted">Субподряд:</span> {{ obj.subcontractor.name }}<br>
+                                        <small class="text-muted">ИНН: {{ obj.subcontractor.inn }}</small><br>
+                                        <small>{{ obj.total_sum_subcontract|floatformat:0|intcomma }} ₽ / {{ obj.monthly_sum_subcontract|floatformat:0|intcomma }} ₽/мес</small>
+                                    </div>
+                                {% endif %}
+                                {% if obj.aks.all %}
+                                    <div class="mt-1">
+                                        {% for ak in obj.aks.all %}
+                                            <span class="badge bg-secondary me-1">АК {{ ak.number }}</span>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        {% empty %}
+                            <p class="text-muted small mb-0">Нет объектов</p>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Колонка 4: Подписание, акты, системы -->
+                    <div class="col-12 col-md-6 col-lg-3">
+                        <h6 class="fw-bold text-warning mb-2">
+                            <i class="bi bi-pen"></i> Подписание и акты
+                        </h6>
+
+                        {% if contract.signing_stage %}
+                            <div class="bg-white rounded p-2 mb-2 small">
+                                <div class="fw-bold">{{ contract.signing_stage.stage.name }}</div>
+                                <div class="text-muted">
+                                    {{ contract.signing_stage.changed_at|date:"d.m.Y H:i" }}<br>
+                                    {{ contract.signing_stage.changed_by.get_full_name|default:"—" }}
+                                </div>
+                                {% if contract.signing_stage.note %}
+                                    <div class="alert alert-warning py-1 px-2 mb-0 mt-1 small">
+                                        <i class="bi bi-lightning-fill"></i> {{ contract.signing_stage.note }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        {% endif %}
+
+                        {% if contract.final_act %}
+                            <div class="bg-white rounded p-2 mb-2 small">
+                                <div class="fw-bold">Итоговый акт</div>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" {% if contract.final_act.present %}checked{% endif %} disabled>
+                                    <label class="form-check-label">{{ contract.final_act.present|yesno:"Да,Нет" }}</label>
+                                </div>
+                                {% if contract.final_act.date %}
+                                    <div class="text-muted">Дата: {{ contract.final_act.date|date:"d.m.Y" }}</div>
+                                {% endif %}
+                                {% if contract.final_act.file %}
+                                    <a href="{{ contract.final_act.file.url }}" target="_blank" class="btn btn-sm btn-outline-success mt-1">
+                                        <i class="bi bi-download"></i> Скачать акт
+                                    </a>
+                                {% endif %}
+                            </div>
+                        {% endif %}
+
+                        {% if contract.system_checks.all %}
+                            <div class="mt-2">
+                                <h6 class="small fw-bold text-muted">Проверки систем:</h6>
+                                {% for check in contract.system_checks.all %}
+                                    <div class="bg-white rounded p-1 mb-1 small d-flex justify-content-between align-items-center">
+                                        <span>{{ check.system_type.name }}</span>
+                                        <small class="text-muted">{{ check.last_checked|date:"d.m.Y"|default:"—" }}</small>
+                                    </div>
                                 {% endfor %}
                             </div>
-                        </div>
-                    {% endfor %}
-                </div>
-            </div>
-        </div>
-
-        <!-- Колонка 3: Подписание + системы -->
-        <div class="col-12 col-lg-2">
-            <div class="card h-100 shadow-sm border">
-                <div class="card-header bg-light fw-bold text-center">Подписание</div>
-                <div class="card-body p-3 small">
-                    {% if contract.signing_stage %}
-                        <h5><strong>{{ contract.signing_stage.stage.name }}</strong></h5>
-                        <p><small>{{ contract.signing_stage.changed_at|date:"d.m.Y H:i" }} — {{ contract.signing_stage.changed_by.get_full_name|default:"—" }}</small></p>
-                        {% if contract.signing_stage.note %}
-                            <small>
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-lightning" viewBox="0 0 16 16">
-                                    <path d="M5.52.359A.5.5 0 0 1 6 0h4a.5.5 0 0 1 .474.658L8.694 6H12.5a.5.5 0 0 1 .395.807l-7 9a.5.5 0 0 1-.873-.454L6.823 9.5H3.5a.5.5 0 0 1-.48-.641z"/>
-                                </svg>
-                                <strong>{{ contract.signing_stage.note }}</strong>
-                            </small>
                         {% endif %}
-                    {% else %}
-                        <p class="text-muted">Стадия не указана</p>
-                    {% endif %}
-
-                    <hr class="my-2">
-
-                    {% for check in contract.system_checks.all %}
-                        <div class="border rounded p-2 mb-2 bg-white">
-                            <strong>{{ check.system_type.name }}</strong><br>
-                            {{ check.last_checked|date:"d.m.Y"|default:"—" }} — {{ check.checked_by.get_full_name|default:"—" }}
-                            {% if check.note %}<br><small>{{ check.note }}</small>{% endif %}
-                        </div>
-                    {% empty %}
-                        <p class="text-muted">Нет отметок</p>
-                    {% endfor %}
+                    </div>
                 </div>
-            </div>
-        </div>
 
-        <!-- Колонка 4: Акты -->
-        <div class="col-12 col-lg-2">
-            <div class="card h-100 shadow-sm border">
-                <div class="card-header bg-light fw-bold text-center">Акты</div>
-                <div class="card-body p-3 small">
-                    {% if contract.final_act %}
-                        <div class="border rounded p-2 mb-2">
-                            <strong>Итоговый акт</strong><br>
-                            {{ contract.final_act.present|yesno:"Да,Нет" }}<br>
-                            Дата: {{ contract.final_act.date|date:"d.m.Y"|default:"—" }}<br>
-                            Файл: {% if contract.final_act.file %}<a href="{{ contract.final_act.file.url }}" target="_blank">скачать</a>{% else %}—{% endif %}
-                        </div>
-                    {% endif %}
-
-                    {% for act in contract.interim_acts.all %}
-                        <div class="border rounded p-2 mb-2">
-                            {{ act.title }}<br>
-                            {{ act.date|date:"d.m.Y" }}<br>
-                            Файл: {% if act.file %}<a href="{{ act.file.url }}" target="_blank">скачать</a>{% else %}—{% endif %}
-                        </div>
-                    {% empty %}
-                        <p class="text-muted">Нет промежуточных</p>
-                    {% endfor %}
-                </div>
-            </div>
-        </div>
-
-        <!-- Колонка 5: Служебное + действия -->
-        <div class="col-12 col-lg-2">
-            <div class="card h-100 shadow-sm border">
-                <div class="card-header bg-light fw-bold text-center">Служебное</div>
-                <div class="card-body p-3 small">
-                    <p>Файл договора:<br>{% if contract.file %}<a href="{{ contract.file.url }}" target="_blank">скачать</a>{% else %}—{% endif %}</p>
-                    <hr class="my-2">
-                    <p>Создал:<br>{{ contract.creator.get_full_name|default:"—" }}</p>
-                    <p>Обновил:<br>{{ contract.updater.get_full_name|default:"—" }}</p>
-                    <hr class="my-2">
-                    <p>В корзине:<br>{{ contract.is_trash|yesno:"Да,Нет" }}</p>
-                    <p>В архиве:<br>{{ contract.is_archived|yesno:"Да,Нет" }}</p>
-                </div>
-                <div class="card-footer p-2 small">
-                    <button class="btn btn-sm btn-outline-primary mb-2 w-100"
-                            hx-get="{% url 'contract_core:contract_detail_htmx' contract.pk %}"
-                            hx-target="#modal-content"
-                            data-bs-toggle="modal"
-                            data-bs-target="#contractModal">
-                        Подробнее
-                    </button>
-                    <a href="{% url 'contract_core:contract_update' contract.pk %}"
-                       class="btn btn-sm btn-outline-secondary mb-2 w-100">
-                        Редактировать
-                    </a>
-                    <button class="btn btn-sm btn-outline-info w-100"
-                            hx-get="{% url 'contract_core:contract_history_htmx' contract.pk %}"
-                            hx-target="#modal-content"
-                            data-bs-toggle="modal"
-                            data-bs-target="#contractModal">
-                        <i class="bi bi-clock-history"></i> История
-                    </button>
+                <!-- Служебное и действия -->
+                <div class="row mt-3 pt-3 border-top">
+                    <div class="col-12 col-md-6 small text-muted">
+                        <i class="bi bi-person"></i> Создал: {{ contract.creator.get_full_name|default:"—" }} |
+                        <i class="bi bi-arrow-clockwise"></i> Обновил: {{ contract.updater.get_full_name|default:"—" }}
+                        {% if contract.is_trash %}<span class="badge bg-danger ms-2">В корзине</span>{% endif %}
+                        {% if contract.is_archived %}<span class="badge bg-secondary ms-2">В архиве</span>{% endif %}
+                    </div>
+                    <div class="col-12 col-md-6 text-md-end mt-2 mt-md-0">
+                        <button class="btn btn-sm btn-outline-primary"
+                                hx-get="{% url 'contract_core:contract_detail_htmx' contract.pk %}"
+                                hx-target="#modal-content"
+                                data-bs-toggle="modal"
+                                data-bs-target="#contractModal">
+                            <i class="bi bi-eye"></i> Подробнее
+                        </button>
+                        <a href="{% url 'contract_core:contract_update' contract.pk %}"
+                           class="btn btn-sm btn-outline-secondary">
+                            <i class="bi bi-pencil"></i> Редактировать
+                        </a>
+                        <button class="btn btn-sm btn-outline-info"
+                                hx-get="{% url 'contract_core:contract_history_htmx' contract.pk %}"
+                                hx-target="#modal-content"
+                                data-bs-toggle="modal"
+                                data-bs-target="#contractModal">
+                            <i class="bi bi-clock-history"></i> История
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
