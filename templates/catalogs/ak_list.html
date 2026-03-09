@@ -5,8 +5,39 @@
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
-    <h1 class="mb-0">Справочник АК</h1>
+    <div class="d-flex align-items-center gap-3">
+        <h3 class="mb-0">Справочник АК</h3>
+
+        <!-- Кнопка статистики -->
+        <button type="button"
+                class="btn btn-outline-info btn-sm"
+                hx-get="{% url 'contract_core:ak_stats' %}"
+                hx-target="#statsModalContent"
+                data-bs-toggle="modal"
+                data-bs-target="#statsModal"
+                title="Статистика по АК">
+            <i class="bi bi-bar-chart-line fs-5"></i>
+        </button>
+    </div>
+
     <span class="badge bg-secondary fs-5">{{ aks|length }} из {{ page_obj.paginator.count }}</span>
+</div>
+
+<!-- Модальное окно статистики -->
+<div class="modal fade" id="statsModal" tabindex="-1" aria-labelledby="statsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content" id="statsModalContent">
+            <div class="modal-header">
+                <h5 class="modal-title" id="statsModalLabel">Загрузка...</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Загрузка...</span>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- Информация о лимите -->

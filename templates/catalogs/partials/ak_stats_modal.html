@@ -1,0 +1,58 @@
+<!-- templates/catalogs/partials/ak_stats_modal.html -->
+<div class="modal-header bg-info text-white">
+    <h5 class="modal-title" id="statsModalLabel">
+        <i class="bi bi-bar-chart-line me-2"></i>Статистика по АК
+    </h5>
+    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+</div>
+
+<div class="modal-body">
+    <!-- Всего -->
+    <div class="text-center mb-4">
+        <div class="text-muted small mb-1">
+            <i class="bi bi-hdd-rack me-1"></i>Всего АК в базе
+        </div>
+        <div class="display-4 fw-bold text-dark">{{ total }}</div>
+    </div>
+
+    <hr class="my-3">
+
+    <!-- По регионам -->
+    <h6 class="text-muted mb-3">
+        <i class="bi bi-geo-alt me-1"></i>По регионам
+    </h6>
+    <div class="list-group mb-4">
+        {% for region in by_region %}
+        <div class="list-group-item d-flex justify-content-between align-items-center">
+            <span>{{ region.name }}</span>
+            <span class="h5 mb-0 fw-bold text-dark">{{ region.count }}</span>
+        </div>
+        {% empty %}
+        <div class="list-group-item text-muted">Нет данных</div>
+        {% endfor %}
+    </div>
+
+    <hr class="my-3">
+
+    <!-- По районам (с прокруткой если много) -->
+    <h6 class="text-muted mb-3">
+        <i class="bi bi-map me-1"></i>По районам
+    </h6>
+    <div class="list-group" style="max-height: 300px; overflow-y: auto;">
+        {% for district in by_district %}
+        <div class="list-group-item d-flex justify-content-between align-items-center py-2">
+            <div>
+                <small class="text-muted">{{ district.region_name }}</small><br>
+                <span>{{ district.name }}</span>
+            </div>
+            <span class="h6 mb-0 fw-bold text-dark">{{ district.count }}</span>
+        </div>
+        {% empty %}
+        <div class="list-group-item text-muted">Нет данных</div>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="modal-footer">
+    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+</div>

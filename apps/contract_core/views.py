@@ -292,6 +292,56 @@ class AkUpdateView(LoginRequiredMixin, UpdateView):
 
 
 
+class AkStatsView(LoginRequiredMixin, View):
+    """Возвращает статистику по АК для модального окна."""
+
+    def get(self, request, *args, **kwargs):
+        from django.db.models import Q
+
+        # Общее количество
+        total = Ak.objects.count()
+
+        # По регионам (через district__region)
+        by_region = (
+            Ak.objects
+            .filter(district__isnull=False)
+            .values('district__region__name')
+            .annotate(count=Count('id'))
+            .order_by('-count', 'district__region__name')
+        )
+
+        # По районам (через district)
+        by_district = (
+            Ak.objects
+            .filter(district__isnull=False)
+            .values('district__name', 'district__region__name')
+            .annotate(count=Count('id'))
+            .order_by('district__region__name', 'district__name')
+        )
+
+        # Преобразуем в списки словарей для удобства шаблона
+        region_list = [
+            {'name': item['district__region__name'], 'count': item['count']}
+            for item in by_region
+        ]
+
+        district_list = [
+            {
+                'name': item['district__name'],
+                'region_name': item['district__region__name'],
+                'count': item['count']
+            }
+            for item in by_district
+        ]
+
+        context = {
+            'total': total,
+            'by_region': region_list,
+            'by_district': district_list,
+        }
+
+        return render(request, 'catalogs/partials/ak_stats_modal.html', context)
+
 
 # Вьюхи для Справочника компаний
 
