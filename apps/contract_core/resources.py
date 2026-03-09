@@ -1,13 +1,57 @@
 # apps/contract_core/resources.py
-from import_export import resources
+from import_export import resources, fields
 from import_export.widgets import BooleanWidget
 from .models import Company, Ak
 from .validators import inn_validator
 from django.core.exceptions import ValidationError
 
 
+class CustomBooleanWidget(BooleanWidget):
+    """Кастомный виджет для корректной обработки 1/0 из Excel."""
+
+    def clean(self, value, row=None, *args, **kwargs):
+        if value is None or value == '':
+            return False
+
+        # Преобразуем в строку для проверки
+        val_str = str(value).strip().lower()
+
+        # True значения: 1, true, yes, да, t, y
+        if val_str in ('1', 'true', 'yes', 'да', 't', 'y', 'on'):
+            return True
+
+        # False значения: 0, false, no, нет, f, n, пусто
+        return False
+
+    def render(self, value, obj=None):
+        return 1 if value else 0
+
+
 class CompanyResource(resources.ModelResource):
     """Ресурс для импорта/экспорта компаний."""
+
+    # Явно определяем поля с кастомным виджетом
+    is_customer = fields.Field(
+        column_name='is_customer',
+        attribute='is_customer',
+        widget=CustomBooleanWidget()
+    )
+    is_licensee = fields.Field(
+        column_name='is_licensee',
+        attribute='is_licensee',
+        widget=CustomBooleanWidget()
+    )
+    is_laboratory = fields.Field(
+        column_name='is_laboratory',
+        attribute='is_laboratory',
+        widget=CustomBooleanWidget()
+    )
+    is_subcontractor = fields.Field(
+        column_name='is_subcontractor',
+        attribute='is_subcontractor',
+        widget=CustomBooleanWidget()
+    )
+
     class Meta:
         model = Company
         fields = ('name', 'inn', 'is_customer', 'is_licensee', 'is_laboratory', 'is_subcontractor')
@@ -47,25 +91,20 @@ class CompanyResource(resources.ModelResource):
                 errors.append(f"Строка {i}: ИНН {inn} уже существует в базе.")
                 continue
 
-            # Хотя бы одна роль True
+            # Хотя бы одна роль True (проверяем через CustomBooleanWidget логику)
+            def is_true(val):
+                if val is None or val == '':
+                    return False
+                return str(val).strip().lower() in ('1', 'true', 'yes', 'да', 't', 'y', 'on')
+
             roles = [is_customer, is_licensee, is_laboratory, is_subcontractor]
-            if not any(roles):
-                errors.append(f"Строка {i}: Хотя бы одна роль должна быть True.")
+            if not any(is_true(r) for r in roles):
+                errors.append(
+                    f"Строка {i}: Хотя бы одна роль должна быть True (1, yes, true, да). Получено: customer={is_customer}, licensee={is_licensee}, lab={is_laboratory}, sub={is_subcontractor}")
                 continue
 
         if errors:
             raise ValueError("Ошибки импорта:\n" + "\n".join(errors))
-
-    def before_import_row(self, row, **kwargs):
-        """Преобразование булевых значений из разных форматов."""
-        for field in ['is_customer', 'is_licensee', 'is_laboratory', 'is_subcontractor']:
-            val = row.get(field)
-            if val in ('True', '1', 'Да', 'yes', 'true', 't', 'Y'):
-                row[field] = True
-            elif val in ('False', '0', 'Нет', 'no', 'false', 'f', 'N', ''):
-                row[field] = False
-            else:
-                row[field] = False  # fallback
 
 
 class AkResource(resources.ModelResource):

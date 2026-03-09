@@ -17,82 +17,27 @@
     <!-- === ФАВИКОН === -->
     <link rel="icon" href="{% static 'favicon/favicon.ico' %}" type="image/x-icon">
     <link rel="shortcut icon" href="{% static 'favicon/favicon.ico' %}" type="image/x-icon">
-
-    <!-- SVG — современные браузеры (Chrome, Firefox, Safari) -->
     <link rel="icon" href="{% static 'favicon/favicon.svg' %}" type="image/svg+xml">
-
-    <!-- PNG для старых браузеров -->
     <link rel="icon" href="{% static 'favicon/favicon-96x96.png' %}" sizes="96x96" type="image/png">
-
-    <!-- Apple Touch Icon (iPhone/iPad) -->
     <link rel="apple-touch-icon" sizes="180x180" href="{% static 'favicon/apple-touch-icon.png' %}">
-
-    <!-- Web App Manifest (PWA) -->
     <link rel="manifest" href="{% static 'favicon/site.webmanifest' %}">
-
-    <!-- Тема для адресной строки в мобильных браузерах -->
     <meta name="theme-color" content="#0d6efd">
 
     <!-- HTMX -->
     <script src="https://unpkg.com/htmx.org@1.9.12"></script>
 
     <style>
-        /* Увеличенные и более читаемые стили для шапки */
-        .navbar {
-            font-size: 1.1rem;
-            min-height: 70px;
-        }
-
-        .navbar-brand {
-            font-size: 1.5rem;
-            font-weight: 600;
-        }
-
-        .nav-link {
-            font-size: 1.15rem;
-            font-weight: 500;
-            padding: 0.75rem 1rem !important;
-        }
-
-        .nav-link i {
-            font-size: 1.4rem;
-        }
-
-        .navbar-text {
-            font-size: 1.15rem;
-            font-weight: 500;
-            color: #fff !important;
-        }
-
-        .navbar-text i {
-            font-size: 1.5rem;
-        }
-
-        .dropdown-menu {
-            font-size: 1.1rem;
-        }
-
-        .dropdown-item {
-            padding: 0.6rem 1.2rem;
-        }
-
-        /* Увеличенная иконка выхода */
-        .btn-link.nav-link i {
-            font-size: 1.5rem;
-        }
-
-        /* Время */
-        #current-time {
-            font-size: 1rem;
-            font-weight: 500;
-            color: rgba(255, 255, 255, 0.9) !important;
-        }
-
-        /* Увеличенный тогглер для мобильных */
-        .navbar-toggler {
-            padding: 0.5rem 0.75rem;
-            font-size: 1.25rem;
-        }
+        .navbar { font-size: 1.1rem; min-height: 70px; }
+        .navbar-brand { font-size: 1.5rem; font-weight: 600; }
+        .nav-link { font-size: 1.15rem; font-weight: 500; padding: 0.75rem 1rem !important; }
+        .nav-link i { font-size: 1.4rem; }
+        .navbar-text { font-size: 1.15rem; font-weight: 500; color: #fff !important; }
+        .navbar-text i { font-size: 1.5rem; }
+        .dropdown-menu { font-size: 1.1rem; }
+        .dropdown-item { padding: 0.6rem 1.2rem; }
+        .btn-link.nav-link i { font-size: 1.5rem; }
+        #current-time { font-size: 1rem; font-weight: 500; color: rgba(255, 255, 255, 0.9) !important; }
+        .navbar-toggler { padding: 0.5rem 0.75rem; font-size: 1.25rem; }
     </style>
 
 </head>
@@ -101,7 +46,7 @@
         <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
             <div class="container-fluid">
                 <a class="navbar-brand" href="{% url 'identity:home' %}">Контракты PB</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                     <span class="navbar-toggler-icon"></span>
                 </button>
                 <div class="collapse navbar-collapse" id="navbarNav">
@@ -111,15 +56,15 @@
                             <a class="nav-link" href="{% url 'identity:home' %}">Главная</a>
                         </li>
                         <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" id="contractsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <a class="nav-link dropdown-toggle" href="#" id="contractsDropdown" role="button" data-bs-toggle="dropdown">
                                 Контракты
                             </a>
                             <ul class="dropdown-menu" aria-labelledby="contractsDropdown">
-                                <li><a class="dropdown-item" href="{% url 'contract_core:contract_list' %}">Контракты подробно</a></li>
+                                <li><a class="dropdown-item" href="{% url 'contract_core:contract_list' %}">Контракты</a></li>
                             </ul>
                         </li>
                         <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" id="reportsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <a class="nav-link dropdown-toggle" href="#" id="reportsDropdown" role="button" data-bs-toggle="dropdown">
                                 Отчеты
                             </a>
                             <ul class="dropdown-menu" aria-labelledby="reportsDropdown">
@@ -129,7 +74,7 @@
                             </ul>
                         </li>
                         <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" id="catalogsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <a class="nav-link dropdown-toggle" href="#" id="catalogsDropdown" role="button" data-bs-toggle="dropdown">
                                 Справочники
                             </a>
                             <ul class="dropdown-menu" aria-labelledby="catalogsDropdown">
@@ -148,9 +93,9 @@
 
                     <!-- Правая часть шапки -->
                     <ul class="navbar-nav align-items-center gap-2">
-                        <!-- Текущее время -->
+                        <!-- Текущее время (включенный шаблон) -->
                         <li class="nav-item d-none d-lg-block">
-                            <span class="navbar-text" id="current-time"></span>
+                            {% include "partials/current_time.html" %}
                         </li>
 
                         <!-- Корзина -->
@@ -160,7 +105,6 @@
                             </a>
                         </li>
 
-                        <!-- Админка (только для staff) -->
                         {% if user.is_staff %}
                         <li class="nav-item">
                             <a class="nav-link" href="{% url 'admin:index' %}" title="Администрирование">
@@ -170,21 +114,14 @@
                         {% endif %}
 
                         {% if user.is_authenticated %}
-                        <!-- Имя пользователя (белый цвет, крупный шрифт) -->
                         <li class="nav-item">
                             <span class="navbar-text d-flex align-items-center gap-2">
                                 <i class="bi bi-person-circle"></i>
                                 <span class="d-none d-lg-inline">
-                                    {% if user.get_full_name %}
-                                        {{ user.get_full_name }}
-                                    {% else %}
-                                        {{ user.username }}
-                                    {% endif %}
+                                    {% if user.get_full_name %}{{ user.get_full_name }}{% else %}{{ user.username }}{% endif %}
                                 </span>
                             </span>
                         </li>
-
-                        <!-- Выход (крупная иконка) -->
                         <li class="nav-item">
                             <form method="post" action="{% url 'identity:logout' %}" class="d-inline">
                                 {% csrf_token %}
@@ -194,7 +131,6 @@
                             </form>
                         </li>
                         {% else %}
-                        <!-- Для неавторизованных пользователей -->
                         <li class="nav-item">
                             <a class="nav-link" href="{% url 'identity:login' %}">
                                 <i class="bi bi-box-arrow-in-right me-1"></i>Войти
@@ -211,28 +147,22 @@
         {% block content %}{% endblock %}
     </main>
 
-    <!-- Базовый шаблон чата, подключение звуков -->
     {% if user.is_authenticated %}
     <div id="chat-sound-container"
          data-sound-enabled="{{ user_settings.is_sound_enabled|yesno:'true,false' }}"
          data-sound-volume="{{ user_settings.volume }}"
          data-sound-url="{{ user_settings.get_sound_url|default:'' }}">
     </div>
-
     <script>
         window.ChatAudio = {
             playNotification() {
                 const container = document.getElementById('chat-sound-container');
                 if (!container) return;
-
                 const enabled = container.dataset.soundEnabled === 'true';
                 if (!enabled) return;
-
                 const url = container.dataset.soundUrl;
                 if (!url) return;
-
-                const volume = parseInt(container.dataset.volume) / 100;
-
+                const volume = parseInt(container.dataset.soundVolume) / 100;
                 const audio = new Audio(url);
                 audio.volume = volume;
                 audio.play().catch(e => console.log('Audio play failed:', e));
@@ -241,20 +171,7 @@
     </script>
     {% endif %}
 
-    <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
-    <!-- Custom JS -->
     <script src="{% static 'js/custom.js' %}"></script>
-    <script>
-        function updateTime() {
-            const now = new Date();
-            const options = { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' };
-            document.getElementById('current-time').textContent = now.toLocaleDateString('ru-RU', options);
-        }
-        updateTime();
-        setInterval(updateTime, 1000);
-    </script>
-
 </body>
 </html>

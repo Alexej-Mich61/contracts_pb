@@ -16,68 +16,92 @@
 </div>
 {% endif %}
 
-<!-- Форма поиска -->
-<form method="get" hx-get="{% url 'contract_core:companies_list' %}" hx-target="body" hx-push-url="true">
-    <!-- Первая строка: ID, название/ИНН, уведомление -->
-    <div class="row g-2 mb-2">
-        <!-- Поиск по ID -->
-        <div class="col-md-2">
-            <label class="form-label small text-muted mb-1">ID</label>
-            <input type="number" name="id" class="form-control form-control-sm" placeholder="ID..." value="{{ search_id }}" min="1">
-        </div>
+<!-- Фильтры в аккордеоне -->
+<div class="accordion mb-4" id="filterAccordion">
+    <div class="accordion-item">
+        <h2 class="accordion-header" id="filterHeading">
+            <button class="accordion-button {% if not has_active_filters %}collapsed{% endif %}"
+                    type="button"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#filterCollapse"
+                    aria-expanded="{{ has_active_filters|yesno:'true,false' }}"
+                    aria-controls="filterCollapse">
+                <i class="bi bi-funnel me-2"></i> Фильтры и поиск
+                {% if has_active_filters %}
+                    <span class="badge bg-primary ms-2">Активны</span>
+                {% endif %}
+            </button>
+        </h2>
+        <div id="filterCollapse"
+             class="accordion-collapse collapse {% if has_active_filters %}show{% endif %}"
+             aria-labelledby="filterHeading"
+             data-bs-parent="#filterAccordion">
+            <div class="accordion-body">
+                <form method="get" hx-get="{% url 'contract_core:companies_list' %}" hx-target="body" hx-push-url="true">
+                    <!-- Первая строка: ID, название/ИНН, уведомление -->
+                    <div class="row g-2 mb-2">
+                        <!-- Поиск по ID -->
+                        <div class="col-md-2">
+                            <label class="form-label small text-muted mb-1">ID</label>
+                            <input type="number" name="id" class="form-control form-control-sm" placeholder="ID..." value="{{ search_id }}" min="1">
+                        </div>
 
-        <!-- Поиск по названию/ИНН -->
-        <div class="col-md-3">
-            <label class="form-label small text-muted mb-1">Название или ИНН</label>
-            <input type="text" name="q" class="form-control form-control-sm" placeholder="Название или ИНН..." value="{{ search_q }}">
-        </div>
+                        <!-- Поиск по названию/ИНН -->
+                        <div class="col-md-3">
+                            <label class="form-label small text-muted mb-1">Название или ИНН</label>
+                            <input type="text" name="q" class="form-control form-control-sm" placeholder="Название или ИНН..." value="{{ search_q }}">
+                        </div>
 
-        <!-- Фильтр по согласию на уведомление -->
-        <div class="col-md-3">
-            <label class="form-label small text-muted mb-1">Согласие на уведомление</label>
-            <select name="notification" class="form-select form-select-sm">
-                <option value="">Все</option>
-                <option value="yes" {% if selected_notification == 'yes' %}selected{% endif %}>Дано</option>
-                <option value="no" {% if selected_notification == 'no' %}selected{% endif %}>Не дано</option>
-            </select>
-        </div>
+                        <!-- Фильтр по согласию на уведомление -->
+                        <div class="col-md-3">
+                            <label class="form-label small text-muted mb-1">Согласие на уведомление</label>
+                            <select name="notification" class="form-select form-select-sm">
+                                <option value="">Все</option>
+                                <option value="yes" {% if selected_notification == 'yes' %}selected{% endif %}>Дано</option>
+                                <option value="no" {% if selected_notification == 'no' %}selected{% endif %}>Не дано</option>
+                            </select>
+                        </div>
 
-        <!-- Фильтр ролей -->
-        <div class="col-md-4">
-            <label class="form-label small text-muted mb-1">Роли</label>
-            <div class="d-flex flex-wrap gap-2 border rounded px-2 py-1 bg-light">
-                <div class="form-check form-check-inline mb-0">
-                    <input class="form-check-input" type="checkbox" name="role" value="customer" id="role_customer" {% if 'customer' in selected_roles or not selected_roles %}checked{% endif %}>
-                    <label class="form-check-label small" for="role_customer">Заказчик</label>
-                </div>
-                <div class="form-check form-check-inline mb-0">
-                    <input class="form-check-input" type="checkbox" name="role" value="licensee" id="role_licensee" {% if 'licensee' in selected_roles or not selected_roles %}checked{% endif %}>
-                    <label class="form-check-label small" for="role_licensee">Лицензиат</label>
-                </div>
-                <div class="form-check form-check-inline mb-0">
-                    <input class="form-check-input" type="checkbox" name="role" value="laboratory" id="role_laboratory" {% if 'laboratory' in selected_roles or not selected_roles %}checked{% endif %}>
-                    <label class="form-check-label small" for="role_laboratory">Лаборатория</label>
-                </div>
-                <div class="form-check form-check-inline mb-0">
-                    <input class="form-check-input" type="checkbox" name="role" value="subcontractor" id="role_subcontractor" {% if 'subcontractor' in selected_roles or not selected_roles %}checked{% endif %}>
-                    <label class="form-check-label small" for="role_subcontractor">Субподрядчик</label>
-                </div>
+                        <!-- Фильтр ролей -->
+                        <div class="col-md-4">
+                            <label class="form-label small text-muted mb-1">Роли</label>
+                            <div class="d-flex flex-wrap gap-2 border rounded px-2 py-1 bg-light">
+                                <div class="form-check form-check-inline mb-0">
+                                    <input class="form-check-input" type="checkbox" name="role" value="customer" id="role_customer" {% if 'customer' in selected_roles or not selected_roles %}checked{% endif %}>
+                                    <label class="form-check-label small" for="role_customer">Заказчик</label>
+                                </div>
+                                <div class="form-check form-check-inline mb-0">
+                                    <input class="form-check-input" type="checkbox" name="role" value="licensee" id="role_licensee" {% if 'licensee' in selected_roles or not selected_roles %}checked{% endif %}>
+                                    <label class="form-check-label small" for="role_licensee">Лицензиат</label>
+                                </div>
+                                <div class="form-check form-check-inline mb-0">
+                                    <input class="form-check-input" type="checkbox" name="role" value="laboratory" id="role_laboratory" {% if 'laboratory' in selected_roles or not selected_roles %}checked{% endif %}>
+                                    <label class="form-check-label small" for="role_laboratory">Лаборатория</label>
+                                </div>
+                                <div class="form-check form-check-inline mb-0">
+                                    <input class="form-check-input" type="checkbox" name="role" value="subcontractor" id="role_subcontractor" {% if 'subcontractor' in selected_roles or not selected_roles %}checked{% endif %}>
+                                    <label class="form-check-label small" for="role_subcontractor">Субподрядчик</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Вторая строка: кнопки справа -->
+                    <div class="row">
+                        <div class="col-12 d-flex justify-content-end gap-2">
+                            <a href="{% url 'contract_core:companies_list' %}" class="btn btn-outline-secondary btn-sm">
+                                <i class="bi bi-x-circle"></i> Сбросить
+                            </a>
+                            <button type="submit" class="btn btn-outline-primary btn-sm">
+                                <i class="bi bi-funnel"></i> Применить
+                            </button>
+                        </div>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
-
-    <!-- Вторая строка: кнопки справа -->
-    <div class="row">
-        <div class="col-12 d-flex justify-content-end gap-2">
-            <a href="{% url 'contract_core:companies_list' %}" class="btn btn-outline-secondary btn-sm">
-                <i class="bi bi-x-circle"></i> Сбросить
-            </a>
-            <button type="submit" class="btn btn-outline-primary btn-sm">
-                <i class="bi bi-funnel"></i> Применить
-            </button>
-        </div>
-    </div>
-</form>
+</div>
 
 <!-- Кнопка добавления -->
 <button type="button"
@@ -201,4 +225,3 @@
 </div>
 
 {% endblock %}
-

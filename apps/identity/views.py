@@ -6,6 +6,7 @@ from django.urls import reverse_lazy
 from django.contrib import messages
 from .models import User
 
+
 # Create your views here.
 
 class HomeView(LoginRequiredMixin, TemplateView):
@@ -30,3 +31,5 @@ class UserCreateView(LoginRequiredMixin, CreateView):
 
 class FAQView(LoginRequiredMixin, TemplateView):
     template_name = "FAQ.html"
+
+

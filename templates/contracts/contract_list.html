@@ -1,13 +1,13 @@
 <!-- templates/contracts/contract_list.html -->
 {% extends "base.html" %}
 
-{% block title %}Контракты (подробно){% endblock %}
+{% block title %}Контракты{% endblock %}
 
 {% block content %}
 <div class="container mt-4">
     <!-- Заголовок -->
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="mb-0">Контракты (подробно)</h1>
+        <h1 class="mb-0">Контракты</h1>
         <span class="badge bg-secondary fs-5" id="contract-count">
             {{ page_obj.paginator.count|default:contracts|length }}
         </span>

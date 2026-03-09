@@ -1,9 +1,8 @@
 # apps/contract_core/admin.py
 from django.contrib import admin
 from import_export.admin import ImportExportModelAdmin
-from simple_history.admin import SimpleHistoryAdmin
 
-#from simple_history.admin import SimpleHistoryAdmin
+
 
 from .models import (
     ContractSettings, Region, District, Work, Company,
@@ -155,18 +154,39 @@ class WorkAdmin(admin.ModelAdmin):
 @admin.register(Company)
 class CompanyAdmin(ImportExportModelAdmin):
     resource_class = CompanyResource
-    list_display = ('name', 'inn', 'is_customer', 'is_licensee', 'is_laboratory', 'is_subcontractor')
-    list_filter = ('is_customer', 'is_licensee', 'is_laboratory', 'is_subcontractor')
+    list_display = (
+        'name',
+        'inn',
+        'is_customer',
+        'is_licensee',
+        'is_laboratory',
+        'is_subcontractor',
+        'notification_agreed'  # добавлено
+    )
+    list_filter = (
+        'is_customer',
+        'is_licensee',
+        'is_laboratory',
+        'is_subcontractor',
+        'notification_agreed'  # добавлено в фильтры
+    )
     search_fields = ('name', 'inn')
-    actions = ['mark_as_licensee', 'mark_as_laboratory']
+    actions = ['mark_as_licensee', 'mark_as_laboratory', 'mark_notification_agreed']  # добавлено действие
 
     def mark_as_licensee(self, request, queryset):
         queryset.update(is_licensee=True)
+
     mark_as_licensee.short_description = "Отметить как лицензиат МЧС"
 
     def mark_as_laboratory(self, request, queryset):
         queryset.update(is_laboratory=True)
+
     mark_as_laboratory.short_description = "Отметить как лаборатория"
+
+    def mark_notification_agreed(self, request, queryset):
+        queryset.update(notification_agreed=True)
+
+    mark_notification_agreed.short_description = "Отметить 'Согласие на уведомление'"
 
 
 @admin.register(SigningStage)
