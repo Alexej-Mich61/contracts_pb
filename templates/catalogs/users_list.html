@@ -1,42 +1,205 @@
 {% extends "base.html" %}
 
-{% block title %}Справочник Пользователей{% endblock %}
+{% block title %}Справочник пользователей{% endblock %}
 
 {% block content %}
-<h1>Справочник Пользователей</h1>
-<a href="{% url 'identity:user_create' %}" class="btn btn-primary mb-3">Добавить Пользователя</a>
-<table class="table table-striped">
-    <thead>
-        <tr>
-            <th>Фото</th>
-            <th>Имя пользователя</th>
-            <th>Имя</th>
-            <th>Email</th>
-            <th>Телефон</th>
-            <th>Категория</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for user in users %}
-        <tr>
-            <td>
-                {% if user.avatar %}
-                    <img src="{{ user.avatar.url }}" alt="Аватар" width="50" height="50" class="rounded-circle">
-                {% else %}
-                    <div style="width: 50px; height: 50px; background-color: #ccc; border-radius: 50%; display: inline-block;"></div>
-                {% endif %}
-            </td>
-            <td>{{ user.username }}</td>
-            <td>{{ user.get_full_name }}</td>
-            <td>{{ user.email }}</td>
-            <td>{{ user.phone }}</td>
-            <td>{{ user.get_category_display }}</td>
-        </tr>
-        {% empty %}
-        <tr>
-            <td colspan="6" class="text-center">Нет пользователей в базе.</td>
-        </tr>
+<style>
+    .avatar-modal {
+        display: none;
+        position: fixed;
+        z-index: 1050;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.6);
+        justify-content: center;
+        align-items: center;
+    }
+
+    .avatar-modal.active {
+        display: flex;
+    }
+
+    .avatar-modal-content {
+        position: relative;
+        max-width: 90%;
+        max-height: 90%;
+    }
+
+    .avatar-modal-content img {
+        max-width: 100%;
+        max-height: 85vh;
+        border-radius: 8px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+    }
+
+    .avatar-modal-close {
+        position: absolute;
+        top: -50px;
+        right: 0;
+        color: white;
+        font-size: 40px;
+        font-weight: bold;
+        cursor: pointer;
+        line-height: 1;
+        padding: 0 10px;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    }
+
+    .avatar-modal-close:hover {
+        color: #ff6b6b;
+    }
+
+    .avatar-thumb {
+        cursor: zoom-in;
+        transition: transform 0.2s ease;
+    }
+
+    .avatar-thumb:hover {
+        transform: scale(1.08);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+</style>
+
+<h3>Справочник пользователей <span class="text-muted fs-5">(всего: {{ users|length }})</span></h3>
+
+{% regroup users by get_category_display as users_by_category %}
+
+{% for category in users_by_category %}
+<div class="mb-4">
+    <h4 class="border-bottom pb-2">{{ category.grouper }} <span class="text-muted fs-6">({{ category.list|length }})</span></h4>
+
+    <div class="list-group">
+        {% for user in category.list %}
+        <div class="list-group-item py-3">
+            <div class="row g-3 align-items-start">
+                {# Колонка 1: Номер #}
+                <div class="col-auto text-muted fs-5" style="width: 50px;">
+                    {{ forloop.counter }}.
+                </div>
+
+                {# Колонка 2: Аватар с увеличением #}
+                <div class="col-auto" style="width: 80px;">
+                    {% if user.avatar %}
+                        <img src="{{ user.avatar.url }}" alt="{{ user.get_full_name }}"
+                             class="rounded-circle avatar-thumb img-thumbnail" width="70" height="70"
+                             style="object-fit: cover;"
+                             onclick="openAvatarModal('{{ user.avatar.url }}')">
+                    {% else %}
+                        <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center"
+                             style="width: 70px; height: 70px;">
+                            <span class="text-white fs-4">{{ user.first_name|first|default:"?" }}{{ user.last_name|first|default:"" }}</span>
+                        </div>
+                    {% endif %}
+                </div>
+
+                {# Колонка 3: Имя, логин, контакты #}
+                <div class="col" style="min-width: 250px;">
+                    <h5 class="mb-1 fs-4 fw-bold">{{ user.get_full_name|default:user.username }}</h5>
+                    <p class="mb-2 text-muted fs-6">{{ user.username }}</p>
+
+                    {% if user.email %}
+                        <div class="fs-6">
+                            <span class="text-muted">Email:</span>
+                            <a href="mailto:{{ user.email }}">{{ user.email }}</a>
+                        </div>
+                    {% endif %}
+                    {% if user.phone %}
+                        <div class="fs-6">
+                            <span class="text-muted">Телефон:</span>
+                            <a href="tel:{{ user.phone }}">{{ user.phone }}</a>
+                        </div>
+                    {% endif %}
+                </div>
+
+                {# Колонка 4: Компании #}
+                <div class="col" style="min-width: 200px;">
+                    <div class="fw-bold fs-6 mb-1">Компании</div>
+                    {% if user.employees.all %}
+                        <ul class="list-unstyled fs-6 mb-0">
+                            {% for emp in user.employees.all %}
+                                <li>
+                                    {{ emp.company.name }}
+                                    {% if not emp.is_active %}<span class="text-muted">(не активен)</span>{% endif %}
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <span class="text-muted fs-6">—</span>
+                    {% endif %}
+                </div>
+
+                {# Колонка 5: Категория #}
+                <div class="col-auto" style="min-width: 120px;">
+                    <div class="fw-bold fs-6 mb-1">Категория</div>
+                    <div class="fs-6">{{ user.get_category_display }}</div>
+                </div>
+
+                {# Колонка 6: Разрешения менеджера #}
+                <div class="col" style="min-width: 250px;">
+                    <div class="fw-bold fs-6 mb-1">Разрешения</div>
+                    {% if user.category == 'manager' and user.manager_permissions %}
+                        <ul class="list-unstyled fs-6 mb-0">
+                            {% if user.manager_permissions.can_mark_final_act %}
+                                <li>может отмечать итоговый акт сформированным</li>
+                            {% endif %}
+                            {% if user.manager_permissions.can_edit_system_checklist %}
+                                <li>может редактировать чек-лист Системы</li>
+                            {% endif %}
+                            {% if user.manager_permissions.can_edit_signing_stages %}
+                                <li>может редактировать стадии подписания</li>
+                            {% endif %}
+                            {% if user.manager_permissions.can_edit_interim_act %}
+                                <li>может редактировать этапные акты</li>
+                            {% endif %}
+                        </ul>
+                    {% else %}
+                        <span class="text-muted fs-6">—</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
         {% endfor %}
-    </tbody>
-</table>
+    </div>
+</div>
+{% empty %}
+<div class="alert alert-info">Нет пользователей в базе.</div>
+{% endfor %}
+
+{# Модальное окно для просмотра аватара #}
+<div id="avatarModal" class="avatar-modal">
+    <div class="avatar-modal-content">
+        <span class="avatar-modal-close" onclick="closeAvatarModal()">&times;</span>
+        <img id="avatarModalImg" src="" alt="Аватар">
+    </div>
+</div>
+
+<script>
+    function openAvatarModal(imageUrl) {
+        const modal = document.getElementById('avatarModal');
+        const img = document.getElementById('avatarModalImg');
+        img.src = imageUrl;
+        modal.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeAvatarModal() {
+        const modal = document.getElementById('avatarModal');
+        modal.classList.remove('active');
+        document.body.style.overflow = '';
+    }
+
+    document.getElementById('avatarModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeAvatarModal();
+        }
+    });
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeAvatarModal();
+        }
+    });
+</script>
 {% endblock %}

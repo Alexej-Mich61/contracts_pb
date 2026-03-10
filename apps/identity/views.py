@@ -1,10 +1,12 @@
 # apps/identity/views.py
 from django.shortcuts import render
-from django.views.generic import TemplateView, ListView, CreateView
+from django.views.generic import TemplateView, ListView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse_lazy
 from django.contrib import messages
-from .models import User
+from django.db.models import Prefetch
+
+from .models import User, Employee
 
 
 # Create your views here.
@@ -18,15 +20,11 @@ class UsersListView(LoginRequiredMixin, ListView):
     template_name = "catalogs/users_list.html"
     context_object_name = "users"
 
-class UserCreateView(LoginRequiredMixin, CreateView):
-    model = User
-    template_name = "catalogs/user_form.html"
-    fields = ['username', 'email', 'first_name', 'last_name', 'phone', 'category', 'avatar']
-    success_url = reverse_lazy('identity:users_list')
-
-    def form_valid(self, form):
-        messages.success(self.request, "Пользователь успешно добавлен.")
-        return super().form_valid(form)
+    def get_queryset(self):
+        return User.objects.prefetch_related(
+            Prefetch('employees', queryset=Employee.objects.select_related('company')),
+            'manager_permissions',
+        ).order_by('last_name', 'first_name')
 
 
 class FAQView(LoginRequiredMixin, TemplateView):

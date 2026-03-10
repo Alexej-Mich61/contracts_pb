@@ -15,6 +15,5 @@ urlpatterns = [
         next_page="identity:login"
     ), name="logout"),
     path("catalogs/users/", views.UsersListView.as_view(), name="users_list"),
-    path("catalogs/users/add/", views.UserCreateView.as_view(), name="user_create"),
     path("faq/", views.FAQView.as_view(), name="faq"),
 ]

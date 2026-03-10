@@ -1,110 +1,103 @@
 # apps/identity/admin.py
-from django.contrib import admin
+from django.contrib import admin, messages
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
+from django.db.models import Prefetch
+from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
-from django.db.models import Q
 
-from .models import User, Employee
-from apps.contract_core.models import Company
+from .models import User, Employee, ManagerPermission, UserCategory
 
 
 class EmployeeInline(admin.TabularInline):
     model = Employee
     extra = 1
-    fields = ('company', 'is_active', 'created_at')
-    readonly_fields = ('created_at',)
-    verbose_name = "Сотрудник компании"
-    verbose_name_plural = "Сотрудники компании"
+    autocomplete_fields = ('company',)
 
-    def formfield_for_foreignkey(self, db_field, request, **kwargs):
-        """
-        Фильтруем компании только исполнителей (лицензиат или лаборатория).
-        """
-        if db_field.name == 'company':
-            kwargs['queryset'] = Company.objects.filter(
-                Q(is_licensee=True) | Q(is_laboratory=True)
-            ).order_by('name')
-        return super().formfield_for_foreignkey(db_field, request, **kwargs)
+
+class ManagerPermissionInline(admin.StackedInline):
+    model = ManagerPermission
+    can_delete = False
 
 
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
-    list_display = (
-        'username',
-        'email',
-        'get_full_name',
-        'category',
-        'phone',
-        'news_is_active',
-        'is_active',
-        'is_system',
-        'date_joined'
-    )
-    list_filter = (
-        'category',
-        'is_active',
-        'is_staff',
-        'is_superuser',
-        'is_system',
-        'news_is_active'
-    )
-    search_fields = ('username', 'email', 'first_name', 'last_name', 'phone')
-    ordering = ('username',)
-    filter_horizontal = ('groups', 'user_permissions')
 
-    fieldsets = (
-        (None, {'fields': ('username', 'password')}),
-        (_('Персональная информация'), {
-            'fields': ('first_name', 'last_name', 'email', 'phone', 'avatar')
-        }),
-        (_('Категория и статус рассылки'), {
-            'fields': ('category', 'news_is_active', 'is_system')
-        }),
-        (_('Дополнительные права для менеджера'), {
-            'fields': (
-                'can_mark_final_act',
-                'can_edit_system_checklist',
-                'can_edit_signing_stages',
-                'can_edit_interim_act',
-            ),
-            'classes': ('collapse',),  # сворачиваемый блок
-        }),
-        (_('Права и группы'), {
-            'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions'),
-        }),
-        (_('Важные даты'), {'fields': ('last_login', 'date_joined')}),
-    )
+    def get_inlines(self, request, obj=None):
+        if obj is None:
+            return [EmployeeInline]
 
-    add_fieldsets = (
+        if obj.category == UserCategory.MANAGER:
+            return [EmployeeInline, ManagerPermissionInline]
+        return [EmployeeInline]
+
+    def get_fieldsets(self, request, obj=None):
+        fieldsets = list(BaseUserAdmin.fieldsets[:2])
+
+        fieldsets.append(
+            (_('Дополнительная информация'), {
+                'fields': ('category', 'phone', 'avatar', 'news_is_active'),
+            }),
+        )
+
+        if request.user.is_superuser:
+            fieldsets.append(
+                (_('Группы Django (только для отладки)'), {
+                    'fields': ('groups', 'user_permissions'),
+                    'classes': ('collapse',),
+                }),
+            )
+
+        fieldsets.append(
+            (_('Важные даты'), {'fields': ('last_login', 'date_joined')}),
+        )
+
+        return fieldsets
+
+    add_fieldsets = BaseUserAdmin.add_fieldsets + (
         (None, {
-            'classes': ('wide',),
-            'fields': (
-                'username', 'email', 'password1', 'password2',
-                'category', 'news_is_active', 'phone'
-            ),
+            'fields': ('category', 'phone', 'news_is_active'),
         }),
     )
 
-    inlines = [EmployeeInline]
+    list_display = BaseUserAdmin.list_display + ('category', 'phone', 'get_companies', 'is_system')
+    list_filter = BaseUserAdmin.list_filter + ('category', 'is_system', 'news_is_active')
 
-    def get_full_name(self, obj):
-        return obj.get_full_name() or obj.username
-    get_full_name.short_description = "Имя / Логин"
+    def get_queryset(self, request):
+        return super().get_queryset(request).prefetch_related(
+            Prefetch('employees', queryset=Employee.objects.select_related('company'))
+        )
 
-    def get_readonly_fields(self, request, obj=None):
-        """
-        Запрещаем редактировать системные поля для обычных пользователей.
-        """
-        readonly = ['is_system', 'date_joined', 'last_login']
-        if obj and obj.is_system:
-            readonly += ['category', 'username', 'news_is_active']
-        return readonly
+    @admin.display(description=_('Компании'))
+    def get_companies(self, obj):
+        companies = obj.employees.select_related('company').all()
+        if not companies:
+            return '-'
+
+        names = []
+        for emp in companies[:2]:
+            status = '✓' if emp.is_active else '✗'
+            names.append(f'{status} {emp.company.name}')
+
+        result = ', '.join(names)
+        if companies.count() > 2:
+            result += f' (+{companies.count() - 2})'
+
+        return format_html(result)
+
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+
+        if 'category' in form.changed_data:
+            messages.info(
+                request,
+                f"Категория изменена на '{obj.get_category_display()}'. "
+                f"Группы Django автоматически синхронизированы."
+            )
 
 
 @admin.register(Employee)
 class EmployeeAdmin(admin.ModelAdmin):
     list_display = ('user', 'company', 'is_active', 'created_at')
-    list_filter = ('is_active', 'company__is_licensee', 'company__is_laboratory')
-    search_fields = ('user__username', 'user__email', 'company__name', 'company__inn')
-    ordering = ('-created_at',)
-    raw_id_fields = ('user', 'company')
+    list_filter = ('is_active',)
+    search_fields = ('user__username', 'company__name')
+    autocomplete_fields = ('user', 'company')
