@@ -1,25 +1,23 @@
 # apps/contract_core/managers.py
-from django.db.models import Manager
+from django.db.models import Manager, Q
 
 
 class ContractManager(Manager):
     def for_user(self, user):
         """
-        Возвращает queryset договоров, которые может видеть данный пользователь
-        Суперюзер видит все контракты, неавторизованный - никакие, остальные пользователи -- контракты
-        компаний, где он добавлен в сотрудники
+        Возвращает queryset договоров, которые может видеть данный пользователь.
+        Суперюзер/админ видит все, остальные — только контракты компаний-исполнителей,
+        где они являются активными сотрудниками.
         """
         if not user or not user.is_authenticated:
             return self.none()
 
-        # Здесь можно получить модель User, если нужно
-        from django.contrib.auth import get_user_model
-        User = get_user_model()
-
-        if user.is_superuser or user.category == User.Category.ADMIN:
+        # Админы и суперпользователи видят всё
+        if user.is_superuser or getattr(user, 'is_admin', False):
             return self.all()
 
-        # Для всех остальных — только свои компании-исполнители
+        # Остальные видят только контракты компаний, где они активные сотрудники
+        # Используем related_name="employees" из модели Employee (company -> employees)
         return self.filter(
             executor__employees__user=user,
             executor__employees__is_active=True

@@ -1,4 +1,3 @@
-# apps/contract_core/services/contract_filter_service.py
 from django.db.models import Q, Count
 from django.contrib.auth import get_user_model
 
@@ -19,13 +18,18 @@ class ContractFilterService:
         'oneoff_lab': 'work_oneoff_lab',
     }
 
-    def __init__(self, request):
+    def __init__(self, request, queryset=None):
         self.request = request
         self.params = request.GET
+        # Сохраняем базовый queryset (уже с фильтрацией по правам доступа)
+        self.base_queryset = queryset
 
-    def filter(self, queryset=None):
+    def filter(self):
         """Применить все фильтры"""
-        if queryset is None:
+        # Используем переданный queryset или берем все (для обратной совместимости)
+        if self.base_queryset is not None:
+            queryset = self.base_queryset
+        else:
             queryset = Contract.objects.all()
 
         queryset = self._filter_by_location(queryset)
@@ -228,7 +232,6 @@ class ContractFilterService:
         # Итоговый акт (OneToOne)
         has_final_act = self.params.get('has_final_act')
         if has_final_act == 'yes':
-            # Договор есть в FinalAct (по OneToOne)
             queryset = queryset.filter(final_act__isnull=False)
         elif has_final_act == 'no':
             queryset = queryset.filter(final_act__isnull=True)
@@ -251,7 +254,6 @@ class ContractFilterService:
         # Промежуточные акты (ForeignKey с related_name='interim_acts')
         has_interim_acts = self.params.get('has_interim_acts')
         if has_interim_acts == 'yes':
-            # Используем Exists для корректной проверки
             queryset = queryset.annotate(
                 has_interim=Exists(
                     InterimAct.objects.filter(contract=OuterRef('pk'))

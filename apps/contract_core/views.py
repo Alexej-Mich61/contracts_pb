@@ -1,18 +1,20 @@
 # apps/contract_core/views.py
 from django.http import HttpResponse, HttpResponseRedirect
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse_lazy
 from django.contrib import messages
-from django.views.generic import TemplateView, ListView, CreateView, UpdateView, DetailView
+from django.views.generic import TemplateView, ListView, CreateView, UpdateView, DetailView, DeleteView
 from django.db.models import Q
 from django.db.models import Count
 from auditlog.models import LogEntry
 from django.contrib.contenttypes.models import ContentType
 from django.http import JsonResponse
 from django.views import View
+from .services.contract_filter_service import ContractFilterService
 from .services.company_filter_service import CompanyFilterService
 from .services.ak_filter_service import AkFilterService
+from .mixins import ContractAccessMixin
 
 from .models import (
     Ak,
@@ -27,7 +29,7 @@ from .models import (
     ContractSystemCheck,
     )
 from .forms import AkForm, CompanyForm, ContractForm
-
+from .services.history_service import ContractHistoryService
 
 
 # Create your views here.
@@ -35,56 +37,38 @@ from .forms import AkForm, CompanyForm, ContractForm
 
 
 # auditlog
-class ContractHistoryHtmxView(LoginRequiredMixin, ListView):
+# ========== HTMX ЭНДПОИНТЫ ==========
+
+class ContractHistoryHtmxView(LoginRequiredMixin, ContractAccessMixin, DetailView):
     """HTMX эндпоинт для истории договора в модальном окне"""
-    model = LogEntry
-    template_name = "contracts/partials/contract_history_modal.html"
-    context_object_name = "logs"
-    paginate_by = 20
-
-    def get_queryset(self):
-        self.contract = get_object_or_404(Contract, pk=self.kwargs['pk'])
-        from .services.history_service import ContractHistoryService
-        service = ContractHistoryService(self.contract)
-        return service.get_all_logs()
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['contract'] = self.contract
-        return context
-
-
-# представления договоров
-class ContractListView(LoginRequiredMixin, ListView):
-    """Главная страница списка договоров с фильтром"""
     model = Contract
-    template_name = "contracts/contract_list.html"
-    context_object_name = "contracts"
-    paginate_by = 10
+    template_name = "contracts/partials/contract_history_modal.html"
+    context_object_name = "contract"  # изменено для совместимости с миксином
+    pk_url_kwarg = 'pk'
 
     def get_queryset(self):
-        from .services.contract_filter_service import ContractFilterService
-        service = ContractFilterService(self.request)
-        return service.filter()
+        # Базовый queryset с проверкой доступа из миксина
+        queryset = super().get_queryset()
+        from auditlog.models import LogEntry
+        # Возвращаем контракты (LogEntry получим отдельно)
+        return queryset
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
+    def get(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        service = ContractHistoryService(self.object)
+        logs = service.get_all_logs()
 
-        from .services.contract_filter_service import ContractFilterService
-        context['filter_data'] = ContractFilterService.get_filter_choices()
-
-        # Для начального состояния районов
-        region_id = self.request.GET.get('region')
-        context['districts'] = ContractFilterService.get_districts_by_region(region_id)
-
-        return context
+        context = self.get_context_data(object=self.object)
+        context['logs'] = logs
+        return self.render_to_response(context)
 
 
-class ContractDetailHtmxView(LoginRequiredMixin, DetailView):
+class ContractDetailHtmxView(LoginRequiredMixin, ContractAccessMixin, DetailView):
     """HTMX эндпоинт для деталей договора в модальном окне"""
     model = Contract
     template_name = "contracts/partials/contract_detail_modal.html"
     context_object_name = "contract"
+    pk_url_kwarg = 'pk'
 
     def get_queryset(self):
         return super().get_queryset().select_related(
@@ -100,6 +84,34 @@ class ContractDetailHtmxView(LoginRequiredMixin, DetailView):
         )
 
 
+# ========== СПИСОЧНЫЕ ПРЕДСТАВЛЕНИЯ ==========
+
+class ContractListView(LoginRequiredMixin, ListView):
+    """Главная страница списка договоров с фильтром"""
+    model = Contract
+    template_name = "contracts/contract_list.html"
+    context_object_name = "contracts"
+    paginate_by = 10
+
+    def get_queryset(self):
+        # Базовый queryset с учетом прав доступа пользователя
+        base_queryset = Contract.objects.for_user(self.request.user)
+
+        # Применяем фильтры поверх ограниченного queryset
+        service = ContractFilterService(self.request, queryset=base_queryset)
+        return service.filter()
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['filter_data'] = ContractFilterService.get_filter_choices()
+
+        # Для начального состояния районов
+        region_id = self.request.GET.get('region')
+        context['districts'] = ContractFilterService.get_districts_by_region(region_id)
+
+        return context
+
+
 class ContractListHtmxView(LoginRequiredMixin, ListView):
     """HTMX эндпоинт для фильтрованного списка договоров"""
     model = Contract
@@ -108,8 +120,9 @@ class ContractListHtmxView(LoginRequiredMixin, ListView):
     paginate_by = 10
 
     def get_queryset(self):
-        from .services.contract_filter_service import ContractFilterService
-        service = ContractFilterService(self.request)
+        # Базовый queryset с учетом прав доступа
+        base_queryset = Contract.objects.for_user(self.request.user)
+        service = ContractFilterService(self.request, queryset=base_queryset)
         return service.filter()
 
     def get_context_data(self, **kwargs):
@@ -118,6 +131,7 @@ class ContractListHtmxView(LoginRequiredMixin, ListView):
         return context
 
 
+# ========== CRUD ПРЕДСТАВЛЕНИЯ ==========
 
 class ContractCreateView(LoginRequiredMixin, CreateView):
     model = Contract
@@ -128,14 +142,17 @@ class ContractCreateView(LoginRequiredMixin, CreateView):
         return reverse_lazy('contract_core:contract_list')
 
     def form_valid(self, form):
+        form.instance.creator = self.request.user
         messages.success(self.request, "Договор успешно создан")
         return super().form_valid(form)
 
 
-class ContractUpdateView(LoginRequiredMixin, UpdateView):
+class ContractUpdateView(LoginRequiredMixin, ContractAccessMixin, UpdateView):
+    """Редактирование договора с проверкой доступа"""
     model = Contract
     form_class = ContractForm
     template_name = "contracts/contract_form.html"
+    pk_url_kwarg = 'pk'
 
     def get_success_url(self):
         return reverse_lazy('contract_core:contract_list')
@@ -145,12 +162,28 @@ class ContractUpdateView(LoginRequiredMixin, UpdateView):
         return super().form_valid(form)
 
 
+class ContractDeleteView(LoginRequiredMixin, ContractAccessMixin, DeleteView):
+    """Удаление договора (перемещение в корзину) с проверкой доступа"""
+    model = Contract
+    template_name = "contracts/contract_confirm_delete.html"
+    pk_url_kwarg = 'pk'
+    success_url = reverse_lazy('contract_core:contract_list')
+
+    def delete(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        self.object.is_trash = True
+        self.object.updater = request.user
+        self.object.save()
+        messages.success(request, "Договор перемещён в корзину")
+        return redirect(self.get_success_url())
+
+
+# ========== ВСПОМОГАТЕЛЬНЫЕ ВЬЮХИ ==========
+
 class FilterWorksView(LoginRequiredMixin, View):
     """HTMX: получить работы по типу договора"""
 
     def get(self, request):
-        from .services.contract_filter_service import ContractFilterService
-
         contract_type = request.GET.get('contract_type')
         works = ContractFilterService.get_works_by_contract_type(contract_type)
         selected_work = request.GET.get('work', '')
@@ -165,8 +198,6 @@ class FilterDistrictsView(LoginRequiredMixin, View):
     """HTMX: получить районы по региону"""
 
     def get(self, request):
-        from .services.contract_filter_service import ContractFilterService
-
         region_id = request.GET.get('region')
         districts = ContractFilterService.get_districts_by_region(region_id)
         selected_district = request.GET.get('district', '')
@@ -177,10 +208,20 @@ class FilterDistrictsView(LoginRequiredMixin, View):
         })
 
 
+# ========== КОРЗИНА ==========
 
-# Корзина договоров
-class ContractTrashView(LoginRequiredMixin, TemplateView):
+class ContractTrashView(LoginRequiredMixin, ListView):
+    """Корзина договоров с фильтрацией по правам доступа"""
+    model = Contract
     template_name = "contracts/contract_trash.html"
+    context_object_name = "contracts"
+    paginate_by = 10
+
+    def get_queryset(self):
+        # Только удаленные договоры пользователя
+        base_queryset = Contract.objects.for_user(self.request.user)
+        return base_queryset.filter(is_trash=True).order_by('-updated_at')
+
 
 # Отчеты
 class CustomerReportsView(LoginRequiredMixin, TemplateView):
