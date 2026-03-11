@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Справочник пользователей{% endblock %}
+{% block title %}Справочник Пользователей{% endblock %}
 
 {% block content %}
 <style>
@@ -62,7 +62,7 @@
     }
 </style>
 
-<h3>Справочник пользователей <span class="text-muted fs-5">(всего: {{ users|length }})</span></h3>
+<h3>Справочник Пользователей <span class="text-muted fs-5">(всего: {{ users|length }})</span></h3>
 
 {% regroup users by get_category_display as users_by_category %}
 
@@ -116,9 +116,9 @@
                 {# Колонка 4: Компании #}
                 <div class="col" style="min-width: 200px;">
                     <div class="fw-bold fs-6 mb-1">Компании</div>
-                    {% if user.employees.all %}
+                    {% if user.employments.all %}
                         <ul class="list-unstyled fs-6 mb-0">
-                            {% for emp in user.employees.all %}
+                            {% for emp in user.employments.all %}
                                 <li>
                                     {{ emp.company.name }}
                                     {% if not emp.is_active %}<span class="text-muted">(не активен)</span>{% endif %}

@@ -22,7 +22,7 @@ class UsersListView(LoginRequiredMixin, ListView):
 
     def get_queryset(self):
         return User.objects.prefetch_related(
-            Prefetch('employees', queryset=Employee.objects.select_related('company')),
+            Prefetch('employments', queryset=Employee.objects.select_related('company')),
             'manager_permissions',
         ).order_by('last_name', 'first_name')
 

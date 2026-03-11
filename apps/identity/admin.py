@@ -64,23 +64,23 @@ class UserAdmin(BaseUserAdmin):
 
     def get_queryset(self, request):
         return super().get_queryset(request).prefetch_related(
-            Prefetch('employees', queryset=Employee.objects.select_related('company'))
+            Prefetch('employments', queryset=Employee.objects.select_related('company'))
         )
 
     @admin.display(description=_('Компании'))
     def get_companies(self, obj):
-        companies = obj.employees.select_related('company').all()
-        if not companies:
+        employments = obj.employments.select_related('company').all()
+        if not employments:
             return '-'
 
         names = []
-        for emp in companies[:2]:
+        for emp in employments[:2]:
             status = '✓' if emp.is_active else '✗'
             names.append(f'{status} {emp.company.name}')
 
         result = ', '.join(names)
-        if companies.count() > 2:
-            result += f' (+{companies.count() - 2})'
+        if employments.count() > 2:
+            result += f' (+{employments.count() - 2})'
 
         return format_html(result)
 

@@ -170,7 +170,7 @@ class Employee(models.Model):
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name="employees",
+        related_name="employments",
         verbose_name=_("пользователь"),
     )
     company = models.ForeignKey(
