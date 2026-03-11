@@ -87,7 +87,7 @@
                             <a class="nav-link" href="{% url 'chat:chat' %}">Чат</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="{% url 'identity:faq' %}">FAQ</a>
+                            <a class="nav-link" href="{% url 'faq:list' %}">FAQ</a>
                         </li>
                     </ul>
 
@@ -168,6 +168,11 @@
                 audio.play().catch(e => console.log('Audio play failed:', e));
             }
         };
+    </script>
+    <script>
+        document.body.addEventListener('htmx:configRequest', (evt) => {
+            evt.detail.headers['X-CSRFToken'] = '{{ csrf_token }}';
+        });
     </script>
     {% endif %}
 

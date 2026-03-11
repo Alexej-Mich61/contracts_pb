@@ -62,7 +62,7 @@
     }
 </style>
 
-<h3>Справочник Пользователей <span class="text-muted fs-5">(всего: {{ users|length }})</span></h3>
+<h2>Справочник Пользователей <span class="text-muted fs-5">(всего: {{ users|length }})</span></h2>
 
 {% regroup users by get_category_display as users_by_category %}
 

@@ -43,6 +43,7 @@ LOCAL_APPS = [
     "apps.contract_core",
     "apps.audit",
     "apps.chat",
+    "apps.faq",
     "apps.mailing",
     "import_export",
     "frontend",

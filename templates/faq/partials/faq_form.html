@@ -1,0 +1,49 @@
+<!-- templates/faq/partials/faq_form.html -->
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">{% if is_edit %}Редактирование вопроса{% else %}Новый вопрос{% endif %}</h5>
+    </div>
+    <div class="card-body">
+        <form hx-post="{% if is_edit %}{% url 'faq:item_edit' form.instance.pk %}{% else %}{% url 'faq:item_create' %}{% endif %}"
+              hx-target="#faq-form-container"
+              hx-swap="innerHTML">
+            {% csrf_token %}
+
+            <div class="mb-3">
+                <label for="{{ form.question.id_for_label }}" class="form-label">Вопрос</label>
+                {{ form.question }}
+                {% if form.question.errors %}
+                    <div class="invalid-feedback d-block">{{ form.question.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <div class="mb-3">
+                <label for="{{ form.answer.id_for_label }}" class="form-label">Ответ</label>
+                {{ form.answer }}
+                {% if form.answer.errors %}
+                    <div class="invalid-feedback d-block">{{ form.answer.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.order.id_for_label }}" class="form-label">Порядок</label>
+                    {{ form.order }}
+                </div>
+                <div class="col-md-6 mb-3">
+                    <div class="form-check mt-4">
+                        {{ form.is_active }}
+                        <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
+                            Активен
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary">Сохранить</button>
+                <button type="button" class="btn btn-secondary" onclick="document.getElementById('faq-form-container').innerHTML=''">Отмена</button>
+            </div>
+        </form>
+    </div>
+</div>

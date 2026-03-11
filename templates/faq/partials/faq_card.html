@@ -1,0 +1,40 @@
+<!-- templates/faq/partials/faq_card.html -->
+<div class="accordion-item mb-2" id="faq-item-{{ item.pk }}">
+    <h2 class="accordion-header d-flex align-items-center">
+        <button class="accordion-button collapsed"
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#collapse-{{ item.pk }}"
+                aria-expanded="false">
+            <span class="fw-semibold">{{ item.question }}</span>
+        </button>
+
+        {% if is_admin %}
+        <div class="btn-group ms-2 me-2" style="min-width: fit-content;">
+            <button class="btn btn-sm btn-outline-primary"
+                    hx-get="{% url 'faq:item_edit' item.pk %}"
+                    hx-target="#faq-form-container"
+                    hx-swap="innerHTML"
+                    title="Редактировать">
+                <i class="bi bi-pencil"></i>
+            </button>
+            <button class="btn btn-sm btn-outline-danger"
+                    hx-delete="{% url 'faq:item_delete' item.pk %}"
+                    hx-confirm="Удалить этот вопрос?"
+                    hx-target="#faq-item-{{ item.pk }}"
+                    hx-swap="outerHTML swap:300ms"
+                    title="Удалить">
+                <i class="bi bi-trash"></i>
+            </button>
+        </div>
+        {% endif %}
+    </h2>
+
+    <div id="collapse-{{ item.pk }}"
+         class="accordion-collapse collapse"
+         data-bs-parent="#faq-list">
+        <div class="accordion-body">
+            {{ item.answer|linebreaks }}
+        </div>
+    </div>
+</div>

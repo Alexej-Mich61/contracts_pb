@@ -49,7 +49,7 @@ class ContractHistoryHtmxView(LoginRequiredMixin, ContractAccessMixin, DetailVie
     def get_queryset(self):
         # Базовый queryset с проверкой доступа из миксина
         queryset = super().get_queryset()
-        from auditlog.models import LogEntry
+        # from auditlog.models import LogEntry
         # Возвращаем контракты (LogEntry получим отдельно)
         return queryset
 

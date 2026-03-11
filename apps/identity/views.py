@@ -27,7 +27,6 @@ class UsersListView(LoginRequiredMixin, ListView):
         ).order_by('last_name', 'first_name')
 
 
-class FAQView(LoginRequiredMixin, TemplateView):
-    template_name = "FAQ.html"
+
 
 
