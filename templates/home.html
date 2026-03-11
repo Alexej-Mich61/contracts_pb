@@ -1,40 +1,189 @@
+<!-- templates/home.html -->
 {% extends "base.html" %}
+{% load static %}
 
 {% block title %}Главная{% endblock %}
 
 {% block content %}
-<div class="jumbotron">
-    <h1 class="display-4">Добро пожаловать в систему управления контрактами!</h1>
-    <p class="lead">Здесь вы можете управлять всеми аспектами контрактов, от создания до отчетности.</p>
-    <hr class="my-4">
-    <p>Используйте меню навигации для доступа к различным разделам системы.</p>
-    <a class="btn btn-primary btn-lg" href="#" role="button">Начать работу</a>
+<div class="container-fluid px-0">
+    <!-- Приветствие -->
+    <div class="container py-4">
+        <div class="text-center mb-4">
+            <h1 class="fw-bold mb-3">Добро пожаловать в систему управления контрактами!</h1>
+            <p class="lead text-muted mb-0">Здесь вы можете управлять всеми аспектами контрактов, от создания до отчетности.</p>
+        </div>
+    </div>
+
+    <!-- Полноширокий баннер-карусель -->
+    <div id="homeBannerCarousel" class="carousel slide w-100" data-bs-ride="carousel" style="max-height: 400px;">
+        <!-- Индикаторы -->
+        <div class="carousel-indicators">
+            <button type="button" data-bs-target="#homeBannerCarousel" data-bs-slide-to="0" class="active"></button>
+            <button type="button" data-bs-target="#homeBannerCarousel" data-bs-slide-to="1"></button>
+        </div>
+
+        <!-- Слайды -->
+        <div class="carousel-inner">
+            <div class="carousel-item active">
+                <img src="{% static 'images/banner_contracts.jpg' %}"
+                     class="d-block w-100"
+                     alt="Контракты"
+                     style="height: 400px; object-fit: cover;">
+                <div class="carousel-caption d-none d-md-block pb-4">
+                    <h4 class="fw-semibold">Управление контрактами</h4>
+                    <p>Создавайте и отслеживайте договоры</p>
+                </div>
+            </div>
+            <div class="carousel-item">
+                <img src="{% static 'images/banner_reports.jpg' %}"
+                     class="d-block w-100"
+                     alt="Отчеты"
+                     style="height: 400px; object-fit: cover;">
+                <div class="carousel-caption d-none d-md-block pb-4">
+                    <h4 class="fw-semibold">Аналитика и отчеты</h4>
+                    <p>Формируйте детальную отчетность</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Управление -->
+        <button class="carousel-control-prev" type="button" data-bs-target="#homeBannerCarousel" data-bs-slide="prev">
+            <span class="carousel-control-prev-icon"></span>
+        </button>
+        <button class="carousel-control-next" type="button" data-bs-target="#homeBannerCarousel" data-bs-slide="next">
+            <span class="carousel-control-next-icon"></span>
+        </button>
+    </div>
+
+    <!-- Эффективное управление -->
+    <div class="container py-5">
+        <div class="row align-items-center">
+            <div class="col-lg-8 mx-auto text-center">
+                <h2 class="fw-semibold mb-3">Эффективное управление</h2>
+                <p class="lead text-muted mb-4">Создавайте контракты, формируйте отчеты и анализируйте данные в одной интегрированной системе.</p>
+                <div class="d-flex justify-content-center gap-3">
+                    <a href="{% url 'contract_core:contract_list' %}" class="btn btn-primary btn-lg">
+                        <i class="bi bi-file-text me-2"></i>Контракты
+                    </a>
+                    <a href="{% url 'contract_core:customer_reports' %}" class="btn btn-outline-primary btn-lg">
+                        <i class="bi bi-graph-up me-2"></i>Отчеты
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
-<div class="row mt-5">
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">Контракты</h5>
-                <p class="card-text">Управляйте контрактами: создавайте новые, редактируйте существующие, отслеживайте историю изменений.</p>
+<!-- Дублирование меню -->
+<div class="container py-4">
+    <h2 class="fw-semibold mb-4 text-center">Разделы системы</h2>
+
+    <div class="row g-4 mb-5">
+        <div class="col-md-6 col-lg-3">
+            <a href="{% url 'contract_core:contract_list' %}" class="text-decoration-none">
+                <div class="card h-100 border-0 shadow-sm hover-shadow transition-all">
+                    <div class="card-body text-center p-4">
+                        <i class="bi bi-file-text fs-1 text-primary mb-3"></i>
+                        <h5 class="card-title fw-semibold text-dark">Контракты</h5>
+                        <p class="card-text text-muted small">Управление договорами и документами</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <div class="col-md-6 col-lg-3">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body text-center p-4">
+                    <i class="bi bi-graph-up fs-1 text-success mb-3"></i>
+                    <h5 class="card-title fw-semibold">Отчеты</h5>
+                    <div class="list-group list-group-flush text-start small">
+                        <a href="{% url 'contract_core:customer_reports' %}" class="list-group-item list-group-item-action px-0 py-1 border-0">
+                            <i class="bi bi-chevron-right text-muted me-1"></i>Заказчики
+                        </a>
+                        <a href="{% url 'contract_core:executor_reports' %}" class="list-group-item list-group-item-action px-0 py-1 border-0">
+                            <i class="bi bi-chevron-right text-muted me-1"></i>Исполнители
+                        </a>
+                        <a href="{% url 'contract_core:subcontractors_reports' %}" class="list-group-item list-group-item-action px-0 py-1 border-0">
+                            <i class="bi bi-chevron-right text-muted me-1"></i>Субподрядчики
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-lg-3">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body text-center p-4">
+                    <i class="bi bi-folder fs-1 text-warning mb-3"></i>
+                    <h5 class="card-title fw-semibold">Справочники</h5>
+                    <div class="list-group list-group-flush text-start small">
+                        <a href="{% url 'contract_core:ak_list' %}" class="list-group-item list-group-item-action px-0 py-1 border-0">
+                            <i class="bi bi-chevron-right text-muted me-1"></i>АК
+                        </a>
+                        <a href="{% url 'contract_core:companies_list' %}" class="list-group-item list-group-item-action px-0 py-1 border-0">
+                            <i class="bi bi-chevron-right text-muted me-1"></i>Компании
+                        </a>
+                        <a href="{% url 'identity:users_list' %}" class="list-group-item list-group-item-action px-0 py-1 border-0">
+                            <i class="bi bi-chevron-right text-muted me-1"></i>Пользователи
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-lg-3">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body text-center p-4">
+                    <i class="bi bi-chat-dots fs-1 text-info mb-3"></i>
+                    <h5 class="card-title fw-semibold">Коммуникации</h5>
+                    <div class="list-group list-group-flush text-start small">
+                        <a href="{% url 'chat:chat' %}" class="list-group-item list-group-item-action px-0 py-1 border-0">
+                            <i class="bi bi-chevron-right text-muted me-1"></i>Чат
+                        </a>
+                        <a href="{% url 'faq:list' %}" class="list-group-item list-group-item-action px-0 py-1 border-0">
+                            <i class="bi bi-chevron-right text-muted me-1"></i>FAQ
+                        </a>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">Отчеты</h5>
-                <p class="card-text">Генерируйте отчеты по заказчикам, исполнителям и субподрядчикам для анализа деятельности.</p>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">Справочники</h5>
-                <p class="card-text">Ведите справочники АК, компаний и пользователей для поддержания актуальной информации.</p>
+
+    <!-- Быстрые действия -->
+    <div class="card border-0 bg-light">
+        <div class="card-body p-4 text-center">
+            <h4 class="fw-semibold mb-3">Начать работу</h4>
+            <div class="d-flex flex-wrap justify-content-center gap-2">
+                <a href="{% url 'contract_core:contract_list' %}" class="btn btn-primary">
+                    <i class="bi bi-list-ul me-2"></i>Список контрактов
+                </a>
+                <a href="{% url 'chat:chat' %}" class="btn btn-outline-primary">
+                    <i class="bi bi-chat me-2"></i>Открыть чат
+                </a>
+                <a href="{% url 'faq:list' %}" class="btn btn-outline-secondary">
+                    <i class="bi bi-question-circle me-2"></i>Справка
+                </a>
             </div>
         </div>
     </div>
 </div>
+
+<style>
+    .hover-shadow:hover {
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+        transform: translateY(-2px);
+    }
+    .transition-all {
+        transition: all 0.2s ease-in-out;
+    }
+    .carousel-indicators button {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background-color: rgba(255,255,255,0.7);
+    }
+    .carousel-indicators button.active {
+        background-color: #fff;
+    }
+</style>
 {% endblock %}
