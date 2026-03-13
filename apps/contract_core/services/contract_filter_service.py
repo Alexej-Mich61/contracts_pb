@@ -1,3 +1,4 @@
+# apps/contract_core/services/contract_filter_service.py
 from django.db.models import Q, Count
 from django.contrib.auth import get_user_model
 
@@ -48,6 +49,19 @@ class ContractFilterService:
         queryset = self._optimize_queryset(queryset)
 
         return queryset.order_by('-created_at').distinct()
+
+    # def has_active_filters(self):
+    #     """Проверяет, есть ли активные фильтры (кроме location по умолчанию)."""
+    #     # location='active' считается дефолтным, не фильтром
+    #     exclude_default = {'location': 'active'}
+    #
+    #     for key, value in self.params.items():
+    #         if not value or value == exclude_default.get(key):
+    #             continue
+    #         # Если есть любой другой параметр — фильтры активны
+    #         return True
+    #
+    #     return False
 
     def _optimize_queryset(self, queryset):
         """Оптимизация запросов"""

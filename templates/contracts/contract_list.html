@@ -13,6 +13,14 @@
         </span>
     </div>
 
+    <!-- Информация о лимите -->
+    {% if is_limited %}
+    <div class="alert alert-info alert-dismissible fade show py-2 mb-3" id="limit-alert">
+        <small><i class="bi bi-info-circle"></i> Показаны <strong>10 последних</strong> добавленных договоров. Используйте фильтры для просмотра всех записей.</small>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {% endif %}
+
     <!-- Фильтр -->
     {% include "contracts/partials/contract_filter.html" %}
 
@@ -34,8 +42,8 @@
         {% endfor %}
     </div>
 
-    <!-- Пагинация -->
-    {% if is_paginated %}
+    <!-- Пагинация (только если не лимитированный режим) -->
+    {% if is_paginated and not is_limited %}
         <nav aria-label="Пагинация" class="mt-4">
             <ul class="pagination justify-content-center">
                 {% if page_obj.has_previous %}

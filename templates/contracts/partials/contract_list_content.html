@@ -10,8 +10,8 @@
     </div>
 {% endfor %}
 
-<!-- Пагинация -->
-{% if is_paginated %}
+<!-- Пагинация (только если не лимит) -->
+{% if is_paginated and not is_limited %}
     <div class="col-12">
         <nav aria-label="Пагинация" class="mt-4">
             <ul class="pagination justify-content-center">

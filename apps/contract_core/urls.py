@@ -64,6 +64,8 @@ urlpatterns = [
     path("reports/executors/", views.ExecutorReportsView.as_view(), name="executor_reports"),
     path("reports/subcontractors/", views.SubcontractorsReportsView.as_view(),
          name="subcontractors_reports"),
+    path("reports/signing-stages/", views.ContractSigningStageReportsView.as_view(),
+         name="contract_signing_stage_reports"),
 
     # Справочники АК
     path("catalogs/ak/", views.AkListView.as_view(), name="ak_list"),

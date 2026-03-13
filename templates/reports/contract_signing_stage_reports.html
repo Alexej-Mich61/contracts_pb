@@ -1,0 +1,108 @@
+<!-- templates/reports/contract_signing_stage_reports.html -->
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Отчёт по стадиям подписания договоров{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0">
+            <i class="bi bi-clipboard-data me-2"></i>
+            Отчёт по стадиям подписания договоров
+        </h1>
+        <div class="d-flex align-items-center gap-2">
+            {% if is_superuser %}
+            <span class="badge bg-warning text-dark">
+                <i class="bi bi-shield-lock me-1"></i>Все компании
+            </span>
+            {% endif %}
+            <span class="badge bg-secondary fs-4 fw-bold px-3 py-2">{{ report_data|length }}</span>
+        </div>
+    </div>
+
+    {% if report_data %}
+        {% for company_data in report_data %}
+            {% cycle 'primary' 'success' 'danger' 'warning' 'info' 'dark' as company_color silent %}
+            <div class="card mb-4 shadow-sm">
+                <div class="card-header bg-{{ company_color }} text-white border-bottom">
+                    <div class="row align-items-center">
+                        <div class="col-md-6">
+                            <h5 class="mb-0 fw-bold">
+                                <i class="bi bi-building me-2"></i>
+                                {{ company_data.company.name }}
+                            </h5>
+                        </div>
+                        <div class="col-md-6 text-md-end">
+                            <small class="opacity-75">
+                                ИНН {{ company_data.company.inn }}
+                            </small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-body p-0">
+                    {% for role in company_data.roles %}
+                        <div class="p-3 {% if not forloop.last %}border-bottom{% endif %}">
+                            <h6 class="text-muted mb-3 text-uppercase small fw-bold">
+                                <i class="bi bi-shield-check me-1"></i>
+                                {{ role.role_name }}
+                            </h6>
+
+                            <div class="table-responsive">
+                                <table class="table table-hover table-sm mb-0 align-middle">
+                                    <thead class="table-secondary text-dark">
+                                        <tr>
+                                            <th class="w-25 border-end">Тип договора</th>
+                                            <th class="text-center border-end" style="width: 100px;">
+                                                Всего
+                                            </th>
+                                            {% for stage_count in role.contract_types.0.stage_counts %}
+                                                <th class="text-center {% if not forloop.last %}border-end{% endif %}" style="min-width: 100px;">
+                                                    {{ stage_count.stage.name }}
+                                                </th>
+                                            {% endfor %}
+                                        </tr>
+                                    </thead>
+                                    <tbody class="fs-5">
+                                        {% for type_data in role.contract_types %}
+                                            <tr>
+                                                <td class="fw-medium fs-6 text-dark border-end">
+                                                    {{ type_data.type_label }}
+                                                </td>
+                                                <td class="text-center fw-bold fs-4 text-dark border-end">
+                                                    {{ type_data.total }}
+                                                </td>
+                                                {% for stage_count in type_data.stage_counts %}
+                                                    <td class="text-center fw-bold fs-5 text-dark {% if not forloop.last %}border-end{% endif %}">
+                                                        {% if stage_count.count > 0 %}
+                                                            {{ stage_count.count }}
+                                                        {% else %}
+
+                                                        {% endif %}
+                                                    </td>
+                                                {% endfor %}
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endfor %}
+    {% else %}
+        <div class="alert alert-info d-flex align-items-center">
+            <i class="bi bi-info-circle-fill me-2 fs-4"></i>
+            <div>
+                <h5 class="alert-heading">Нет данных для отображения</h5>
+                <p class="mb-0">
+                    Вы не являетесь сотрудником ни одной компании-исполнителя,
+                    либо у ваших компаний нет активных договоров.
+                </p>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

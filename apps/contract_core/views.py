@@ -42,7 +42,9 @@ from .forms import (
     FinalActForm,
 )
 from .services.history_service import ContractHistoryService
-
+from apps.contract_core.services.signing_stage_report_service import (
+    SigningStageReportService,
+)
 
 # Create your views here.
 
@@ -105,21 +107,55 @@ class ContractListView(LoginRequiredMixin, ListView):
     context_object_name = "contracts"
     paginate_by = 10
 
-    def get_queryset(self):
-        # Базовый queryset с учетом прав доступа пользователя
-        base_queryset = Contract.objects.for_user(self.request.user)
+    def _has_active_filters(self):
+        """Проверяет, есть ли активные фильтры в GET-параметрах."""
+        # Игнорируем служебные параметры и location=active (дефолт)
+        ignored = {'page', 'csrfmiddlewaretoken', 'hx-request', 'hx-target', 'hx-current-url'}
 
-        # Применяем фильтры поверх ограниченного queryset
+        # Для отладки — выводим все параметры
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"GET params: {dict(self.request.GET)}")
+
+        for key, value in self.request.GET.items():
+            if key in ignored:
+                continue
+            # location=active считается дефолтным, не фильтром
+            if key == 'location' and value == 'active':
+                logger.info(f"Skipping default location=active")
+                continue
+            # Любое непустое значение — это фильтр
+            if value and str(value).strip():
+                logger.info(f"Found filter: {key}={value}")
+                return True
+
+        logger.info("No active filters found")
+        return False
+
+    def get_queryset(self):
+        base_queryset = Contract.objects.for_user(self.request.user)
         service = ContractFilterService(self.request, queryset=base_queryset)
-        return service.filter()
+        filtered = service.filter()
+
+        # Если нет фильтров — ограничиваем 10 последними
+        has_filters = self._has_active_filters()
+        self._has_filters = has_filters  # сохраняем для использования в контексте
+
+        if not has_filters:
+            return filtered[:10]
+
+        return filtered
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['filter_data'] = ContractFilterService.get_filter_choices()
 
-        # Для начального состояния районов
         region_id = self.request.GET.get('region')
         context['districts'] = ContractFilterService.get_districts_by_region(region_id)
+
+        # Используем сохранённое значение или пересчитываем
+        has_filters = getattr(self, '_has_filters', self._has_active_filters())
+        context['is_limited'] = not has_filters
 
         return context
 
@@ -131,8 +167,20 @@ class ContractListHtmxView(LoginRequiredMixin, ListView):
     context_object_name = "contracts"
     paginate_by = 10
 
+    def _has_active_filters(self):
+        """Проверяет, есть ли активные фильтры в GET-параметрах."""
+        ignored = {'page', 'csrfmiddlewaretoken', 'hx-request', 'hx-target', 'hx-current-url'}
+
+        for key, value in self.request.GET.items():
+            if key in ignored:
+                continue
+            if key == 'location' and value == 'active':
+                continue
+            if value and str(value).strip():
+                return True
+        return False
+
     def get_queryset(self):
-        # Базовый queryset с учетом прав доступа
         base_queryset = Contract.objects.for_user(self.request.user)
         service = ContractFilterService(self.request, queryset=base_queryset)
         return service.filter()
@@ -140,6 +188,8 @@ class ContractListHtmxView(LoginRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['total_count'] = self.get_queryset().count()
+        context['is_limited'] = not self._has_active_filters()  # добавляем для HTMX
+        context['request'] = self.request  # для построения URL в шаблоне
         return context
 
 
@@ -560,6 +610,30 @@ class CustomerReportsView(LoginRequiredMixin, TemplateView):
 
 class ExecutorReportsView(LoginRequiredMixin, TemplateView):
     template_name = "reports/executor_reports.html"
+
+# отчет по стадиям подписания
+class ContractSigningStageReportsView(LoginRequiredMixin, TemplateView):
+    """
+    View для отображения отчёта по стадиям подписания договоров.
+
+    Ответственность:
+    - Аутентификация/авторизация (через LoginRequiredMixin)
+    - Делегирование сбора данных сервису
+    - Подготовка контекста для шаблона
+    """
+    template_name = "reports/contract_signing_stage_reports.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        # Делегируем бизнес-логику сервису
+        service = SigningStageReportService()
+        report_data = service.get_report_data(self.request.user)
+
+        context['report_data'] = report_data
+        context['signing_stages'] = service.get_all_stages()
+
+        return context
 
 class SubcontractorsReportsView(LoginRequiredMixin, TemplateView):
     template_name = "reports/subcontractors_reports.html"
