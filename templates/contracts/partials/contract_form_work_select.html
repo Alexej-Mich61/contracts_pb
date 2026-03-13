@@ -1,0 +1,11 @@
+<!-- templates/contracts/partials/contract_form_work_select.html -->
+<select name="work" id="id_work" class="form-select">
+    <option value="">— Выберите вид работы —</option>
+    {% for work in works %}
+        <option value="{{ work.id }}" {% if work.id|stringformat:"s" == selected %}selected{% endif %}>
+            {{ work.name }}
+        </option>
+    {% empty %}
+        <option value="" disabled>Нет доступных работ для этого типа договора</option>
+    {% endfor %}
+</select>

@@ -1,35 +1,14 @@
 # apps/faq/models.py
 import os
-import uuid
 from pathlib import Path
 from django.db import models
 from django.urls import reverse
-from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
+from apps.contract_core.services.uuid_path_generator import faq_file_path
 from apps.contract_core.validators import file_validator
 
 
-def faq_file_upload_to(instance, filename):
-    """
-    Загружает файлы в папку по году/месяцу с коротким уникальным именем:
-    faq/files/2025/03/оригинальное_имя_a3f7b2.pdf
-    """
-    now = timezone.now()
-
-    # Расширение файла
-    ext = Path(filename).suffix.lower()
-
-    # Оригинальное имя без расширения
-    original_name = Path(filename).stem
-
-    # Короткий UUID (6 символов)
-    unique_id = uuid.uuid4().hex[:6]
-
-    # Новое имя: оригинальное_имя_a3f7b2.pdf
-    new_filename = f"{original_name}_{unique_id}{ext}"
-
-    return f"faq/files/{now.year}/{now.month:02d}/{new_filename}"
 
 
 class FAQItem(models.Model):
@@ -60,7 +39,7 @@ class FAQFile(models.Model):
     title = models.CharField(_("название"), max_length=255, blank=True)
     file = models.FileField(
         _("файл"),
-        upload_to=faq_file_upload_to,
+        upload_to=faq_file_path,  # <-- Используем новый генератор
         validators=[file_validator],
     )
     description = models.TextField(_("описание"), blank=True)

@@ -1,0 +1,12 @@
+<!-- templates/contracts/partials/contract_form_attached_aks.html -->
+{% for ak in object.aks.all %}
+    <span class="badge bg-primary me-1 mb-1">
+        АК №{{ ak.number }} – {{ ak.name|truncatechars:20 }}
+        <button type="button" class="btn-close btn-close-white ms-1" style="font-size:0.5em;"
+                hx-delete="{% url 'contract_core:remove_ak_from_object' contract.pk object.pk ak.pk %}"
+                hx-target="#attached-aks-{{ object.pk }}"
+                hx-confirm="Отвязать АК №{{ ak.number }}?"></button>
+    </span>
+{% empty %}
+    <span class="text-muted small">Нет привязанных АК</span>
+{% endfor %}

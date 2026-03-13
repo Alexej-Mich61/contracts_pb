@@ -1,0 +1,21 @@
+<!-- templates/contracts/partials/contract_form_district_field.html -->
+<div id="district-field-wrapper">
+    <label for="{{ field.id_for_label }}" class="form-label fw-semibold">
+        Район
+    </label>
+    <select name="{{ field.html_name }}"
+            id="{{ field.id_for_label }}"
+            class="form-select {% if districts %}enabled{% else %}disabled{% endif %}"
+            {% if not districts %}disabled{% endif %}>
+        {% if not districts %}
+            <option>— Сначала выберите регион —</option>
+        {% else %}
+            <option value="">— Выберите район —</option>
+            {% for district in districts %}
+                <option value="{{ district.id }}" {% if district.id|stringformat:"s" == selected %}selected{% endif %}>
+                    {{ district.name }}
+                </option>
+            {% endfor %}
+        {% endif %}
+    </select>
+</div>

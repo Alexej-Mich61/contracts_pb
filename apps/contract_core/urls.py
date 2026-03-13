@@ -15,6 +15,36 @@ urlpatterns = [
     path("contracts/filter/", views.ContractListHtmxView.as_view(), name="contract_list_htmx"),
     path("contracts/filter/works/", views.FilterWorksView.as_view(), name="filter_works"),
     path("contracts/filter/districts/", views.FilterDistrictsView.as_view(), name="filter_districts"),
+    # HTMX эндпоинты для формы договора
+    path("contracts/filter/executors/",
+         views.FilterExecutorsView.as_view(),
+         name="filter_executors"),
+    path("contracts/filter/works/",
+         views.FilterWorksView.as_view(),
+         name="filter_works"),
+    path("contracts/search/customers/",
+         views.CustomerSearchView.as_view(),
+         name="search_customers"),
+    path("contracts/filter/dynamic-fields/",
+         views.DynamicFieldsView.as_view(),
+         name="dynamic_fields"),
+    path("contracts/filter/districts-by-region/",
+         views.FilterDistrictsByRegionView.as_view(),
+         name="filter_districts_by_region"),
+    path("contracts/search/ak/",
+         views.AkSearchView.as_view(),
+         name="search_ak"),
+
+    # Действия с договором
+    path("contracts/<int:contract_pk>/systems/<int:system_type_pk>/mark/",
+         views.MarkSystemCheckView.as_view(),
+         name="mark_system_check"),
+    path("contracts/<int:contract_pk>/objects/<int:object_pk>/ak/<int:ak_pk>/add/",
+         views.AddAkToObjectView.as_view(),
+         name="add_ak_to_object"),
+    path("contracts/<int:contract_pk>/objects/<int:object_pk>/ak/<int:ak_pk>/remove/",
+         views.RemoveAkFromObjectView.as_view(),
+         name="remove_ak_from_object"),
 
 
     # Форма создания/редактирования (отдельная страница)

@@ -1,0 +1,27 @@
+<!-- templates/contracts/partials/contract_form_dynamic_fields.html -->
+<div class="row">
+    <div class="col-md-6 mb-3">
+        <label for="{{ form.executor.id_for_label }}" class="form-label fw-semibold">
+            Исполнитель
+            <span class="text-danger">*</span>
+        </label>
+        {{ form.executor }}
+        {% if not contract_type %}
+            <div class="form-text text-muted">
+                <i class="bi bi-info-circle me-1"></i>Выберите тип договора для активации поля
+            </div>
+        {% endif %}
+    </div>
+    <div class="col-md-6 mb-3">
+        <label for="{{ form.work.id_for_label }}" class="form-label fw-semibold">
+            Вид работы
+            <span class="text-danger">*</span>
+        </label>
+        {{ form.work }}
+        {% if not contract_type %}
+            <div class="form-text text-muted">
+                <i class="bi bi-info-circle me-1"></i>Выберите тип договора для активации поля
+            </div>
+        {% endif %}
+    </div>
+</div>

@@ -1,0 +1,15 @@
+<!-- templates/contracts/partials/contract_form_executor_select.html -->
+<select name="executor" id="id_executor" class="form-select">
+    <option value="">— Выберите исполнителя —</option>
+    {% for company in executors %}
+        <option value="{{ company.id }}" {% if company.id|stringformat:"s" == selected %}selected{% endif %}>
+            {{ company.name }}
+            {% if company.is_licensee and company.is_laboratory %}(Лицензиат + Лаборатория)
+            {% elif company.is_licensee %}(Лицензиат)
+            {% elif company.is_laboratory %}(Лаборатория)
+            {% endif %}
+        </option>
+    {% empty %}
+        <option value="" disabled>Нет доступных исполнителей</option>
+    {% endfor %}
+</select>

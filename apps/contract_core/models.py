@@ -8,13 +8,18 @@ from django.db.models import Q
 from django.db import models
 from django.utils import timezone
 import datetime
-#from simple_history.models import HistoricalRecords
+
 from auditlog.registry import auditlog
 
 from config.middleware import get_current_user
 from .managers import ContractManager
 from .validators import inn_validator, file_validator
 from .services import ContractStatusCalculator
+from .services.uuid_path_generator import (
+    contract_file_path,
+    act_file_path,
+    final_act_file_path,
+)
 
 
 
@@ -410,7 +415,7 @@ class Contract(models.Model):
     # Файлы
     file = models.FileField(
         "Файл договора",
-        upload_to="contracts/%Y/%m/%d",
+        upload_to=contract_file_path,  # <-- Было: "contracts/%Y/%m/%d"
         blank=True,
         validators=[file_validator],
         help_text="Любой формат, кроме .exe и пр. До 100 МБ",
@@ -520,7 +525,7 @@ class FinalAct(models.Model):
     date = models.DateField("Дата итогового акта", blank=True, null=True)
     file = models.FileField(
         "Файл акта",
-        upload_to="acts_final/%Y/%m/%d",
+        upload_to=final_act_file_path,  # <-- Было: "acts_final/%Y/%m/%d"
         blank=True,
         null=True,
         validators=[file_validator],
@@ -574,7 +579,7 @@ class InterimAct(models.Model):
     date = models.DateField("Дата")
     file = models.FileField(
         "Файл акта",
-        upload_to="acts/%Y/%m/%d",
+        upload_to=act_file_path,  # <-- Было: "acts/%Y/%m/%d"
         blank=True,
         validators=[file_validator],
         help_text="Любой формат, кроме .exe и пр. До 100 МБ",

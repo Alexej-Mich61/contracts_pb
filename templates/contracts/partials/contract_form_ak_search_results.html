@@ -1,0 +1,27 @@
+<!-- templates/contracts/partials/contract_form_ak_search_results.html -->
+{% if aks %}
+    <div class="list-group list-group-flush">
+        {% for ak in aks %}
+            <button type="button"
+                    class="list-group-item list-group-item-action ak-result py-2 px-3 {% if ak.id in attached_ids %}active{% endif %}"
+                    data-id="{{ ak.id }}"
+                    data-name="{{ ak.name }}">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="fw-semibold">АК №{{ ak.number }} – {{ ak.name }}</div>
+                        <small class="text-muted">{{ ak.address|truncatechars:50 }}</small>
+                    </div>
+                    {% if ak.id in attached_ids %}
+                        <span class="badge bg-success"><i class="bi bi-check"></i> Привязан</span>
+                    {% else %}
+                        <span class="badge bg-primary bg-opacity-10 text-primary">Добавить</span>
+                    {% endif %}
+                </div>
+            </button>
+        {% endfor %}
+    </div>
+{% elif query and query|length >= 2 %}
+    <div class="p-3 text-muted text-center">
+        <i class="bi bi-search me-2"></i>АК не найдены
+    </div>
+{% endif %}
