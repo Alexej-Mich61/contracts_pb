@@ -15,6 +15,10 @@ from django.views import View
 from .services.contract_filter_service import ContractFilterService
 from .services.company_filter_service import CompanyFilterService
 from .services.ak_filter_service import AkFilterService
+from .services.subcontractors_to_filter_service import (
+    SubcontractorToFilterService,
+    SubcontractorFilterDTO,
+)
 from .mixins import ContractAccessMixin
 
 from .models import (
@@ -635,8 +639,60 @@ class ContractSigningStageReportsView(LoginRequiredMixin, TemplateView):
 
         return context
 
-class SubcontractorsReportsView(LoginRequiredMixin, TemplateView):
-    template_name = "reports/subcontractors_reports.html"
+
+# Отчет Субподрядчики ТО (Техническое обслуживание)
+class SubcontractorsToReportsView(LoginRequiredMixin, ListView):
+    """
+    Отчет по субподрядчикам ТО (Техническое обслуживание).
+    Тонкая View — делегирует всю бизнес-логику сервису.
+    """
+    context_object_name = "protection_objects"
+
+    def get_template_names(self):
+        """Для HTMX-запросов возвращаем только фрагмент результатов"""
+        if self.request.headers.get("HX-Request"):
+            return ["reports/partials/subcontractors_to_reports_results.html"]
+        return ["reports/subcontractors_to_reports_list.html"]
+
+    def get_service(self) -> SubcontractorToFilterService:
+        return SubcontractorToFilterService(self.request.user)
+
+    def get_dto_from_request(self) -> SubcontractorFilterDTO:
+        get = self.request.GET
+        return SubcontractorFilterDTO(
+            subcontractor_id=get.get("subcontractor_id", "").strip() or None,
+            subcontractor_search=get.get("subcontractor_search", "").strip() or None,
+            executor_ids=get.getlist("executor"),
+            work_ids=get.getlist("work"),
+            page=int(get.get("page", 1)),
+        )
+
+    def get_queryset(self):
+        """
+        Для HTMX-запросов queryset не нужен напрямую — данные берутся из сервиса.
+        Но ListView требует его — возвращаем пустой, если фильтры не заданы.
+        """
+        dto = self.get_dto_from_request()
+        service = self.get_service()
+
+        if not service.has_active_filters(dto):
+            return ProtectionObject.objects.none()
+
+        return service.filter(dto)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        dto = self.get_dto_from_request()
+        service = self.get_service()
+
+        ctx = service.get_context_data(dto)
+
+        if service.has_active_filters(dto):
+            result = service.get_report_result(dto, per_page=30)
+            ctx = service.get_context_data(dto, result)
+
+        context.update(ctx)
+        return context
 
 
 # Справочник AK

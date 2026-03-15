@@ -1,0 +1,96 @@
+<!-- templates/reports/subcontractors_to_reports_list.html -->
+{% extends "base.html" %}
+{% block title %}Отчет по субподрядчикам (ТО){% endblock %}
+
+{% block content %}
+
+<h2 class="mb-4">Отчет по субподрядчикам (ТО)</h2>
+
+<!-- Фильтры в аккордеоне -->
+<div class="accordion mb-4" id="filterAccordion">
+    <div class="accordion-item">
+        <h2 class="accordion-header" id="filterHeading">
+            <button class="accordion-button {% if not has_active_filters %}collapsed{% endif %}" type="button"
+                data-bs-toggle="collapse" data-bs-target="#filterCollapse"
+                aria-expanded="{{ has_active_filters|yesno:'true,false' }}" aria-controls="filterCollapse">
+                <i class="bi bi-funnel me-2"></i> Фильтры и поиск
+                {% if has_active_filters %}
+                    <span class="badge bg-primary ms-2">Активны</span>
+                {% endif %}
+            </button>
+        </h2>
+        <div id="filterCollapse" class="accordion-collapse collapse {% if has_active_filters %}show{% endif %}"
+            aria-labelledby="filterHeading" data-bs-parent="#filterAccordion">
+            <div class="accordion-body">
+
+                <form method="get" hx-get="{{ request.path }}" hx-target="#results-container"
+                    hx-swap="innerHTML" hx-indicator="#loading-indicator" hx-push-url="true">
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-2">
+                            <label class="form-label small text-muted mb-1">ID компании</label>
+                            <input type="number" name="subcontractor_id" class="form-control" placeholder="ID..."
+                                value="{{ subcontractor_id }}" min="1">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small text-muted mb-1">Название или ИНН субподрядчика</label>
+                            <input type="text" name="subcontractor_search" class="form-control"
+                                placeholder="Введите название или ИНН..." value="{{ subcontractor_search }}" minlength="2">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small text-muted mb-1">Исполнитель</label>
+                            <select name="executor" class="form-select" multiple size="1">
+                                <option value="">Все исполнители</option>
+                                {% for executor in executors %}
+                                    <option value="{{ executor.pk }}"
+                                        {% if executor.pk|stringformat:"i" in selected_executor_ids %}selected{% endif %}>
+                                        {{ executor.name }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                            <small class="text-muted">Ctrl+Click для множественного выбора</small>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small text-muted mb-1">Вид работы</label>
+                            <select name="work" class="form-select" multiple size="1">
+                                <option value="">Все виды работ</option>
+                                {% for work in works %}
+                                    <option value="{{ work.pk }}"
+                                        {% if work.pk|stringformat:"i" in selected_work_ids %}selected{% endif %}>
+                                        {{ work.name }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                            <small class="text-muted">Ctrl+Click для множественного выбора</small>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2">
+                        <a href="{{ request.path }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-x-circle"></i> Сбросить
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-search"></i> Поиск
+                        </button>
+                    </div>
+                </form>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Индикатор загрузки -->
+<div id="loading-indicator" class="htmx-indicator text-center py-4 d-none">
+    <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Загрузка...</span>
+    </div>
+    <p class="text-muted mt-2">Загрузка данных...</p>
+</div>
+
+<!-- Контейнер результатов -->
+<div id="results-container" class="mt-4">
+    {% include "reports/partials/subcontractors_to_reports_results.html" %}
+</div>
+
+{% endblock %}

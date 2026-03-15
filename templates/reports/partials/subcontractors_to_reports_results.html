@@ -1,0 +1,199 @@
+<!-- templates/reports/partials/subcontractors_to_reports_results.html.... -->
+{% if is_search_performed %}
+
+    <h4 class="mb-4 fw-bold text-dark">Объекты защиты и АК действующих договоров</h4>
+
+    <!-- Сводные показатели -->
+    <div class="row mb-5 g-4 text-center">
+        <div class="col-md-3">
+            <div class="small text-muted fw-medium">Всего объектов защиты</div>
+            <div class="fs-4 fw-bold text-primary mt-1">{{ total_objects }}</div>
+        </div>
+        <div class="col-md-3">
+            <div class="small text-muted fw-medium">Всего АК</div>
+            <div class="fs-4 fw-bold text-info mt-1">{{ total_aks }}</div>
+        </div>
+        <div class="col-md-3">
+            <div class="small text-muted fw-medium">Общая сумма субконтракта</div>
+            <div class="fs-4 fw-bold text-success mt-1">{{ total_subcontract_sum|default:"0.00" }} ₽</div>
+        </div>
+        <div class="col-md-3">
+            <div class="small text-muted fw-medium">Сумма в месяц</div>
+            <div class="fs-4 fw-bold text-dark mt-1">{{ total_monthly_subcontract_sum|default:"0.00" }} ₽</div>
+        </div>
+    </div>
+
+    <!-- Список объектов -->
+    {% if protection_objects %}
+        <div class="row g-4">
+            {% for obj in protection_objects %}
+                <div class="col-12">
+                    <div class="card shadow border border-2 border-secondary-subtle rounded-3">
+
+                        <!-- Цветная шапка -->
+                        {% with contract_type=obj.contract.type %}
+                        <div class="card-header fw-semibold text-white d-flex justify-content-between align-items-center {% if contract_type == 'longterm_to_licensee' %}bg-primary{% elif contract_type == 'oneoff_licensee' %}bg-success{% else %}bg-secondary{% endif %}">
+                            <div class="d-flex align-items-center gap-3">
+                                <i class="bi bi-building fs-5"></i>
+                                <div>
+                                    <div class="fs-5">{{ obj.name }}</div>
+                                    <div class="opacity-85 small">
+                                        {{ obj.district.name|default:"район не указан" }}
+                                        {% if obj.district.region %} • {{ obj.district.region.name }}{% endif %}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="badge bg-white text-dark fs-5 fw-bold px-4 py-2">
+                                {{ obj.contract.work.name }}
+                            </div>
+                        </div>
+                        {% endwith %}
+
+                        <div class="card-body pt-4">
+                            <div class="row g-4">
+
+                                <!-- 1. Адрес -->
+                                <div class="col-md-3">
+                                    <div class="fw-bold mb-1">Адрес объекта защиты</div>
+                                    <div>{{ obj.address|linebreaksbr|default:"—" }}</div>
+                                </div>
+
+                                <!-- 2. Сроки -->
+                                <div class="col-md-3">
+                                    <div class="fw-bold mb-1">Сроки ТО по договору</div>
+                                    <div>
+                                        {{ obj.contract.date_start|date:"d.m.Y"|default:"—" }} —
+                                        {{ obj.contract.date_end|date:"d.m.Y"|default:"—" }}
+                                    </div>
+                                </div>
+
+                                <!-- 3. Сумма субконтракта -->
+                                <div class="col-md-2">
+                                    <div class="fw-bold mb-1">Сумма субконтракта</div>
+                                    <div class="fw-bold text-success">
+                                        {% if obj.total_sum_subcontract %}
+                                            {{ obj.total_sum_subcontract }} ₽
+                                        {% else %}
+                                            —
+                                        {% endif %}
+                                    </div>
+                                </div>
+
+                                <!-- 4. В месяц -->
+                                <div class="col-md-2">
+                                    <div class="fw-bold mb-1">В месяц</div>
+                                    <div class="fw-bold text-dark">
+                                        {% if obj.monthly_sum_subcontract %}
+                                            {{ obj.monthly_sum_subcontract }} ₽
+                                        {% else %}
+                                            —
+                                        {% endif %}
+                                    </div>
+                                </div>
+
+                                <!-- 5. Исполнитель -->
+                                <div class="col-md-2">
+                                    <div class="fw-bold mb-1">Исполнитель</div>
+                                    <div>{{ obj.contract.executor.name|default:"—" }}</div>
+                                </div>
+
+                            </div>
+
+                            {% with aks=obj.aks.all %}
+                                {% if aks %}
+                                    <hr class="my-4">
+                                    <div>
+                                        <div class="fw-bold mb-3">
+                                            <i class="bi bi-broadcast me-1 text-primary"></i>
+                                            Абонентские комплекты ({{ aks|length }} шт.)
+                                        </div>
+                                        <ul class="list-unstyled mb-0 ps-0">
+                                            {% for ak in aks %}
+                                                <li class="mb-2">
+                                                    <strong>АК №{{ ak.number }}</strong> — {{ ak.name }}
+                                                    {% if ak.address %}
+                                                        <br><small class="text-muted">{{ ak.address|truncatewords:12 }}</small>
+                                                    {% endif %}
+                                                </li>
+                                            {% endfor %}
+                                        </ul>
+                                    </div>
+                                {% endif %}
+                            {% endwith %}
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
+        <!-- Пагинация -->
+        {% if page_obj.has_other_pages %}
+            <nav aria-label="Навигация по страницам" class="mt-5">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"
+                               hx-get="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"
+                               hx-target="#results-container" hx-push-url="true">«</a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"
+                               hx-get="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"
+                               hx-target="#results-container" hx-push-url="true">‹</a>
+                        </li>
+                    {% else %}
+                        <li class="page-item disabled"><span class="page-link">«</span></li>
+                        <li class="page-item disabled"><span class="page-link">‹</span></li>
+                    {% endif %}
+
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                            <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"
+                                   hx-get="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"
+                                   hx-target="#results-container" hx-push-url="true">{{ num }}</a>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"
+                               hx-get="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"
+                               hx-target="#results-container" hx-push-url="true">›</a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"
+                               hx-get="?page={{ page_obj.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"
+                               hx-target="#results-container" hx-push-url="true">»</a>
+                        </li>
+                    {% else %}
+                        <li class="page-item disabled"><span class="page-link">›</span></li>
+                        <li class="page-item disabled"><span class="page-link">»</span></li>
+                    {% endif %}
+                </ul>
+            </nav>
+        {% endif %}
+
+    {% else %}
+        <div class="alert alert-info text-center py-5">
+            <i class="bi bi-info-circle-fill me-2 fs-4"></i>
+            По заданным критериям ничего не найдено
+        </div>
+    {% endif %}
+
+{% else %}
+
+    <div class="alert alert-secondary text-center py-5 mt-5">
+        <i class="bi bi-search display-4 d-block mb-3 text-muted"></i>
+        <h5>Задайте параметры поиска</h5>
+        <p class="text-muted mb-0">
+            Введите название, ИНН или ID субподрядчика и нажмите «Поиск»<br>
+            для отображения связанных объектов защиты
+        </p>
+    </div>
+
+{% endif %}
