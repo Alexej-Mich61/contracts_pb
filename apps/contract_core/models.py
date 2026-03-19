@@ -233,6 +233,7 @@ class SigningStage(models.Model):
         "Финальная стадия",
         default=False
     )
+    # note = models.TextField("Примечание", blank=True, max_length=500)
 
     class Meta:
         verbose_name = "Стадия подписания"

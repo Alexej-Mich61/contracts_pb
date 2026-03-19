@@ -36,8 +36,22 @@
         .dropdown-menu { font-size: 1.1rem; }
         .dropdown-item { padding: 0.6rem 1.2rem; }
         .btn-link.nav-link i { font-size: 1.5rem; }
-        #current-time { font-size: 1rem; font-weight: 500; color: rgba(255, 255, 255, 0.9) !important; }
         .navbar-toggler { padding: 0.5rem 0.75rem; font-size: 1.25rem; }
+
+        /* Фиксация ширины времени - предотвращает прыгание меню */
+        #current-time-wrapper {
+            min-width: 270px;
+            white-space: nowrap;
+        }
+        #current-time {
+            font-size: 1rem;
+            font-weight: 500;
+            color: rgba(255, 255, 255, 0.9) !important;
+            font-variant-numeric: tabular-nums; /* Цифры одинаковой ширины */
+            font-feature-settings: "tnum";
+            display: inline-block;
+            width: 210px;
+        }
     </style>
 
 </head>
@@ -60,7 +74,11 @@
                                 Контракты
                             </a>
                             <ul class="dropdown-menu" aria-labelledby="contractsDropdown">
-                                <li><a class="dropdown-item" href="{% url 'contract_core:contract_list' %}">Контракты</a></li>
+                                <li>
+                                    <a class="dropdown-item" href="{% url 'contract_core:contract_list' %}">
+                                        <i class="bi bi-file-earmark-text me-2"></i>Контракты
+                                    </a>
+                                </li>
                             </ul>
                         </li>
                         <li class="nav-item dropdown">
@@ -68,11 +86,26 @@
                                 Отчеты
                             </a>
                             <ul class="dropdown-menu" aria-labelledby="reportsDropdown">
-                                <li><a class="dropdown-item" href="{% url 'contract_core:customer_reports' %}">Заказчики</a></li>
-                                <li><a class="dropdown-item" href="{% url 'contract_core:executor_reports' %}">Исполнители</a></li>
-                                <li><a class="dropdown-item" href="{% url 'contract_core:subcontractors_to_reports_list' %}">Субподрядчики ТО</a></li>
-                                <li><a class="dropdown-item" href="{% url 'contract_core:contract_signing_stage_reports' %}">
-                                        <i class="bi bi-clipboard-check me-2"></i>Стадии подписания</a></li>
+                                <li>
+                                    <a class="dropdown-item" href="{% url 'contract_core:customer_reports' %}">
+                                        <i class="bi bi-building me-2"></i>Заказчики
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="{% url 'contract_core:executor_reports' %}">
+                                        <i class="bi bi-tools me-2"></i>Исполнители
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="{% url 'contract_core:subcontractors_to_reports_list' %}">
+                                        <i class="bi bi-people me-2"></i>Субподрядчики ТО
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="{% url 'contract_core:contract_signing_stage_reports' %}">
+                                        <i class="bi bi-clipboard-check me-2"></i>Стадии подписания
+                                    </a>
+                                </li>
                             </ul>
                         </li>
                         <li class="nav-item dropdown">
@@ -80,9 +113,21 @@
                                 Справочники
                             </a>
                             <ul class="dropdown-menu" aria-labelledby="catalogsDropdown">
-                                <li><a class="dropdown-item" href="{% url 'contract_core:ak_list' %}">АК</a></li>
-                                <li><a class="dropdown-item" href="{% url 'contract_core:companies_list' %}">Компании</a></li>
-                                <li><a class="dropdown-item" href="{% url 'identity:users_list' %}">Пользователи</a></li>
+                                <li>
+                                    <a class="dropdown-item" href="{% url 'contract_core:ak_list' %}">
+                                        <i class="bi bi-list-check me-2"></i>АК
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="{% url 'contract_core:companies_list' %}">
+                                        <i class="bi bi-buildings me-2"></i>Компании
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="{% url 'identity:users_list' %}">
+                                        <i class="bi bi-people-fill me-2"></i>Пользователи
+                                    </a>
+                                </li>
                             </ul>
                         </li>
                         <li class="nav-item">
