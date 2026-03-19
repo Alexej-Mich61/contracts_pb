@@ -146,9 +146,11 @@ class DistrictAdmin(admin.ModelAdmin):
 
 @admin.register(Work)
 class WorkAdmin(admin.ModelAdmin):
-    list_display = ('name', 'work_type', 'is_active')
+    list_display = ('name', 'work_type', 'is_active', 'description')
     list_filter = ('work_type', 'is_active')
-    search_fields = ('name',)
+    search_fields = ('name', 'description')  # добавлен поиск по описанию
+    # Если нужно показывать описание в форме редактирования:
+    fields = ('name', 'work_type', 'is_active', 'description')
 
 
 @admin.register(Company)
@@ -157,21 +159,41 @@ class CompanyAdmin(ImportExportModelAdmin):
     list_display = (
         'name',
         'inn',
+        'email',  # добавлено
+        'phone',  # добавлено
         'is_customer',
         'is_licensee',
         'is_laboratory',
         'is_subcontractor',
-        'notification_agreed'  # добавлено
+        'notification_agreed'
     )
     list_filter = (
         'is_customer',
         'is_licensee',
         'is_laboratory',
         'is_subcontractor',
-        'notification_agreed'  # добавлено в фильтры
+        'notification_agreed'
     )
-    search_fields = ('name', 'inn')
-    actions = ['mark_as_licensee', 'mark_as_laboratory', 'mark_notification_agreed']  # добавлено действие
+    search_fields = ('name', 'inn', 'email', 'phone')  # добавлен поиск
+
+    # Добавляем в форму редактирования (fieldsets)
+    fieldsets = (
+        (None, {
+            'fields': ('name', 'inn', 'email', 'phone')  # или добавь в существующий блок
+        }),
+        ('Роли', {
+            'fields': ('is_customer', 'is_licensee', 'is_laboratory', 'is_subcontractor')
+        }),
+        ('Уведомления', {
+            'fields': ('notification_agreed',)
+        }),
+        ('Адрес', {
+            'fields': ('fias_code',),
+            'classes': ('collapse',)
+        }),
+    )
+
+    actions = ['mark_as_licensee', 'mark_as_laboratory', 'mark_notification_agreed']
 
     def mark_as_licensee(self, request, queryset):
         queryset.update(is_licensee=True)
@@ -191,9 +213,9 @@ class CompanyAdmin(ImportExportModelAdmin):
 
 @admin.register(SigningStage)
 class SigningStageAdmin(admin.ModelAdmin):
-    list_display = ('name', 'slug', 'order', 'is_final')
+    list_display = ('name', 'slug', 'order', 'is_final', 'description')
     ordering = ('order', 'name')
-    search_fields = ('name', 'slug')
+    search_fields = ('name', 'slug', 'description')
 
 
 @admin.register(SystemType)

@@ -136,6 +136,7 @@ class Work(models.Model):
     )
     is_active = models.BooleanField("Активна", default=True)
     work_type = models.CharField("Тип работы", max_length=25, choices=WorkType.choices, db_index=True)
+    description = models.TextField("Описание", blank=True, max_length=500)
 
     class Meta:
         verbose_name = "Вид работы"
@@ -177,6 +178,21 @@ class Company(models.Model):
         validators=[inn_validator],
         help_text="10 цифр – юрлицо, 12 – физлицо",
     )
+    email = models.EmailField(
+        "E-mail компании",
+        blank=True,
+        null=True,
+        help_text="E-mail компании (необязательно)",
+    )
+
+    phone = models.CharField(
+        "Телефон компании",
+        max_length=20,
+        blank=True,
+        default="",
+        help_text="Телефон компании (необязательно)",
+    )
+
     fias_code = models.CharField(
         "Код ФИАС",
         max_length=50,
@@ -196,8 +212,17 @@ class Company(models.Model):
             models.Index(fields=["is_licensee", "name"]),
             models.Index(fields=["is_laboratory", "name"]),
             models.Index(fields=["is_subcontractor", "name"]),
-            models.Index(fields=["notification_agreed"]),  # новый индекс
+            models.Index(fields=["notification_agreed"]),
+            models.Index(fields=["email"]),
         ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=['email'],
+                name='unique_company_email',
+                condition=models.Q(email__isnull=False) & ~models.Q(email='')
+            ),
+        ]
+
 
     def __str__(self):
         return self.name or f"Компания {self.pk}"
@@ -228,12 +253,16 @@ class SigningStage(models.Model):
         help_text="Например: Подписан или Расторжение"
     )
     slug = models.SlugField("Слаг стадии", max_length=50, unique=True)
-    order = models.PositiveSmallIntegerField("Порядок отображения", default=0)
+    order = models.PositiveSmallIntegerField(
+        "Порядок отображения",
+        default=1,  # ← начинаем с 1
+        help_text="Чем меньше число, тем выше в списке. Начинайте с 1."
+    )
     is_final = models.BooleanField(
         "Финальная стадия",
         default=False
     )
-    # note = models.TextField("Примечание", blank=True, max_length=500)
+    description = models.TextField("Описание", blank=True, max_length=500)
 
     class Meta:
         verbose_name = "Стадия подписания"
@@ -302,7 +331,7 @@ class SystemType(models.Model):
     )
 
     slug = models.SlugField("Слаг системы", max_length=50, unique=True)
-    description = models.TextField("Описание", blank=True)
+    description = models.TextField("Описание", blank=True, max_length=500)
     is_active = models.BooleanField("Активна", default=True)
 
     class Meta:
