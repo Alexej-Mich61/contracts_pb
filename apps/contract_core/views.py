@@ -12,6 +12,7 @@ from auditlog.models import LogEntry
 from django.contrib.contenttypes.models import ContentType
 from django.http import JsonResponse
 from django.views import View
+from collections import defaultdict
 from .services.contract_filter_service import ContractFilterService
 from .services.company_filter_service import CompanyFilterService
 from .services.ak_filter_service import AkFilterService
@@ -953,3 +954,73 @@ class CompanyStatsView(LoginRequiredMixin, View):
         )
 
         return render(request, 'catalogs/partials/company_stats_modal.html', stats)
+
+
+# Вьюхи для Справочника Стадии подписания
+class SigningStageListView(ListView):
+    """Справочник стадий подписания договора."""
+    model = SigningStage
+    template_name = "catalogs/signing_stage_list.html"
+    context_object_name = 'stages'
+    paginate_by = 50
+
+    def get_queryset(self):
+        return SigningStage.objects.all().order_by('order', 'name')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['page_title'] = "Справочник стадий подписания"
+        context['page_description'] = "Просмотр стадий жизненного цикла договора"
+        return context
+
+# Вьюхи для Справочника Работы
+class WorkListView(ListView):
+    """Справочник видов работ с группировкой по типам."""
+    model = Work
+    template_name = "catalogs/work_list.html"
+    context_object_name = 'works'
+    paginate_by = 50
+
+    def get_queryset(self):
+        return Work.objects.all().order_by('work_type', 'name')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['page_title'] = "Справочник видов работ"
+        context['page_description'] = "Каталог работ, сгруппированных по типам выполнения"
+
+        # Группировка работ по типам (только для текущей страницы)
+        works_grouped = defaultdict(list)
+
+        for work in context['works']:
+            works_grouped[work.work_type].append(work)
+
+        # Формируем список групп с сохранением порядка WorkType.choices
+        grouped_data = []
+        for type_key, type_label in Work.WorkType.choices:
+            if type_key in works_grouped:
+                grouped_data.append({
+                    'type_key': type_key,
+                    'type_label': type_label,
+                    'items': works_grouped[type_key]
+                })
+
+        context['grouped_works'] = grouped_data
+        return context
+
+# Вьюхи для Справочника Системы
+class SystemTypeListView(ListView):
+    """Справочник типов систем."""
+    model = SystemType
+    template_name = "catalogs/system_type_list.html"
+    context_object_name = 'system_types'
+    paginate_by = 50
+
+    def get_queryset(self):
+        return SystemType.objects.all().order_by('name')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['page_title'] = "Справочник типов систем"
+        context['page_description'] = "Каталог систем для проверки и отметки"
+        return context

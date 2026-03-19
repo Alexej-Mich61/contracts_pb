@@ -51,7 +51,7 @@ urlpatterns = [
     path("contracts/add/", views.ContractCreateView.as_view(), name="contract_create"),
     path("contracts/<int:pk>/edit/", views.ContractUpdateView.as_view(), name="contract_update"),
 
-# HTMX эндпоинты для модальных окон
+    # HTMX эндпоинты для модальных окон
     path("contracts/<int:pk>/detail/", views.ContractDetailHtmxView.as_view(), name="contract_detail_htmx"),
     path("contracts/<int:pk>/history/", views.ContractHistoryHtmxView.as_view(), name="contract_history_htmx"),
 
@@ -78,4 +78,26 @@ urlpatterns = [
     path("catalogs/companies/add/", views.CompanyCreateView.as_view(), name="company_create"),
     path("catalogs/companies/<int:pk>/update/", views.CompanyUpdateView.as_view(), name="company_update"),
     path("catalogs/companies/stats/", views.CompanyStatsView.as_view(), name="company_stats"),
+
+    # Справочники Стадий подписания контракта
+    path(
+        "catalogs/signing_stage/",
+        views.SigningStageListView.as_view(),
+        name="signing_stage_list"
+    ),
+
+    # Справочники Работы
+    path(
+        "catalogs/work/",
+        views.WorkListView.as_view(),
+        name="work_list"
+    ),
+
+    # Справочники Типы Систем
+    path(
+        "catalogs/system_type/",
+        views.SystemTypeListView.as_view(),
+        name="system_type_list"
+    ),
+
 ]

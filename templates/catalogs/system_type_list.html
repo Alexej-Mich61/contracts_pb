@@ -1,0 +1,121 @@
+<!-- templates/catalogs/system_type_list.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Заголовок -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h3 class="mb-1">{{ page_title }}</h3>
+            <p class="text-muted mb-0">{{ page_description }}</p>
+        </div>
+        <span class="badge bg-secondary fs-6">{{ paginator.count }}</span>
+    </div>
+
+    <!-- Таблица -->
+    <div class="card shadow-sm">
+        <div class="table-responsive">
+            <table class="table table-hover table-striped mb-0 align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th scope="col" style="width: 60px;" class="text-center">#</th>
+                        <th scope="col">
+                            <i class="bi bi-pc-display me-1"></i>Название системы
+                        </th>
+                        <th scope="col" style="width: 120px;" class="text-center">
+                            <i class="bi bi-check-circle me-1"></i>Статус
+                        </th>
+                        <th scope="col" class="w-50">
+                            <i class="bi bi-file-text me-1"></i>Описание
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for system in system_types %}
+                    <tr>
+                        <td class="text-center text-muted">{{ forloop.counter }}</td>
+                        <td>
+                            <strong>{{ system.name }}</strong>
+                        </td>
+                        <td class="text-center">
+                            {% if system.is_active %}
+                            <span class="badge bg-success">
+                                <i class="bi bi-check-lg me-1"></i>Активна
+                            </span>
+                            {% else %}
+                            <span class="badge bg-secondary">
+                                <i class="bi bi-pause me-1"></i>Не активна
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if system.description %}
+                            <span class="text-muted">{{ system.description|linebreaksbr }}</span>
+                            {% else %}
+                            <em class="text-muted small">Нет описания</em>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="text-center py-4 text-muted">
+                            <i class="bi bi-inbox fs-2 d-block mb-2"></i>
+                            Нет данных в справочнике
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Пагинация -->
+    {% if is_paginated %}
+    <nav aria-label="Навигация по страницам" class="mt-3">
+        <ul class="pagination justify-content-center mb-0">
+            {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}"
+                   hx-get="?page={{ page_obj.previous_page_number }}"
+                   hx-target="body" hx-push-url="true">
+                    <i class="bi bi-chevron-left"></i>
+                </a>
+            </li>
+            {% else %}
+            <li class="page-item disabled">
+                <span class="page-link"><i class="bi bi-chevron-left"></i></span>
+            </li>
+            {% endif %}
+
+            {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                <li class="page-item active">
+                    <span class="page-link">{{ num }}</span>
+                </li>
+                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ num }}"
+                       hx-get="?page={{ num }}"
+                       hx-target="body" hx-push-url="true">{{ num }}</a>
+                </li>
+                {% endif %}
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}"
+                   hx-get="?page={{ page_obj.next_page_number }}"
+                   hx-target="body" hx-push-url="true">
+                    <i class="bi bi-chevron-right"></i>
+                </a>
+            </li>
+            {% else %}
+            <li class="page-item disabled">
+                <span class="page-link"><i class="bi bi-chevron-right"></i></span>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+{% endblock %}
