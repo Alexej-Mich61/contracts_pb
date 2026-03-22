@@ -66,6 +66,8 @@ urlpatterns = [
          name="subcontractors_to_reports_list"),
     path("reports/signing-stages/", views.ContractSigningStageReportsView.as_view(),
          name="contract_signing_stage_reports"),
+    path("reports/signing-stages/excel/", views.ContractSigningStageReportsExcelView.as_view(),
+         name="contract_signing_stage_reports_excel"),
 
     # Справочники АК
     path("catalogs/ak/", views.AkListView.as_view(), name="ak_list"),

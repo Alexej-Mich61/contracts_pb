@@ -50,6 +50,10 @@ from .services.history_service import ContractHistoryService
 from apps.contract_core.services.signing_stage_report_service import (
     SigningStageReportService,
 )
+from .export_excel import SigningStageReportExporter
+# from openpyxl import Workbook
+# from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+# from openpyxl.utils import get_column_letter
 
 # Create your views here.
 
@@ -620,25 +624,78 @@ class ExecutorReportsView(LoginRequiredMixin, TemplateView):
 class ContractSigningStageReportsView(LoginRequiredMixin, TemplateView):
     """
     View для отображения отчёта по стадиям подписания договоров.
-
-    Ответственность:
-    - Аутентификация/авторизация (через LoginRequiredMixin)
-    - Делегирование сбора данных сервису
-    - Подготовка контекста для шаблона
     """
     template_name = "reports/contract_signing_stage_reports.html"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        # Делегируем бизнес-логику сервису
         service = SigningStageReportService()
         report_data = service.get_report_data(self.request.user)
 
         context['report_data'] = report_data
         context['signing_stages'] = service.get_all_stages()
+        context['control_days'] = service.get_control_days()  # Для примечания в шаблоне
 
         return context
+
+# экспорт отчет по стадиям подписания в Excel
+class ContractSigningStageReportsExcelView(LoginRequiredMixin, View):
+    """
+    View для экспорта отчёта по стадиям подписания в Excel.
+
+    Ответственность:
+    - Аутентификация/авторизация
+    - Делегирование генерации Excel сервису
+    - Формирование HTTP-ответа с файлом
+    """
+
+    def get(self, request, *args, **kwargs):
+        # Получаем данные через существующий сервис
+        report_service = SigningStageReportService()
+        report_data = report_service.get_report_data(request.user)
+
+        if not report_data:
+            return HttpResponse("Нет данных для экспорта", status=404)
+
+        # Генерируем Excel через отдельный сервис
+        exporter = SigningStageReportExporter(
+            report_data=report_data,
+            stages=report_service.get_all_stages(),
+            control_days=report_service.get_control_days()
+        )
+
+        excel_file = exporter.export()
+
+        # Формируем ответ
+        response = HttpResponse(
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        filename = f"signing_stages_report_{timezone.now().strftime('%Y-%m-%d')}.xlsx"
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        response.write(excel_file.getvalue())
+
+        return response
+
+        # Автоширина колонок
+        for col in range(1, len(service.get_all_stages()) + 3):
+            ws.column_dimensions[get_column_letter(col)].width = 18
+
+        # Первая колонка шире (тип договора)
+        ws.column_dimensions['A'].width = 30
+
+        # Заморозка заголовков
+        ws.freeze_panes = 'A3'
+
+        # Ответ
+        response = HttpResponse(
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        filename = f"signing_stages_report_{timezone.now().strftime('%Y-%m-%d')}.xlsx"
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+
+        wb.save(response)
+        return response
 
 
 # Отчет Субподрядчики ТО (Техническое обслуживание)

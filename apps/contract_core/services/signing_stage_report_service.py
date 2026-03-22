@@ -5,19 +5,24 @@
 
 from dataclasses import dataclass
 from typing import List, Dict, Optional, Tuple
+from datetime import timedelta
 from django.db.models import Count, Q
 from django.contrib.auth import get_user_model
+from django.utils import timezone
 
-from apps.contract_core.models import Contract, Company, SigningStage
+from apps.contract_core.models import (
+    Contract, Company, SigningStage, SigningStageControlSettings
+)
 
 User = get_user_model()
 
 
 @dataclass(frozen=True)
 class StageCount:
-    """DTO для пары (стадия, количество)."""
+    """DTO для пары (стадия, количество, просроченные)."""
     stage: SigningStage
     count: int
+    overdue_count: int  # Новое поле
 
 
 @dataclass(frozen=True)
@@ -65,6 +70,25 @@ class SigningStageReportService:
 
     def __init__(self):
         self._all_stages: Optional[List[SigningStage]] = None
+        self._control_settings: Optional[SigningStageControlSettings] = None
+        self._cutoff_date: Optional[timezone.datetime] = None
+
+    def get_control_settings(self) -> SigningStageControlSettings:
+        """Lazy-load настроек контроля сроков."""
+        if self._control_settings is None:
+            self._control_settings = SigningStageControlSettings.get_settings()
+        return self._control_settings
+
+    def get_control_days(self) -> int:
+        """Возвращает количество дней для контроля."""
+        return self.get_control_settings().control_days
+
+    def get_cutoff_date(self) -> timezone.datetime:
+        """Возвращает дату-отсечку для определения просроченных договоров."""
+        if self._cutoff_date is None:
+            days = self.get_control_days()
+            self._cutoff_date = timezone.now() - timedelta(days=days)
+        return self._cutoff_date
 
     def get_report_data(self, user: User) -> List[CompanyReportData]:
         """
@@ -84,20 +108,12 @@ class SigningStageReportService:
     def _get_companies_for_user(self, user: User) -> List[Company]:
         """
         Получает список компаний в зависимости от прав пользователя.
-
-        Args:
-            user: Текущий пользователь
-
-        Returns:
-            Список компаний для отчёта
         """
-        # Суперпользователь видит все компании-исполнители
         if user.is_superuser:
             return list(Company.objects.filter(
                 Q(is_licensee=True) | Q(is_laboratory=True)
             ).distinct().order_by('name'))
 
-        # Обычный пользователь видит только свои компании
         return list(Company.objects.filter(
             employees__user=user,
             employees__is_active=True
@@ -178,22 +194,46 @@ class SigningStageReportService:
         )
 
     def _build_stage_counts_list(self, base_filter: Q) -> List[StageCount]:
-        """Строит список пар (стадия, количество)."""
-        slug_to_count = self._aggregate_stage_counts(base_filter)
+        """Строит список пар (стадия, количество, просроченные)."""
+        slug_to_data = self._aggregate_stage_counts(base_filter)
 
         return [
-            StageCount(stage=stage, count=slug_to_count.get(stage.slug, 0))
+            StageCount(
+                stage=stage,
+                count=slug_to_data.get(stage.slug, {}).get('count', 0),
+                overdue_count=slug_to_data.get(stage.slug, {}).get('overdue_count', 0)
+                if not stage.is_final else 0
+            )
             for stage in self.get_all_stages()
         ]
 
-    def _aggregate_stage_counts(self, base_filter: Q) -> Dict[str, int]:
-        """Агрегирует количество договоров по стадиям."""
+    def _aggregate_stage_counts(self, base_filter: Q) -> Dict[str, Dict[str, int]]:
+        """
+        Агрегирует количество договоров по стадиям и количество просроченных.
+
+        Просроченными считаются договоры на нефинальных стадиях,
+        дата изменения которых раньше контрольной даты.
+        """
+        cutoff_date = self.get_cutoff_date()
+
+        # Условие для просроченных: не финальная стадия и changed_at раньше cutoff
+        overdue_filter = Q(
+            signing_stage__stage__is_final=False,
+            signing_stage__changed_at__lt=cutoff_date
+        )
+
         stage_stats = Contract.objects.filter(base_filter).values(
             'signing_stage__stage__slug'
-        ).annotate(count=Count('id'))
+        ).annotate(
+            count=Count('id'),
+            overdue_count=Count('id', filter=overdue_filter)
+        )
 
         return {
-            stat['signing_stage__stage__slug']: stat['count']
+            stat['signing_stage__stage__slug']: {
+                'count': stat['count'],
+                'overdue_count': stat['overdue_count'] or 0
+            }
             for stat in stage_stats
             if stat['signing_stage__stage__slug']
         }

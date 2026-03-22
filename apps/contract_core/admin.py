@@ -5,7 +5,7 @@ from import_export.admin import ImportExportModelAdmin
 
 
 from .models import (
-    ContractSettings, Region, District, Work, Company,
+    ContractSettings, SigningStageControlSettings, Region, District, Work, Company,
     SigningStage, ContractSigningStage, SystemType,
     ContractSystemCheck, Contract, FinalAct, InterimAct,
     ProtectionObject, Ak
@@ -129,6 +129,17 @@ class ContractSettingsAdmin(admin.ModelAdmin):
             'fields': ('days_before_expires', 'longterm_status_time', 'oneoff_status_time')
         }),
     )
+
+
+@admin.register(SigningStageControlSettings)
+class SigningStageControlSettingsAdmin(admin.ModelAdmin):
+    def has_add_permission(self, request):
+        # Запрещаем создавать более одной записи
+        return not SigningStageControlSettings.objects.exists()
+
+    def has_delete_permission(self, request, obj=None):
+        # Запрещаем удаление единственной записи
+        return False
 
 
 @admin.register(Region)

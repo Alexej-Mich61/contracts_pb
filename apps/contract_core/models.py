@@ -56,6 +56,35 @@ class ContractSettings(models.Model):
         return obj
 
 
+# ---------- НАСТРОЙКА ДЛЯ СРОКА КОНТРОЛЯ ПОДПИСАНИЯ ДОГОВОРОВ ----------
+class SigningStageControlSettings(models.Model):
+    """Настройки контроля сроков подписания договоров (Singleton)."""
+    control_days = models.PositiveSmallIntegerField(
+        "Количество дней для контроля",
+        default=7,
+        validators=[MinValueValidator(1), MaxValueValidator(365)],
+        help_text="Количество дней для контроля срока подписания договора",
+    )
+
+    class Meta:
+        verbose_name = "Настройка контроля стадий подписания"
+        verbose_name_plural = "Настройки контроля стадий подписания"
+
+    def __str__(self):
+        return f"Контрольный срок: {self.control_days} дней"
+
+    def save(self, *args, **kwargs):
+        # Singleton: всегда сохраняем в запись с pk=1
+        self.pk = 1
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def get_settings(cls) -> "SigningStageControlSettings":
+        """Получает настройки (создает с дефолтными значениями при необходимости)."""
+        obj, created = cls.objects.get_or_create(pk=1, defaults={'control_days': 7})
+        return obj
+
+
 # ---------- СПРАВОЧНИКИ (регион/район) ----------
 class Region(models.Model):
     name = models.CharField(

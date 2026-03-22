@@ -12,10 +12,16 @@
             Отчёт по стадиям подписания договоров
         </h1>
         <div class="d-flex align-items-center gap-2">
+            <a href="{% url 'contract_core:contract_signing_stage_reports_excel' %}"
+               class="btn btn-outline-success"
+               title="Скачать Excel">
+                <i class="bi bi-file-earmark-excel me-1"></i>
+                Экспорт в Excel
+            </a>
             {% if is_superuser %}
             <span class="badge bg-warning text-dark">
-                <i class="bi bi-shield-lock me-1"></i>Все компании
-            </span>
+        <i class="bi bi-shield-lock me-1"></i>Все компании
+    </span>
             {% endif %}
             <span class="badge bg-secondary fs-4 fw-bold px-3 py-2">{{ report_data|length }}</span>
         </div>
@@ -77,8 +83,9 @@
                                                     <td class="text-center fw-bold fs-5 text-dark {% if not forloop.last %}border-end{% endif %}">
                                                         {% if stage_count.count > 0 %}
                                                             {{ stage_count.count }}
-                                                        {% else %}
-
+                                                            {% if stage_count.overdue_count > 0 %}
+                                                                <span class="text-danger ms-1">({{ stage_count.overdue_count }})</span>
+                                                            {% endif %}
                                                         {% endif %}
                                                     </td>
                                                 {% endfor %}
@@ -86,6 +93,14 @@
                                         {% endfor %}
                                     </tbody>
                                 </table>
+                            </div>
+
+                            <div class="mt-2 mb-1">
+                                <small class="text-muted fst-italic">
+                                    <i class="bi bi-info-circle me-1"></i>
+                                    В скобках <span class="text-danger">красным цветом</span> указано количество контрактов с превышением контрольного срока подписания ({{ control_days }} дн.).
+                                    Отображается только для нефинальных стадий.
+                                </small>
                             </div>
                         </div>
                     {% endfor %}
