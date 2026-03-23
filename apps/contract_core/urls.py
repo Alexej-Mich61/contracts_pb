@@ -70,6 +70,9 @@ urlpatterns = [
          name="contract_signing_stage_reports_excel"),
     path("reports/works_sum/", views.WorksSumReportView.as_view(), name="works_sum_reports"),
     path("reports/works_sum/excel/", views.WorksSumReportExcelView.as_view(), name="works_sum_reports_excel"),
+    # Отчет по статусам и суммам
+    path("reports/status_sum/", views.StatusSumReportView.as_view(), name="status_sum_reports"),
+    path("reports/status_sum/excel/", views.StatusSumReportExcelView.as_view(), name="status_sum_reports_excel"),
 
     # Справочники АК
     path("catalogs/ak/", views.AkListView.as_view(), name="ak_list"),

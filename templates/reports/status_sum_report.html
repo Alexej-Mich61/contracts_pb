@@ -1,0 +1,120 @@
+<!-- templates/reports/status_sum_report.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid py-4">
+
+    <!-- Заголовок -->
+    <div class="d-flex justify-content-between align-items-start mb-4">
+        <div>
+            <h2 class="mb-1">{{ page_title }}</h2>
+            <p class="text-muted mb-0">на {{ report_date|date:"d.m.Y" }}</p>
+        </div>
+        <div class="btn-group">
+            <a href="{% url 'contract_core:status_sum_reports_excel' %}" class="btn btn-outline-success">
+                <i class="bi bi-file-earmark-excel"></i> Excel
+            </a>
+            <button class="btn btn-outline-primary" onclick="window.print()">
+                <i class="bi bi-printer"></i> Печать
+            </button>
+        </div>
+    </div>
+
+    {% if companies_data %}
+
+        {% for company_data in companies_data %}
+        <div class="card mb-4">
+            <!-- Заголовок компании -->
+            <div class="card-header bg-light">
+                <div class="row align-items-center">
+                    <div class="col-md-6">
+                        <h5 class="mb-0">{{ company_data.company.name }}</h5>
+                        <small class="text-muted">ИНН: {{ company_data.company.inn }}</small>
+                    </div>
+                    <div class="col-md-6 text-md-end">
+                        {% for role in company_data.roles %}
+                            <span class="badge bg-secondary me-1">{{ role }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-body">
+                {% for section_key, section in company_data.sections.items %}
+
+                <h6 class="fw-bold mb-3 mt-3">{{ section.name }}</h6>
+
+                <div class="table-responsive mb-4">
+                    <table class="table table-bordered table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                <th scope="col" style="width: 25%"></th>
+                                <th scope="col" class="text-center" style="width: 18%">Всего</th>
+                                <th scope="col" class="text-center" style="width: 18%">Завершен</th>
+                                <th scope="col" class="text-center" style="width: 18%">Действует</th>
+                                <th scope="col" class="text-center" style="width: 18%">
+                                    {% if section.has_expired %}Истекает{% else %}{% endif %}
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Количество -->
+                            <tr class="fw-semibold">
+                                <td>Количество, шт.</td>
+                                <td class="text-center">{{ section.stats.total.count }}</td>
+                                <td class="text-center">{{ section.stats.completed.count }}</td>
+                                <td class="text-center">{{ section.stats.active.count }}</td>
+                                <td class="text-center">
+                                    {% if section.has_expired %}
+                                        {{ section.stats.active_expires.count }}
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <!-- Сумма -->
+                            <tr class="fw-semibold">
+                                <td>Сумма общая, р.</td>
+                                <td class="text-end">{{ section.stats.total.sum }} ₽</td>
+                                <td class="text-end">{{ section.stats.completed.sum }} ₽</td>
+                                <td class="text-end">{{ section.stats.active.sum }} ₽</td>
+                                <td class="text-end">
+                                    {% if section.has_expired %}
+                                        {{ section.stats.active_expires.sum }} ₽
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+
+    {% else %}
+
+        <div class="alert alert-info text-center py-5">
+            <i class="bi bi-info-circle fs-1 d-block mb-3"></i>
+            <h5>Нет данных для отображения</h5>
+            <p class="mb-0">У вас нет доступа к компаниям с договорами, либо договоры отсутствуют.</p>
+        </div>
+
+    {% endif %}
+
+</div>
+
+<!-- Стили для печати -->
+<style media="print">
+    .btn-group { display: none !important; }
+    .card { border: 1px solid #dee2e6 !important; break-inside: avoid; }
+    .card-header { background-color: #f8f9fa !important; }
+    .table { font-size: 0.9rem; }
+    .table-dark { background-color: #212529 !important; color: white !important; }
+    h2 { font-size: 1.5rem; }
+    h6 { font-size: 1rem; margin-top: 1rem !important; }
+</style>
+{% endblock %}

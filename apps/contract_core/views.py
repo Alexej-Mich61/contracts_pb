@@ -23,6 +23,9 @@ from .services.subcontractors_to_filter_service import (
 from apps.contract_core.services.works_sum_report_service import WorksSumReportService
 from apps.contract_core.export_excel.works_sum_report_excel import WorksSumReportExcelExporter
 
+from apps.contract_core.services.status_sum_report_service import StatusSumReportService
+from apps.contract_core.export_excel.status_sum_report_excel import StatusSumReportExcelExporter
+
 from .mixins import ContractAccessMixin
 
 from .models import (
@@ -777,6 +780,40 @@ class WorksSumReportExcelView(LoginRequiredMixin, View):
 
     def get(self, request, *args, **kwargs):
         exporter = WorksSumReportExcelExporter(request.user)
+        output = exporter.export()
+
+        response = HttpResponse(
+            output.read(),
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        response['Content-Disposition'] = f'attachment; filename="{exporter.get_filename()}"'
+
+        return response
+
+
+# Отчет по статусам и суммам неархивных договоров
+class StatusSumReportView(LoginRequiredMixin, TemplateView):
+    """HTML-отчет по статусам и суммам."""
+    template_name = "reports/status_sum_report.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        service = StatusSumReportService(self.request.user)
+        report_data = service.generate_report()
+
+        context.update(report_data)
+        context['page_title'] = 'Отчет по статусам и общим суммам неархивных договоров'
+
+        return context
+
+
+# экспорт отчета по статусам и суммам неархивных договоров в Excel
+class StatusSumReportExcelView(LoginRequiredMixin, View):
+    """Экспорт отчета по статусам в Excel."""
+
+    def get(self, request, *args, **kwargs):
+        exporter = StatusSumReportExcelExporter(request.user)
         output = exporter.export()
 
         response = HttpResponse(
