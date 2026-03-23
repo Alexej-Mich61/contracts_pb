@@ -50,7 +50,7 @@ class StatusSumReportExcelExporter:
         date_str = self.service.report_date.strftime('%d.%m.%Y')
         title = f"Отчет по статусам и общим суммам неархивных договоров на {date_str}"
 
-        self.ws.merge_cells(f'A{self.current_row}:E{self.current_row}')
+        self.ws.merge_cells(f'A{self.current_row}:F{self.current_row}')
         cell = self.ws.cell(self.current_row, 1, title)
         cell.font = Font(bold=True, size=14)
         cell.alignment = Alignment(horizontal='center')
@@ -59,17 +59,28 @@ class StatusSumReportExcelExporter:
     def _write_company_header(self, company_data):
         """Заголовок компании."""
         roles_str = ", ".join(company_data.roles)
-        title = f"{company_data.company.name} (ИНН {company_data.company.inn})\t\t\t\t{roles_str}"
+        title = f"{company_data.company.name} (ИНН {company_data.company.inn})\t\t\t\t\t{roles_str}"
 
-        self.ws.merge_cells(f'A{self.current_row}:E{self.current_row}')
+        self.ws.merge_cells(f'A{self.current_row}:F{self.current_row}')
         cell = self.ws.cell(self.current_row, 1, title)
         cell.font = Font(bold=True, size=11)
         self.current_row += 1
 
     def _write_section_table(self, section):
         """Таблица по секции (типу контракта)."""
+        has_expired = section['has_expired']
+        stats = section['stats']
+
+        # Определяем количество колонок
+        if has_expired:
+            cols = 6  # A-F: пусто, Всего, Завершен, Действует, Истекает, Истёк
+            last_col = 'F'
+        else:
+            cols = 5  # A-E: пусто, Всего, Завершен, Действует, Истекает
+            last_col = 'E'
+
         # Заголовок категории
-        self.ws.merge_cells(f'A{self.current_row}:E{self.current_row}')
+        self.ws.merge_cells(f'A{self.current_row}:{last_col}{self.current_row}')
         cell = self.ws.cell(self.current_row, 1, section['name'])
         cell.fill = self.CATEGORY_FILL
         cell.font = self.CATEGORY_FONT
@@ -78,10 +89,8 @@ class StatusSumReportExcelExporter:
 
         # Заголовки колонок
         headers = ['', 'Всего', 'Завершен', 'Действует', 'Истекает']
-        if not section['has_expired']:
-            headers = ['', 'Всего', 'Завершен', 'Действует', 'Истекает']
-            # Для долгосрочных убираем "Истекает" из заголовков или оставляем пустым
-            headers[4] = ''  # Пустая колонка для долгосрочных
+        if has_expired:
+            headers.append('Истёк')
 
         for col, header in enumerate(headers, 1):
             cell = self.ws.cell(self.current_row, col, header)
@@ -91,20 +100,16 @@ class StatusSumReportExcelExporter:
             cell.border = self.BORDER
         self.current_row += 1
 
-        stats = section['stats']
-
         # Строка "Количество"
         row_data = [
             'Количество, шт.',
             self._format_number(stats['total']['count']),
             self._format_number(stats[Contract.STATUS_COMPLETED]['count']),
             self._format_number(stats[Contract.STATUS_ACTIVE]['count']),
+            self._format_number(stats[Contract.STATUS_ACTIVE_EXPIRES]['count']),
         ]
-
-        if section['has_expired']:
-            row_data.append(self._format_number(stats[Contract.STATUS_ACTIVE_EXPIRES]['count']))
-        else:
-            row_data.append('')  # Пусто для долгосрочных
+        if has_expired:
+            row_data.append(self._format_number(stats[Contract.STATUS_ACTIVE_EXPIRED]['count']))
 
         for col, value in enumerate(row_data, 1):
             cell = self.ws.cell(self.current_row, col, value)
@@ -121,12 +126,10 @@ class StatusSumReportExcelExporter:
             self._format_money(stats['total']['sum']),
             self._format_money(stats[Contract.STATUS_COMPLETED]['sum']),
             self._format_money(stats[Contract.STATUS_ACTIVE]['sum']),
+            self._format_money(stats[Contract.STATUS_ACTIVE_EXPIRES]['sum']),
         ]
-
-        if section['has_expired']:
-            row_data.append(self._format_money(stats[Contract.STATUS_ACTIVE_EXPIRES]['sum']))
-        else:
-            row_data.append('')
+        if has_expired:
+            row_data.append(self._format_money(stats[Contract.STATUS_ACTIVE_EXPIRED]['sum']))
 
         for col, value in enumerate(row_data, 1):
             cell = self.ws.cell(self.current_row, col, value)
@@ -144,11 +147,10 @@ class StatusSumReportExcelExporter:
         self.ws.column_dimensions['C'].width = 15
         self.ws.column_dimensions['D'].width = 15
         self.ws.column_dimensions['E'].width = 15
+        self.ws.column_dimensions['F'].width = 15
 
     def export(self) -> BytesIO:
         """Генерирует Excel-файл."""
-        from apps.contract_core.models import Contract
-
         self._write_header()
 
         report_data = self.service.generate_report()

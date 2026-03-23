@@ -48,13 +48,14 @@
                     <table class="table table-bordered table-hover">
                         <thead class="table-dark">
                             <tr>
-                                <th scope="col" style="width: 25%"></th>
-                                <th scope="col" class="text-center" style="width: 18%">Всего</th>
-                                <th scope="col" class="text-center" style="width: 18%">Завершен</th>
-                                <th scope="col" class="text-center" style="width: 18%">Действует</th>
-                                <th scope="col" class="text-center" style="width: 18%">
-                                    {% if section.has_expired %}Истекает{% else %}{% endif %}
-                                </th>
+                                <th scope="col"></th>
+                                <th scope="col" class="text-center">Всего</th>
+                                <th scope="col" class="text-center">Завершен</th>
+                                <th scope="col" class="text-center">Действует</th>
+                                <th scope="col" class="text-center">Истекает</th>
+                                {% if section.has_expired %}
+                                <th scope="col" class="text-center">Истёк</th>
+                                {% endif %}
                             </tr>
                         </thead>
                         <tbody>
@@ -64,13 +65,10 @@
                                 <td class="text-center">{{ section.stats.total.count }}</td>
                                 <td class="text-center">{{ section.stats.completed.count }}</td>
                                 <td class="text-center">{{ section.stats.active.count }}</td>
-                                <td class="text-center">
-                                    {% if section.has_expired %}
-                                        {{ section.stats.active_expires.count }}
-                                    {% else %}
-                                        -
-                                    {% endif %}
-                                </td>
+                                <td class="text-center">{{ section.stats.active_expires.count }}</td>
+                                {% if section.has_expired %}
+                                <td class="text-center">{{ section.stats.active_expired.count }}</td>
+                                {% endif %}
                             </tr>
                             <!-- Сумма -->
                             <tr class="fw-semibold">
@@ -78,13 +76,10 @@
                                 <td class="text-end">{{ section.stats.total.sum }} ₽</td>
                                 <td class="text-end">{{ section.stats.completed.sum }} ₽</td>
                                 <td class="text-end">{{ section.stats.active.sum }} ₽</td>
-                                <td class="text-end">
-                                    {% if section.has_expired %}
-                                        {{ section.stats.active_expires.sum }} ₽
-                                    {% else %}
-                                        -
-                                    {% endif %}
-                                </td>
+                                <td class="text-end">{{ section.stats.active_expires.sum }} ₽</td>
+                                {% if section.has_expired %}
+                                <td class="text-end">{{ section.stats.active_expired.sum }} ₽</td>
+                                {% endif %}
                             </tr>
                         </tbody>
                     </table>

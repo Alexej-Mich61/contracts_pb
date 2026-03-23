@@ -2,7 +2,7 @@
 from typing import Dict, List, Optional
 from collections import defaultdict
 from decimal import Decimal
-from django.db.models import Q, Sum, Count
+from django.db.models import Q
 from django.utils import timezone
 
 from apps.contract_core.models import Company, Contract
@@ -26,17 +26,14 @@ class StatusSumReportService:
         Contract.Type.ONEOFF_LICENSEE: {
             'section_key': 'oneoff_licensee',
             'section_name': 'Разовые (лицензиат)',
-            'has_expired': True,
         },
         Contract.Type.LONGTERM_TO_LICENSEE: {
             'section_key': 'longterm_to_licensee',
             'section_name': 'Долгосрочные (лицензиат)',
-            'has_expired': False,
         },
         Contract.Type.ONEOFF_LAB: {
             'section_key': 'oneoff_lab',
             'section_name': 'Разовые (лаборатория)',
-            'has_expired': True,
         },
     }
 
@@ -126,16 +123,13 @@ class StatusSumReportService:
             section_contracts = contracts_by_type[contract_type]
             status_stats = self._aggregate_by_status(section_contracts)
 
-            # Определяем какие статусы показывать
-            available_statuses = ['completed', 'active', 'active_expires']
-            if mapping['has_expired']:
-                available_statuses.append('active_expired')
+            # Проверяем, есть ли договоры со статусом "Истёк"
+            has_expired = status_stats[Contract.STATUS_ACTIVE_EXPIRED]['count'] > 0
 
             report_data.sections[mapping['section_key']] = {
                 'name': mapping['section_name'],
-                'has_expired': mapping['has_expired'],
                 'stats': status_stats,
-                'available_statuses': available_statuses,
+                'has_expired': has_expired,  # Показываем колонку только если есть данные
             }
 
         return report_data
@@ -147,7 +141,6 @@ class StatusSumReportService:
 
         for company in companies:
             company_report = self.build_company_report(company)
-            # Добавляем только если есть данные
             if company_report.sections:
                 companies_data.append(company_report)
 
