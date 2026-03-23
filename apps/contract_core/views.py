@@ -20,6 +20,9 @@ from .services.subcontractors_to_filter_service import (
     SubcontractorToFilterService,
     SubcontractorFilterDTO,
 )
+from apps.contract_core.services.works_sum_report_service import WorksSumReportService
+from apps.contract_core.export_excel.works_sum_report_excel import WorksSumReportExcelExporter
+
 from .mixins import ContractAccessMixin
 
 from .models import (
@@ -751,6 +754,38 @@ class SubcontractorsToReportsView(LoginRequiredMixin, ListView):
 
         context.update(ctx)
         return context
+
+# Отчет по работам и суммам действующих договоров
+class WorksSumReportView(LoginRequiredMixin, TemplateView):
+    """Представление для отчета 'Работы и суммы' (HTML)."""
+    template_name = "reports/works_sum_report.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        service = WorksSumReportService(self.request.user)
+        report_data = service.generate_report()
+
+        context.update(report_data)
+        context['page_title'] = 'Отчет по работам и суммам действующих договоров'
+
+        return context
+
+# экспорт отчет по работам и суммам действующих договоров в Excel
+class WorksSumReportExcelView(LoginRequiredMixin, View):
+    """Представление для экспорта отчета 'Работы и суммы' в Excel."""
+
+    def get(self, request, *args, **kwargs):
+        exporter = WorksSumReportExcelExporter(request.user)
+        output = exporter.export()
+
+        response = HttpResponse(
+            output.read(),
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        response['Content-Disposition'] = f'attachment; filename="{exporter.get_filename()}"'
+
+        return response
 
 
 # Справочник AK
