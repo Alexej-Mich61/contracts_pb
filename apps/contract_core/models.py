@@ -222,6 +222,13 @@ class Company(models.Model):
         help_text="Телефон компании (необязательно)",
     )
 
+    description = models.TextField(
+        "Описание",
+        blank=True,
+        max_length=500,
+        help_text="Краткое описание компании (необязательно)"
+    )
+
     fias_code = models.CharField(
         "Код ФИАС",
         max_length=50,

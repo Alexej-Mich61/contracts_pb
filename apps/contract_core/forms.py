@@ -42,13 +42,21 @@ class CompanyForm(forms.ModelForm):
     class Meta:
         model = Company
         fields = [
-            'name', 'inn', 'fias_code',
+            'name', 'inn', 'email', 'phone', 'description', 'fias_code',
             'is_customer', 'is_licensee', 'is_laboratory', 'is_subcontractor',
             'notification_agreed'
         ]
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control', 'required': 'required'}),
             'inn': forms.TextInput(attrs={'class': 'form-control', 'required': 'required'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'email@example.com'}),
+            'phone': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '+7 (XXX) XXX-XX-XX'}),
+            'description': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Краткое описание компании...',
+                'maxlength': 500
+            }),
             'fias_code': forms.TextInput(attrs={'class': 'form-control'}),
             'is_customer': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'is_licensee': forms.CheckboxInput(attrs={'class': 'form-check-input'}),

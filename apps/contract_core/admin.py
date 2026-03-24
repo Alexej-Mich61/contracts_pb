@@ -163,15 +163,15 @@ class WorkAdmin(admin.ModelAdmin):
     # Если нужно показывать описание в форме редактирования:
     fields = ('name', 'work_type', 'is_active', 'description')
 
-
+# админка компаний
 @admin.register(Company)
 class CompanyAdmin(ImportExportModelAdmin):
     resource_class = CompanyResource
     list_display = (
         'name',
         'inn',
-        'email',  # добавлено
-        'phone',  # добавлено
+        'email',
+        'phone',
         'is_customer',
         'is_licensee',
         'is_laboratory',
@@ -185,12 +185,11 @@ class CompanyAdmin(ImportExportModelAdmin):
         'is_subcontractor',
         'notification_agreed'
     )
-    search_fields = ('name', 'inn', 'email', 'phone')  # добавлен поиск
+    search_fields = ('name', 'inn', 'email', 'phone')
 
-    # Добавляем в форму редактирования (fieldsets)
     fieldsets = (
         (None, {
-            'fields': ('name', 'inn', 'email', 'phone')  # или добавь в существующий блок
+            'fields': ('name', 'inn', 'email', 'phone', 'description')
         }),
         ('Роли', {
             'fields': ('is_customer', 'is_licensee', 'is_laboratory', 'is_subcontractor')
@@ -208,17 +207,14 @@ class CompanyAdmin(ImportExportModelAdmin):
 
     def mark_as_licensee(self, request, queryset):
         queryset.update(is_licensee=True)
-
     mark_as_licensee.short_description = "Отметить как лицензиат МЧС"
 
     def mark_as_laboratory(self, request, queryset):
         queryset.update(is_laboratory=True)
-
     mark_as_laboratory.short_description = "Отметить как лаборатория"
 
     def mark_notification_agreed(self, request, queryset):
         queryset.update(notification_agreed=True)
-
     mark_notification_agreed.short_description = "Отметить 'Согласие на уведомление'"
 
 

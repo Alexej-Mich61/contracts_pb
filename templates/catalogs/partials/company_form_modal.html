@@ -36,19 +36,51 @@
       {% endif %}
     </div>
 
-    <!-- ИНН -->
-    <div class="mb-3">
-      <label class="form-label">ИНН <span class="text-danger">*</span></label>
-      {{ form.inn }}
-      {% if form.inn.errors %}
-        <div class="invalid-feedback d-block">{{ form.inn.errors|join:", " }}</div>
-      {% endif %}
+    <div class="row">
+      <!-- ИНН -->
+      <div class="col-md-6 mb-3">
+        <label class="form-label">ИНН <span class="text-danger">*</span></label>
+        {{ form.inn }}
+        {% if form.inn.errors %}
+          <div class="invalid-feedback d-block">{{ form.inn.errors|join:", " }}</div>
+        {% endif %}
+      </div>
+
+      <!-- Код ФИАС -->
+      <div class="col-md-6 mb-3">
+        <label class="form-label">Код ФИАС</label>
+        {{ form.fias_code }}
+      </div>
     </div>
 
-    <!-- Код ФИАС -->
+    <div class="row">
+      <!-- Email -->
+      <div class="col-md-6 mb-3">
+        <label class="form-label">E-mail</label>
+        {{ form.email }}
+        {% if form.email.errors %}
+          <div class="invalid-feedback d-block">{{ form.email.errors|join:", " }}</div>
+        {% endif %}
+      </div>
+
+      <!-- Телефон -->
+      <div class="col-md-6 mb-3">
+        <label class="form-label">Телефон</label>
+        {{ form.phone }}
+        {% if form.phone.errors %}
+          <div class="invalid-feedback d-block">{{ form.phone.errors|join:", " }}</div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Описание -->
     <div class="mb-3">
-      <label class="form-label">Код ФИАС (необязательно)</label>
-      {{ form.fias_code }}
+      <label class="form-label">Описание</label>
+      {{ form.description }}
+      <div class="form-text text-muted">Максимум 500 символов</div>
+      {% if form.description.errors %}
+        <div class="invalid-feedback d-block">{{ form.description.errors|join:", " }}</div>
+      {% endif %}
     </div>
 
     <!-- Роли -->
