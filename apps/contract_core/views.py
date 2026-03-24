@@ -56,16 +56,13 @@ from .services.history_service import ContractHistoryService
 from apps.contract_core.services.signing_stage_report_service import (
     SigningStageReportService,
 )
+from apps.contract_core.services.toasts import toast_ok, toast_fail
 from .export_excel import SigningStageReportExporter
-# from openpyxl import Workbook
-# from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
-# from openpyxl.utils import get_column_letter
-
-# Create your views here.
 
 
 
-# auditlog
+
+# auditlog (История по договору)
 # ========== HTMX ЭНДПОИНТЫ ==========
 
 class ContractHistoryHtmxView(LoginRequiredMixin, ContractAccessMixin, DetailView):
@@ -113,6 +110,8 @@ class ContractDetailHtmxView(LoginRequiredMixin, ContractAccessMixin, DetailView
         )
 
 
+
+# Вьюхи для договоров
 # ========== СПИСОЧНЫЕ ПРЕДСТАВЛЕНИЯ ==========
 
 class ContractListView(LoginRequiredMixin, ListView):
@@ -415,9 +414,6 @@ class RemoveAkFromObjectView(LoginRequiredMixin, View):
         })
 
 
-
-
-
 class ContractDeleteView(LoginRequiredMixin, ContractAccessMixin, DeleteView):
     """Удаление договора (перемещение в корзину) с проверкой доступа"""
     model = Contract
@@ -619,10 +615,16 @@ class ContractTrashView(LoginRequiredMixin, ListView):
         return base_queryset.filter(is_trash=True).order_by('-updated_at')
 
 
+
+
+
+
 # Отчеты
+# отчет заказчик (пустой)
 class CustomerReportsView(LoginRequiredMixin, TemplateView):
     template_name = "reports/customer_reports.html"
 
+# отчет исполнитель (пустой)
 class ExecutorReportsView(LoginRequiredMixin, TemplateView):
     template_name = "reports/executor_reports.html"
 
@@ -807,7 +809,6 @@ class StatusSumReportView(LoginRequiredMixin, TemplateView):
 
         return context
 
-
 # экспорт отчета по статусам и суммам неархивных договоров в Excel
 class StatusSumReportExcelView(LoginRequiredMixin, View):
     """Экспорт отчета по статусам в Excel."""
@@ -823,6 +824,10 @@ class StatusSumReportExcelView(LoginRequiredMixin, View):
         response['Content-Disposition'] = f'attachment; filename="{exporter.get_filename()}"'
 
         return response
+
+
+
+
 
 
 # Справочник AK
@@ -870,7 +875,6 @@ class AkListView(LoginRequiredMixin, ListView):
 
         return context
 
-
 class AkCreateView(LoginRequiredMixin, CreateView):
     model = Ak
     form_class = AkForm
@@ -896,7 +900,6 @@ class AkCreateView(LoginRequiredMixin, CreateView):
     def form_invalid(self, form):
         return self.render_to_response(self.get_context_data(form=form))
 
-
 class AkUpdateView(LoginRequiredMixin, UpdateView):
     model = Ak
     form_class = AkForm
@@ -921,8 +924,6 @@ class AkUpdateView(LoginRequiredMixin, UpdateView):
 
     def form_invalid(self, form):
         return self.render_to_response(self.get_context_data(form=form))
-
-
 
 class AkStatsView(LoginRequiredMixin, View):
     """Возвращает статистику по АК для модального окна."""
@@ -985,28 +986,29 @@ class CompaniesListView(LoginRequiredMixin, ListView):
     ordering = ['-id']
 
     def get_paginate_by(self, queryset):
+        from apps.contract_core.services.company_filter_service import CompanyFilterService
         filter_service = CompanyFilterService(self.request.GET)
         if filter_service.has_active_filters():
             return self.paginate_by
         return 10
 
     def get_queryset(self):
+        from apps.contract_core.services.company_filter_service import CompanyFilterService
         filter_service = CompanyFilterService(self.request.GET)
         qs = filter_service.filter()
 
-        # Применяем срез если нет фильтров
         if not filter_service.has_active_filters():
             qs = qs[:10]
 
         return qs
 
     def get_context_data(self, **kwargs):
+        from apps.contract_core.services.company_filter_service import CompanyFilterService
         context = super().get_context_data(**kwargs)
         filter_service = CompanyFilterService(self.request.GET)
         context.update(filter_service.get_context_data())
         context['is_limited'] = not filter_service.has_active_filters()
         return context
-
 
 
 # c HTMX
@@ -1023,20 +1025,23 @@ class CompanyCreateView(LoginRequiredMixin, CreateView):
 
     def form_valid(self, form):
         self.object = form.save()
-        messages.success(self.request, "Компания успешно добавлена!")
 
         if self.request.headers.get('HX-Request'):
-            # HTMX запрос — закрываем модалку и обновляем страницу
-            return HttpResponse(
-                '<script>window.location.reload()</script>',
-                headers={'HX-Trigger': 'companySaved'}
+            # Теперь используем стандартную длительность (5 секунд)
+            return toast_ok(
+                refresh_url=reverse_lazy('contract_core:companies_list')
+                # duration не передаём — будет 2000 мс по умолчанию
             )
+
+        # Для обычного (не-HTMX) запроса оставляем стандартное поведение Django
+        messages.success(self.request, "Успешное сохранение!")
         return HttpResponseRedirect(self.success_url)
 
     def form_invalid(self, form):
-        # Возвращаем форму с ошибками обратно в модалку
-        return self.render_to_response(self.get_context_data(form=form))
+        if self.request.headers.get('HX-Request'):
+            return toast_fail()
 
+        return self.render_to_response(self.get_context_data(form=form))
 
 
 # c HTMX
@@ -1053,26 +1058,24 @@ class CompanyUpdateView(LoginRequiredMixin, UpdateView):
 
     def form_valid(self, form):
         form.save()
-        messages.success(self.request, "Компания успешно обновлена!")
 
         if self.request.headers.get('HX-Request'):
-            return HttpResponse(
-                '<script>window.location.reload()</script>',
-                headers={'HX-Trigger': 'companySaved'}
-            )
+            return toast_ok(refresh_url=reverse_lazy('contract_core:companies_list'))
+
+        messages.success(self.request, "Компания успешно обновлена!")
         return HttpResponseRedirect(self.success_url)
 
     def form_invalid(self, form):
-        return self.render_to_response(self.get_context_data(form=form))
+        if self.request.headers.get('HX-Request'):
+            return toast_fail()
 
+        return self.render_to_response(self.get_context_data(form=form))
 
 
 class CompanyStatsView(LoginRequiredMixin, View):
     """Возвращает статистику по компаниям для модального окна."""
 
     def get(self, request, *args, **kwargs):
-        from django.db.models import Count, Q
-
         stats = Company.objects.aggregate(
             total=Count('id'),
             customers=Count('id', filter=Q(is_customer=True)),
@@ -1083,6 +1086,8 @@ class CompanyStatsView(LoginRequiredMixin, View):
         )
 
         return render(request, 'catalogs/partials/company_stats_modal.html', stats)
+
+
 
 
 # Вьюхи для Справочника Стадии подписания

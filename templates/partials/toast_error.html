@@ -1,0 +1,24 @@
+<!--templates/partials/toast_error.html-->
+<div class="toast align-items-center text-white bg-danger border-0 show"
+     role="alert"
+     id="{{ toast_id }}"
+     style="transition: opacity 0.5s ease;">
+    <div class="d-flex">
+        <div class="toast-body">
+            <i class="bi bi-exclamation-circle me-2"></i>{{ message }}
+        </div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto"
+                onclick="document.getElementById('{{ toast_id }}').remove()"></button>
+    </div>
+</div>
+<script>
+    setTimeout(function() {
+        var toast = document.getElementById('{{ toast_id }}');
+        if (toast) {
+            toast.style.opacity = '0';
+            setTimeout(function() {
+                if (toast && toast.parentNode) toast.remove();
+            }, 500);
+        }
+    }, {{ duration }});
+</script>

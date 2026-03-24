@@ -52,6 +52,38 @@
             display: inline-block;
             width: 210px;
         }
+
+        /* === СТИЛИ ДЛЯ ТОСТОВ === */
+        .toast-container {
+        z-index: 1060 !important;
+        position: fixed !important;
+        top: 1rem !important;
+        right: 1rem !important;
+        left: auto !important;  /* <-- ВАЖНО: не слева */
+        bottom: auto !important; /* <-- ВАЖНО: не снизу */
+        }
+
+        .toast {
+            min-width: 250px;
+            max-width: 350px;
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+        }
+
+        /* Анимация появления */
+        .toast.show {
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
     </style>
 
 </head>
@@ -221,6 +253,9 @@
     <main class="container mt-4">
         {% block content %}{% endblock %}
     </main>
+
+    <!-- === КОНТЕЙНЕР ДЛЯ ТОСТОВ (перед скриптами) === -->
+    <div id="toast-container" class="toast-container position-fixed top-0 end-0 p-3"></div>
 
     {% if user.is_authenticated %}
     <div id="chat-sound-container"
