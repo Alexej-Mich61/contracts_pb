@@ -135,15 +135,38 @@
     </div>
 </div>
 
-<!-- Кнопка добавления -->
-<button type="button"
-        class="btn btn-primary mb-3"
-        hx-get="{% url 'contract_core:company_create' %}"
-        hx-target="#modalContent"
-        data-bs-toggle="modal"
-        data-bs-target="#companyModal">
-    + Добавить компанию
-</button>
+<!-- Кнопки действий: слева "Добавить", справа "Печать" и "Excel" -->
+<div class="btn-toolbar justify-content-between mb-3" role="toolbar" aria-label="Toolbar with action buttons">
+
+    <!-- Левая группа: Добавить компанию -->
+    <div class="btn-group" role="group" aria-label="Add company">
+        <button type="button"
+                class="btn btn-primary"
+                hx-get="{% url 'contract_core:company_create' %}"
+                hx-target="#modalContent"
+                data-bs-toggle="modal"
+                data-bs-target="#companyModal">
+            <i class="bi bi-plus-lg"></i> Добавить компанию
+        </button>
+    </div>
+
+    <!-- Правая группа: Печать и Экспорт -->
+    <div class="btn-group" role="group" aria-label="Export buttons">
+        <button type="button"
+                class="btn btn-outline-secondary"
+                onclick="window.print();"
+                title="Распечатать текущую страницу">
+            <i class="bi bi-printer"></i> Печать
+        </button>
+
+        <a href="{% url 'contract_core:companies_list_excel' %}{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}"
+           class="btn btn-outline-success"
+           title="Экспортировать в Excel с учетом текущих фильтров">
+            <i class="bi bi-file-earmark-excel"></i> Excel
+        </a>
+    </div>
+
+</div>
 
 <!-- Таблица -->
 <table class="table table-striped table-hover">

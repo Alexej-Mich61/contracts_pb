@@ -85,6 +85,7 @@ urlpatterns = [
     path("catalogs/companies/add/", views.CompanyCreateView.as_view(), name="company_create"),
     path("catalogs/companies/<int:pk>/update/", views.CompanyUpdateView.as_view(), name="company_update"),
     path("catalogs/companies/stats/", views.CompanyStatsView.as_view(), name="company_stats"),
+    path("catalogs/companies/excel/", views.CompaniesListExcelView.as_view(), name="companies_list_excel"),
 
     # Справочники Стадий подписания контракта
     path(

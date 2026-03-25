@@ -1,5 +1,5 @@
 # apps/contract_core/views.py
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect, FileResponse
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse_lazy
@@ -58,6 +58,7 @@ from apps.contract_core.services.signing_stage_report_service import (
 )
 from apps.contract_core.services.toasts import toast_ok, toast_fail
 from .export_excel import SigningStageReportExporter
+from apps.contract_core.export_excel.companies_list_excel import export_companies_to_excel
 
 
 
@@ -1023,6 +1024,22 @@ class CompaniesListView(LoginRequiredMixin, ListView):
         return context
 
 
+class CompaniesListExcelView(LoginRequiredMixin, View):
+    def get(self, request, *args, **kwargs):
+        from apps.contract_core.services.company_filter_service import CompanyFilterService
+        filter_service = CompanyFilterService(request.GET)
+        companies = filter_service.filter()
+
+        file_obj, filename = export_companies_to_excel(companies)
+
+        response = FileResponse(
+            file_obj,
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        return response
+
+
 # c HTMX
 class CompanyCreateView(LoginRequiredMixin, CreateView):
     model = Company
@@ -1039,10 +1056,8 @@ class CompanyCreateView(LoginRequiredMixin, CreateView):
         self.object = form.save()
 
         if self.request.headers.get('HX-Request'):
-            # Теперь используем стандартную длительность (5 секунд)
             return toast_ok(
                 refresh_url=reverse_lazy('contract_core:companies_list')
-                # duration не передаём — будет 2000 мс по умолчанию
             )
 
         # Для обычного (не-HTMX) запроса оставляем стандартное поведение Django
