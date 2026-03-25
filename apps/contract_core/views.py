@@ -888,17 +888,23 @@ class AkCreateView(LoginRequiredMixin, CreateView):
 
     def form_valid(self, form):
         self.object = form.save()
-        messages.success(self.request, "АК успешно добавлен!")
 
         if self.request.headers.get('HX-Request'):
-            return HttpResponse(
-                '<script>window.location.reload()</script>',
-                headers={'HX-Trigger': 'akSaved'}
+            # modal_id указываем именно тот, который используется в шаблоне АК
+            return toast_ok(
+                refresh_url=reverse_lazy('contract_core:ak_list'),
+                modal_id="akModal"
             )
+
+        # Для обычного (не-HTMX) запроса
+        messages.success(self.request, "АК успешно добавлен!")
         return HttpResponseRedirect(self.success_url)
 
     def form_invalid(self, form):
+        if self.request.headers.get('HX-Request'):
+            return toast_fail(modal_id="akModal")
         return self.render_to_response(self.get_context_data(form=form))
+
 
 class AkUpdateView(LoginRequiredMixin, UpdateView):
     model = Ak
@@ -913,17 +919,23 @@ class AkUpdateView(LoginRequiredMixin, UpdateView):
 
     def form_valid(self, form):
         form.save()
-        messages.success(self.request, "АК успешно обновлён!")
 
         if self.request.headers.get('HX-Request'):
-            return HttpResponse(
-                '<script>window.location.reload()</script>',
-                headers={'HX-Trigger': 'akSaved'}
+            return toast_ok(
+                refresh_url=reverse_lazy('contract_core:ak_list'),
+                modal_id="akModal"
             )
+
+        messages.success(self.request, "АК успешно обновлён!")
         return HttpResponseRedirect(self.success_url)
 
     def form_invalid(self, form):
+        if self.request.headers.get('HX-Request'):
+            return toast_fail(modal_id="akModal")
         return self.render_to_response(self.get_context_data(form=form))
+
+
+
 
 class AkStatsView(LoginRequiredMixin, View):
     """Возвращает статистику по АК для модального окна."""

@@ -1,7 +1,7 @@
 # apps/contract_core/services/toasts.py
 """
-Упрощенный сервис HTMX-тостов.
-Только два типа: success (успешно сохранено) и error (ошибка сохранения).
+Универсальный сервис HTMX-тостов.
+Поддерживает разные модальные окна и разные справочники.
 """
 
 import uuid
@@ -12,7 +12,7 @@ from django.template.loader import render_to_string
 
 
 class ToastService:
-    DEFAULT_DURATION = 2000  # 5 секунд
+    DEFAULT_DURATION = 2000  # 2 секунды — как ты установил
 
     def __init__(self, is_success: bool = True, duration: Optional[int] = None):
         self.is_success = is_success
@@ -29,7 +29,7 @@ class ToastService:
         return render_to_string(template, context)
 
     def to_oob_swap(self) -> str:
-        """Теперь добавляем тост в конец контейнера, а не заменяем его полностью"""
+        """Добавляем тост в конец контейнера (поддержка нескольких тостов)"""
         toast_html = self.render()
         return f'<div hx-swap-oob="beforeend:#toast-container">{toast_html}</div>'
 
@@ -42,13 +42,15 @@ class ToastResponse(HttpResponse):
         refresh_url: Optional[str] = None,
         close_modal: bool = True,
         duration: Optional[int] = None,
+        modal_id: str = "companyModal",   # ← ключевой параметр для универсальности
         **kwargs,
     ):
+        self.modal_id = modal_id
         toast = ToastService(is_success=is_success, duration=duration)
         content = self._build_content(toast, close_modal, refresh_url)
         super().__init__(content=content, content_type='text/html', **kwargs)
 
-        # Полезный триггер (можно слушать в custom.js если нужно)
+        # Полезный триггер (можно использовать в custom.js при необходимости)
         self['HX-Trigger'] = json.dumps({'toastShown': {'success': is_success}})
 
     def _build_content(
@@ -59,17 +61,17 @@ class ToastResponse(HttpResponse):
         scripts = []
 
         if close_modal:
+            # Закрываем нужную модалку (у компаний — companyModal, у АК — akModal и т.д.)
             scripts.append(
-                'var modalEl = document.getElementById("companyModal");'
-                'if (modalEl) {'
-                '  var modal = bootstrap.Modal.getInstance(modalEl);'
-                '  if (modal) modal.hide();'
-                '}'
+                f'var modalEl = document.getElementById("{self.modal_id}");'
+                f'if (modalEl) {{'
+                f'  var modal = bootstrap.Modal.getInstance(modalEl);'
+                f'  if (modal) modal.hide();'
+                f'}}'
             )
 
-        # ←←← ГЛАВНОЕ ИСПРАВЛЕНИЕ ←←←
         if refresh_url:
-            # Ждём ровно столько же, сколько живёт тост + небольшой запас на fade-out
+            # Ждём, пока тост покажется + небольшая задержка на fade-out
             delay = toast.duration + 600
             scripts.append(
                 f'setTimeout(() => {{'
@@ -83,27 +85,34 @@ class ToastResponse(HttpResponse):
         return '\n'.join(parts)
 
 
-# Удобные функции (оставил те же сигнатуры)
+# ==================== Удобные функции ====================
+
 def toast_ok(
     refresh_url: Optional[str] = None,
     close_modal: bool = True,
     duration: Optional[int] = None,
+    modal_id: str = "companyModal",
 ) -> ToastResponse:
+    """Тост успеха + (опционально) обновление списка"""
     return ToastResponse(
         is_success=True,
         refresh_url=refresh_url,
         close_modal=close_modal,
         duration=duration,
+        modal_id=modal_id,
     )
 
 
 def toast_fail(
     close_modal: bool = False,
     duration: Optional[int] = None,
+    modal_id: str = "companyModal",
 ) -> ToastResponse:
+    """Тост ошибки (модалка обычно остаётся открытой)"""
     return ToastResponse(
         is_success=False,
         refresh_url=None,
         close_modal=close_modal,
         duration=duration,
+        modal_id=modal_id,
     )
