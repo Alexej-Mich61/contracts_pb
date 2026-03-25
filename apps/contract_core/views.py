@@ -831,7 +831,7 @@ class StatusSumReportExcelView(LoginRequiredMixin, View):
 
 
 
-# Справочник AK
+# Вьюхи Справочник AK
 class AkListView(LoginRequiredMixin, ListView):
     model = Ak
     template_name = "catalogs/ak_list.html"
@@ -905,7 +905,6 @@ class AkCreateView(LoginRequiredMixin, CreateView):
         if self.request.headers.get('HX-Request'):
             return toast_fail(modal_id="akModal")
         return self.render_to_response(self.get_context_data(form=form))
-
 
 class AkUpdateView(LoginRequiredMixin, UpdateView):
     model = Ak
