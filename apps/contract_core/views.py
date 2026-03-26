@@ -837,7 +837,6 @@ class AkListView(LoginRequiredMixin, ListView):
     template_name = "catalogs/ak_list.html"
     context_object_name = "aks"
     paginate_by = 25
-    ordering = ['-id']
 
     def get_paginate_by(self, queryset):
         filter_service = AkFilterService(self.request.GET)
@@ -845,11 +844,26 @@ class AkListView(LoginRequiredMixin, ListView):
             return self.paginate_by
         return 10
 
+    def get_ordering(self):
+        """Динамическое определение сортировки."""
+        filter_service = AkFilterService(self.request.GET)
+
+        # При активных фильтрах: регион → район → номер АК
+        if filter_service.has_active_filters():
+            return ['district__region__name', 'district__name', 'number']
+
+        # Без фильтров: последние добавленные (как раньше)
+        return ['-id']
+
     def get_queryset(self):
         filter_service = AkFilterService(self.request.GET)
         qs = filter_service.filter()
 
-        # Применяем срез если нет фильтров
+        # Применяем сортировку
+        ordering = self.get_ordering()
+        qs = qs.order_by(*ordering)
+
+        # Применяем срез только если нет фильтров
         if not filter_service.has_active_filters():
             qs = qs[:10]
 
@@ -863,6 +877,9 @@ class AkListView(LoginRequiredMixin, ListView):
 
         # Флаг для шаблона — показывать ли сообщение о лимите
         context['is_limited'] = not filter_service.has_active_filters()
+
+        # Флаг для шаблона — применена ли группировка
+        context['is_grouped'] = filter_service.has_active_filters()
 
         # Все регионы для выпадающего списка
         context['regions'] = Region.objects.all().order_by('name')
