@@ -16,7 +16,7 @@
             <div class="card border-primary h-100">
                 <div class="card-header fw-bold">Основные сведения</div>
                 <div class="card-body">
-                    <p><strong>Тиа договора:</strong> {{ contract.get_type_display }}</p>
+                    <p><strong>Тип договора:</strong> {{ contract.get_type_display }}</p>
                     <p><strong>ID:</strong> {{ contract.pk }}</p>
                     <p><strong>Заказчик:</strong> {{ contract.customer.name }} (ИНН: {{ contract.customer.inn }})</p>
                     <p><strong>Номер и дата: № </strong> {{ contract.number|default:"б/н" }} от {{ contract.date_concluded|date:"d.m.Y"|default:"—" }}</p>
@@ -71,14 +71,14 @@
                         <strong>Субподрядчик:</strong>
                         {{ obj.subcontractor.name|default:"—" }}<br>
                         <strong>Сумма общая (субконтракт):</strong>
-                        {{ obj.subcontractor.total_sum_subcontract|floatformat:2|default:"—"}} руб. <br>
+                        {{ obj.total_sum_subcontract|floatformat:2|default:"—" }} руб. <br>
                         <strong>Сумма в месяц (субконтракт):</strong>
-                        {{ obj.subcontractor.monthly_sum_subcontract|floatformat:2|default:"—" }} руб. <br>
+                        {{ obj.monthly_sum_subcontract|floatformat:2|default:"—" }} руб. <br>
                         <hr class="my-2">
                         <strong>АК:</strong><br>
                         {% for ak in obj.aks.all %}
-                        <strong>{{ ak.number }}</strong> - {{ ak.name }} {% if not forloop.last %}<br>
-                        {% endif %}{% empty %}—{% endfor %}
+                        <strong>{{ ak.number }}</strong> - {{ ak.name }} - {{ ak.address|default:"адрес не указан" }}{% if not forloop.last %}<br>{% endif %}
+                        {% empty %}—{% endfor %}
                     </div>
                     {% empty %}
                     <p class="text-muted">Нет объектов защиты</p>
@@ -190,6 +190,5 @@
     </div>
 </div>
 <div class="modal-footer">
-    <a href="{% url 'contract_core:contract_update' contract.pk %}" class="btn btn-primary">Редактировать</a>
     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
 </div>

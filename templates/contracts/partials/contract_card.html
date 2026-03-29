@@ -2,31 +2,46 @@
 {% load humanize %}
 
 <div class="col-12 mb-3">
-    <div class="card shadow-sm border">
+    <div class="card shadow-lg border">
         <!-- Шапка карточки: ключевая информация -->
         <div class="card-header bg-white py-2">
             <div class="row align-items-center g-2">
                 <!-- Заказчик и основное -->
                 <div class="col-12 col-lg-3">
                     <div class="d-flex align-items-center gap-2">
-                        <span class="badge bg-secondary">#{{ contract.pk }}</span>
-                        <h5 class="mb-0">
+                        <H5>
+                            <span class="badge bg-info">
                             <a href="#"
-                               class="text-decoration-none fw-bold text-dark"
+                               class="text-decoration-none fw-bold text-white"
+                               hx-get="{% url 'contract_core:contract_detail_htmx' contract.pk %}"
+                               hx-target="#modal-content"
+                               data-bs-toggle="modal"
+                               data-bs-target="#contractModal">
+                            # {{ contract.pk }}
+                            </a>
+                            </span>
+                        </H5>
+                        <h6 class="mb-0">
+                            <a href="#"
+                               class="text-decoration-none fw-bold text-primary"
                                hx-get="{% url 'contract_core:contract_detail_htmx' contract.pk %}"
                                hx-target="#modal-content"
                                data-bs-toggle="modal"
                                data-bs-target="#contractModal">
                                 {{ contract.customer.name|truncatechars:30 }}
                             </a>
-                        </h5>
+                            <small class="text-muted">ИНН: {{ contract.customer.inn }}</small>
+                            <br>
+                            <small class="text-secondary">Исп. </small>
+                            <small class="text-primary">{{ contract.executor.name|truncatechars:30 }}</small>
+                            <small class="text-muted">ИНН: {{ contract.executor.inn }}</small>
+                        </h6>
                     </div>
-                    <small class="text-muted">ИНН: {{ contract.customer.inn }}</small>
                 </div>
 
-                <!-- Финансы -->
+                    <!-- Финансы -->
                 <div class="col-6 col-lg-2 text-center border-start">
-                    <div class="small text-muted">Общая / мес.</div>
+<!--                    <div class="small text-muted">Общая / мес.</div>-->
                     <div class="fw-bold text-success">
                         {{ contract.total_sum|floatformat:0|intcomma }} ₽
                     </div>
@@ -37,25 +52,29 @@
 
                 <!-- Объекты и АК -->
                 <div class="col-6 col-lg-1 text-center border-start">
-                    <div class="small text-muted">Объекты</div>
-                    <div class="fw-bold">{{ contract.object_count }}</div>
-                    <div class="small text-muted">АК: {{ contract.ak_count }}</div>
+                    <div class="small text-muted">Об.: <strong>{{ contract.object_count }}</strong></div>
+                    <div class="small text-muted">АК: <strong>{{ contract.ak_count }}</strong></div>
                 </div>
 
-                <!-- Срок и статус -->
+                <!-- Срок, статус и итоговый акт -->
                 <div class="col-6 col-lg-2 text-center border-start">
-                    <div class="small text-muted">Срок</div>
                     <div class="small">
                         {{ contract.date_start|date:"d.m.Y" }} — {{ contract.date_end|date:"d.m.Y" }}
                     </div>
-                    <span class="badge {% if contract.status == 'active' %}bg-success{% elif contract.status == 'active_expires' %}bg-warning{% elif contract.status == 'active_expired' %}bg-danger{% elif contract.status == 'completed' %}bg-info{% else %}bg-secondary{% endif %}">
+                    <H6><span class="badge {% if contract.status == 'active' %}bg-success{% elif contract.status == 'active_expires' %}bg-warning{% elif contract.status == 'active_expired' %}bg-danger{% elif contract.status == 'completed' %}bg-info{% else %}bg-secondary{% endif %}">
                         {{ contract.get_status_display }}
                     </span>
+                        {% if contract.final_act and contract.final_act.present %}
+                        <span class="badge bg-success" title="Итоговый акт">Акт ✓</span>
+                        {% else %}
+                        <span class="badge bg-light text-dark border" title="Итоговый акт">Акт ✗</span>
+                        {% endif %}
+                    </H6>
                 </div>
 
                 <!-- Стадия подписания -->
                 <div class="col-6 col-lg-2 text-center border-start">
-                    <div class="small text-muted">Подписание</div>
+<!--                    <div class="small text-muted">Подписание</div>-->
                     {% if contract.signing_stage %}
                         <div class="fw-bold small">{{ contract.signing_stage.stage.name }}</div>
                         <small class="text-muted">{{ contract.signing_stage.changed_at|date:"d.m.Y" }}</small>
@@ -64,15 +83,10 @@
                     {% endif %}
                 </div>
 
-                <!-- Итоговый акт + работы -->
+                <!-- Роботы -->
                 <div class="col-12 col-lg-2 text-center border-start">
                     <div class="d-flex justify-content-center gap-2 align-items-center mb-1">
-                        <span class="badge bg-dark">{{ contract.work.name|truncatechars:15 }}</span>
-                        {% if contract.final_act and contract.final_act.present %}
-                            <span class="badge bg-success" title="Итоговый акт">Акт ✓</span>
-                        {% else %}
-                            <span class="badge bg-light text-dark border" title="Итоговый акт">Акт ✗</span>
-                        {% endif %}
+                        <span class="badge bg-dark">{{ contract.work.name|truncatechars:30 }}</span>
                     </div>
                     <!-- Кнопка разворачивания -->
                     <button class="btn btn-sm btn-outline-primary w-100"
@@ -97,12 +111,9 @@
                         </h6>
                         <table class="table table-sm table-borderless mb-0 bg-white rounded">
                             <tr>
-                                <td class="text-muted">Номер:</td>
-                                <td class="fw-bold">{{ contract.number|default:"б/н" }}</td>
-                            </tr>
-                            <tr>
-                                <td class="text-muted">Дата:</td>
-                                <td>{{ contract.date_concluded|date:"d.m.Y"|default:"—" }}</td>
+                                <td class="text-muted">№:</td>
+                                <td class="fw-bold">{{ contract.number|default:"б/н" }}
+                                    от {{ contract.date_concluded|date:"d.m.Y"|default:"—" }}</td>
                             </tr>
                             <tr>
                                 <td class="text-muted">Исполнитель:</td>
@@ -124,6 +135,7 @@
                                 </td>
                             </tr>
                         </table>
+
                     </div>
 
                     <!-- Колонка 2: Финансы детально -->
@@ -172,11 +184,12 @@
                                     </div>
                                 {% endif %}
                                 {% if obj.aks.all %}
+                                <H6>
                                     <div class="mt-1">
                                         {% for ak in obj.aks.all %}
-                                            <span class="badge bg-secondary me-1">АК {{ ak.number }}</span>
-                                        {% endfor %}
+                                        <span class="badge bg-secondary me-1">АК {{ ak.number }}</span> {% endfor %}
                                     </div>
+                                </H6>
                                 {% endif %}
                             </div>
                         {% empty %}
