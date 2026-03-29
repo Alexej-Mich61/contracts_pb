@@ -7,9 +7,9 @@ from django.template.defaultfilters import filesizeformat
 
 
 
-
+# Валидатор для загружаемых файлов (размер и раширение файла)
 MAX_FILE_SIZE = 100 * 1024 * 1024        # 100 МБ
-FORBIDDEN_EXT = {".exe", ".bat", ".cmd", ".com", ".scr", ".pif", ".vbs"}
+FORBIDDEN_EXT = {".exe", ".bat", ".cmd", ".com", ".scr", ".pif", ".vbs"}  # недопустимые расширения файлов
 
 def file_validator(file):
     ext = os.path.splitext(file.name)[1].lower()
@@ -22,7 +22,7 @@ def file_validator(file):
         )
 
 
-
+# Валидатор для проверки корректности ИНН
 def inn_validator(value: int):
     s = str(value)
     if len(s) not in (10, 12):

@@ -107,5 +107,4 @@ urlpatterns = [
         views.SystemTypeListView.as_view(),
         name="system_type_list"
     ),
-
 ]

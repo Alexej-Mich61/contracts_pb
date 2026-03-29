@@ -63,9 +63,9 @@ from apps.contract_core.export_excel.companies_list_excel import export_companie
 
 
 
-# auditlog (История по договору)
 # ========== HTMX ЭНДПОИНТЫ ==========
 
+# auditlog (История по договору)
 class ContractHistoryHtmxView(LoginRequiredMixin, ContractAccessMixin, DetailView):
     """HTMX эндпоинт для истории договора в модальном окне"""
     model = Contract
@@ -89,7 +89,7 @@ class ContractHistoryHtmxView(LoginRequiredMixin, ContractAccessMixin, DetailVie
         context['logs'] = logs
         return self.render_to_response(context)
 
-
+# Подробные детали по договору
 class ContractDetailHtmxView(LoginRequiredMixin, ContractAccessMixin, DetailView):
     """HTMX эндпоинт для деталей договора в модальном окне"""
     model = Contract
@@ -951,9 +951,7 @@ class AkUpdateView(LoginRequiredMixin, UpdateView):
             return toast_fail(modal_id="akModal")
         return self.render_to_response(self.get_context_data(form=form))
 
-
-
-
+# для модального окна статистики по АК
 class AkStatsView(LoginRequiredMixin, View):
     """Возвращает статистику по АК для модального окна."""
 

@@ -9,56 +9,65 @@
     <!-- Приветствие -->
     <div class="container py-4">
         <div class="text-center mb-4">
-            <h1 class="fw-bold mb-3">Добро пожаловать в систему управления контрактами!</h1>
+            <h2 class="fw-bold mb-3">Добро пожаловать в систему управления контрактами!</h2>
             <p class="lead text-muted mb-0">Здесь вы можете управлять всеми аспектами контрактов, от создания до отчетности.</p>
         </div>
     </div>
 
-    <!-- Полноширокий баннер-карусель -->
-    <div id="homeBannerCarousel" class="carousel slide w-100" data-bs-ride="carousel" style="max-height: 400px;">
-        <!-- Индикаторы -->
-        <div class="carousel-indicators">
-            <button type="button" data-bs-target="#homeBannerCarousel" data-bs-slide-to="0" class="active"></button>
-            <button type="button" data-bs-target="#homeBannerCarousel" data-bs-slide-to="1"></button>
-        </div>
+    <!-- Полноширокий баннер-карусель со скругленными углами -->
+    <div class="container mb-4">
+        <div id="homeBannerCarousel"
+             class="carousel slide w-100 rounded-4 overflow-hidden shadow-sm"
+             data-bs-ride="carousel"
+             style="max-height: 400px;">
+            <!-- Индикаторы -->
+            <div class="carousel-indicators">
+                <button type="button" data-bs-target="#homeBannerCarousel" data-bs-slide-to="0" class="active"></button>
+                <button type="button" data-bs-target="#homeBannerCarousel" data-bs-slide-to="1"></button>
+            </div>
 
-        <!-- Слайды -->
-        <div class="carousel-inner">
-            <div class="carousel-item active">
-                <img src="{% static 'images/banner_contracts.jpg' %}"
-                     class="d-block w-100"
-                     alt="Контракты"
-                     style="height: 400px; object-fit: cover;">
-                <div class="carousel-caption d-none d-md-block pb-4">
-                    <h4 class="fw-semibold">Управление контрактами</h4>
-                    <p>Создавайте и отслеживайте договоры</p>
+            <!-- Слайды -->
+            <div class="carousel-inner">
+                <div class="carousel-item active">
+                    <img src="{% static 'images/banner_contracts.jpg' %}"
+                         class="d-block w-100"
+                         alt="Контракты"
+                         style="height: 400px; object-fit: cover;">
+                    <div class="carousel-caption banner-caption d-none d-md-block">
+                        <div class="caption-content">
+                            <h4 class="fw-semibold mb-2">Управление контрактами</h4>
+                            <p class="mb-0">Создавайте и отслеживайте договоры</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="carousel-item">
+                    <img src="{% static 'images/banner_reports.jpg' %}"
+                         class="d-block w-100"
+                         alt="Отчеты"
+                         style="height: 400px; object-fit: cover;">
+                    <div class="carousel-caption banner-caption d-none d-md-block">
+                        <div class="caption-content">
+                            <h4 class="fw-semibold mb-2">Аналитика и отчеты</h4>
+                            <p class="mb-0">Формируйте детальную отчетность</p>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <div class="carousel-item">
-                <img src="{% static 'images/banner_reports.jpg' %}"
-                     class="d-block w-100"
-                     alt="Отчеты"
-                     style="height: 400px; object-fit: cover;">
-                <div class="carousel-caption d-none d-md-block pb-4">
-                    <h4 class="fw-semibold">Аналитика и отчеты</h4>
-                    <p>Формируйте детальную отчетность</p>
-                </div>
-            </div>
-        </div>
 
-        <!-- Управление -->
-        <button class="carousel-control-prev" type="button" data-bs-target="#homeBannerCarousel" data-bs-slide="prev">
-            <span class="carousel-control-prev-icon"></span>
-        </button>
-        <button class="carousel-control-next" type="button" data-bs-target="#homeBannerCarousel" data-bs-slide="next">
-            <span class="carousel-control-next-icon"></span>
-        </button>
+            <!-- Управление -->
+            <button class="carousel-control-prev" type="button" data-bs-target="#homeBannerCarousel" data-bs-slide="prev">
+                <span class="carousel-control-prev-icon"></span>
+            </button>
+            <button class="carousel-control-next" type="button" data-bs-target="#homeBannerCarousel" data-bs-slide="next">
+                <span class="carousel-control-next-icon"></span>
+            </button>
+        </div>
     </div>
 </div>
 
 <!-- Дублирование меню -->
 <div class="container py-4">
-    <h2 class="fw-semibold mb-4 text-center">Разделы системы</h2>
+    <h3 class="fw-semibold mb-4 text-center">Разделы системы</h3>
 
     <div class="row g-4 mb-5">
         <div class="col-md-6 col-lg-3">
@@ -165,74 +174,9 @@
         </div>
     </div>
 </div>
-<!-- Подвал (только на главной, светлый, на всю ширину) -->
-<footer class="bg-light border-top mt-5">
-  <div class="container py-4">
-    <div class="row g-4 text-center text-md-start">
-      <!-- Колонка 1: О проекте -->
-      <div class="col-md-4">
-        <h5 class="fw-bold mb-3">Контракты PB</h5>
-        <p class="small text-muted mb-0">
-          Система управления договорами и объектами защиты.<br>
-          Создавайте, отслеживайте и анализируйте всё в одном месте.
-        </p>
-        <p class="small text-muted mt-3 mb-0">
-          © {% now "Y" %} Контракты PB. Все права защищены.
-        </p>
-      </div>
 
-      <!-- Колонка 2: Быстрые ссылки -->
-      <div class="col-md-4">
-        <h5 class="fw-bold mb-3">Разделы системы</h5>
-        <ul class="list-unstyled small">
-          <li class="mb-2">
-            <a href="{% url 'contract_core:contract_list' %}" class="text-dark text-decoration-none hover-link">
-              Контракты
-            </a>
-          </li>
-          <li class="mb-2">
-            <a href="{% url 'contract_core:customer_reports' %}" class="text-dark text-decoration-none hover-link">
-              Отчёты
-            </a>
-          </li>
-          <li class="mb-2">
-            <a href="{% url 'chat:chat' %}" class="text-dark text-decoration-none hover-link">
-              Чат
-            </a>
-          </li>
-          <li class="mb-2">
-            <a href="{% url 'faq:list' %}" class="text-dark text-decoration-none hover-link">
-              FAQ / Справка
-            </a>
-          </li>
-        </ul>
-      </div>
-
-      <!-- Колонка 3: Контакты -->
-      <div class="col-md-4">
-        <h5 class="fw-bold mb-3">Связь с нами</h5>
-        <ul class="list-unstyled small">
-          <li class="mb-2">
-            <i class="bi bi-envelope me-2"></i>
-            <a href="mailto:support@contracts-pb.ru" class="text-dark text-decoration-none hover-link">
-              spas-expert@yandex.ru
-            </a>
-          </li>
-          <li class="mb-2">
-            <i class="bi bi-telephone me-2"></i>
-            <a href="tel:+78001234567" class="text-dark text-decoration-none hover-link">
-              +7 (929) 818-00-99
-            </a>
-          </li>
-          <li class="mb-2">
-            <i class="bi bi-geo-alt me-2"></i>
-            г. Ростов-на-Дону, ул. Лекальная, 9/38
-          </li>
-        </ul>
-      </div>
-    </div>
-  </div>
-</footer>
+<!-- Подвал через include -->
+{% include "partials/footer.html" %}
 
 <style>
     .hover-shadow:hover {
@@ -251,12 +195,59 @@
     .carousel-indicators button.active {
         background-color: #fff;
     }
-    .hover-link:hover {
-    color: #0d6efd !important;
-    text-decoration: underline !important;
+
+    /* Стили для баннера с подписями слева с отступом */
+    .banner-caption {
+        left: 120px;
+        right: auto;
+        top: 0;
+        bottom: 0;
+        width: auto;
+        display: flex !important;
+        align-items: center;
+        padding: 2rem 0;
+        background: transparent;
+        text-align: left;
     }
-  footer {
-    border-top: 1px solid #dee2e6;
-   }
+
+    /* Эффект матового стекла для подписи */
+    .caption-content {
+        background: rgba(255, 255, 255, 0.15); /* Полупрозрачный белый фон */
+        backdrop-filter: blur(12px); /* Размытие фона под элементом */
+        -webkit-backdrop-filter: blur(12px); /* Для Safari */
+        padding: 1.5rem 2rem;
+        border-radius: 0.75rem;
+        color: #fff;
+        box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3); /* Мягкая тень */
+        border: 1px solid rgba(255, 255, 255, 0.2); /* Тонкая белая рамка */
+        max-width: 350px;
+    }
+
+    .caption-content h4 {
+        color: #fff;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3); /* Тень для читаемости */
+    }
+
+    .caption-content p {
+        color: rgba(255, 255, 255, 0.95);
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3); /* Тень для читаемости */
+    }
+
+    /* Адаптивность для мобильных */
+    @media (max-width: 991.98px) {
+        .banner-caption {
+            left: 0;
+            right: 0;
+            width: 100%;
+            justify-content: center;
+            align-items: flex-end;
+            padding: 0 1rem 3rem 1rem;
+        }
+
+        .caption-content {
+            width: 100%;
+            max-width: none;
+        }
+    }
 </style>
 {% endblock %}

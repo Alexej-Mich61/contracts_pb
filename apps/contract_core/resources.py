@@ -6,6 +6,8 @@ from .validators import inn_validator
 from django.core.exceptions import ValidationError
 
 
+
+# Импорт компаний из Эксель
 class CustomBooleanWidget(BooleanWidget):
     """Кастомный виджет для корректной обработки 1/0 из Excel."""
 
@@ -107,6 +109,8 @@ class CompanyResource(resources.ModelResource):
             raise ValueError("Ошибки импорта:\n" + "\n".join(errors))
 
 
+
+# Импорт АК из Эксель
 class AkResource(resources.ModelResource):
     """Ресурс для импорта/экспорта АК."""
     class Meta:
