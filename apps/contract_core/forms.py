@@ -19,6 +19,9 @@ from .models import (
 )
 from .validators import file_validator
 
+
+# ========== СПРАВОЧНИКИ ==========
+# Формы для управления справочными данными (АК, Компании)
 # форма АК
 class AkForm(forms.ModelForm):
     class Meta:
@@ -37,8 +40,19 @@ class AkForm(forms.ModelForm):
         self.fields['district'].label_from_instance = lambda obj: f"{obj.region.name} – {obj.name}"
 
 
+# ========== ДОГОВОР (ОСНОВНОЕ) ==========
+# Основная форма договора и связанные с ней
 # форма КОМПАНИИ
 class CompanyForm(forms.ModelForm):
+    """
+       Форма договора с динамической фильтрацией через HTMX.
+
+       Используется в:
+           - views.ContractCreateView
+           - views.ContractUpdateView
+           - templates/contracts/contract_form.html
+       """
+
     class Meta:
         model = Company
         fields = [
@@ -76,7 +90,6 @@ class CompanyForm(forms.ModelForm):
         if not any(roles):
             raise forms.ValidationError("Необходимо выбрать хотя бы одну роль.")
         return cleaned_data
-
 
 
 # форма контракта
@@ -276,7 +289,13 @@ class ContractForm(forms.ModelForm):
 
 
 class ContractSigningStageForm(forms.ModelForm):
-    """Форма стадии подписания договора"""
+    """
+    Форма стадии подписания договора.
+
+    Используется в:
+        - views.ContractCreateUpdateMixin (inline в форме договора)
+        - templates/contracts/contract_form.html
+    """
 
     class Meta:
         model = ContractSigningStage
@@ -297,7 +316,13 @@ class ContractSigningStageForm(forms.ModelForm):
 
 
 class ContractSystemCheckForm(forms.ModelForm):
-    """Форма для отметки проверки системы (используется в шаблоне с кнопкой)"""
+    """
+    Форма для отметки проверки системы.
+
+    Используется в:
+        - views.MarkSystemCheckView
+        - templates/contracts/contract_form.html (вкладка "Системы")
+    """
 
     class Meta:
         model = ContractSystemCheck
@@ -315,7 +340,13 @@ class ContractSystemCheckForm(forms.ModelForm):
 
 
 class FinalActForm(forms.ModelForm):
-    """Форма итогового акта"""
+    """
+        Форма итогового акта.
+
+        Используется в:
+            - views.ContractCreateUpdateMixin (inline в форме договора)
+            - templates/contracts/contract_form.html
+        """
 
     class Meta:
         model = FinalAct
@@ -352,7 +383,13 @@ class FinalActForm(forms.ModelForm):
 
 
 class InterimActForm(forms.ModelForm):
-    """Форма промежуточного акта (formset)"""
+    """
+    Форма промежуточного акта (formset).
+
+    Используется в:
+        - views.ContractCreateUpdateMixin (inline formset)
+        - templates/contracts/contract_form.html
+    """
 
     class Meta:
         model = InterimAct
@@ -389,8 +426,18 @@ InterimActFormSet = forms.inlineformset_factory(
 )
 
 
+# ========== ОБЪЕКТЫ ЗАЩИТЫ ==========
+# Формы для работы с объектами защиты внутри договора
 class ProtectionObjectForm(forms.ModelForm):
-    """Форма объекта защиты с каскадным выбором региона→района"""
+    """
+    Форма объекта защиты с каскадным выбором региона→района.
+
+    Используется в:
+        - views.ContractCreateUpdateMixin (inline formset)
+        - templates/contracts/contract_form.html
+        - HTMX эндпоинт: views.ContractFormFilterDistrictsByRegionView
+          (для обновления поля district при смене региона)
+    """
 
     region = forms.ModelChoiceField(
         queryset=Region.objects.all(),
@@ -479,20 +526,25 @@ ProtectionObjectFormSet = forms.inlineformset_factory(
 
 
 class AkSearchForm(forms.Form):
-    """Форма поиска АК для добавления к объекту защиты"""
+    """
+   Форма поиска АК для добавления к объекту защиты.
 
-    search_query = forms.CharField(
-        label="Поиск АК",
-        max_length=100,
-        required=False,
-        widget=forms.TextInput(attrs={
-            'class': 'form-control',
-            'placeholder': 'ID, номер или название АК...',
-            'hx-get': '',  # URL поиска
-            'hx-trigger': 'keyup changed delay:400ms',
-            'hx-target': '#ak-search-results',
-            'autocomplete': 'off',
-        })
-    )
+   Используется в:
+       - templates/contracts/contract_form.html (модальное окно поиска АК)
+       - HTMX эндпоинт: views.AkSearchView
+   """
 
 
+search_query = forms.CharField(
+    label="Поиск АК",
+    max_length=100,
+    required=False,
+    widget=forms.TextInput(attrs={
+        'class': 'form-control',
+        'placeholder': 'ID, номер или название АК...',
+        'hx-get': '',  # URL поиска
+        'hx-trigger': 'keyup changed delay:400ms',
+        'hx-target': '#ak-search-results',
+        'autocomplete': 'off',
+    })
+)

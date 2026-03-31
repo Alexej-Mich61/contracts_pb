@@ -50,7 +50,7 @@
                         <div class="col-md-3">
                             <label class="form-label">Вид работы</label>
                             <div id="work-select-container">
-                                {% include "contracts/partials/work_select.html" with works=filter_data.works selected_work=request.GET.work %}
+                                {% include "contracts/partials/partials_contract_list_filter/_work_select.html" with works=filter_data.works selected_work=request.GET.work %}
                             </div>
                         </div>
 
@@ -142,7 +142,7 @@
                         <div class="col-md-3">
                             <label class="form-label">Район</label>
                             <div id="district-select-container">
-                                {% include "contracts/partials/district_select.html" with districts=districts selected_district=request.GET.district %}
+                                {% include "contracts/partials/partials_contract_list_filter/_district_select.html" with districts=districts selected_district=request.GET.district %}
                             </div>
                         </div>
 
@@ -301,8 +301,8 @@ document.querySelectorAll('.filter-dependent').forEach(function(select) {
 function resetFilter() {
     document.getElementById('contract-filter-form').reset();
     // Сбрасываем динамические списки
-    document.getElementById('work-select-container').innerHTML = '<select name="work" class="form-select form-select-sm"><option value="">Все работы</option></select>';
-    document.getElementById('district-select-container').innerHTML = '<select name="district" class="form-select form-select-sm"><option value="">Все районы</option></select>';
+    document.getElementById('work-select-container').innerHTML = '<select name="work" id="work-select" class="form-select form-select-sm"><option value="">Все работы</option></select>';
+    document.getElementById('district-select-container').innerHTML = '<select name="district" id="district-select" class="form-select form-select-sm"><option value="">Все районы</option></select>';
     // Отправляем пустой фильтр
     htmx.trigger('#contract-filter-form', 'submit');
 }

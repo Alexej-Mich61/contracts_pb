@@ -431,38 +431,45 @@ class ContractDeleteView(LoginRequiredMixin, ContractAccessMixin, DeleteView):
         return redirect(self.get_success_url())
 
 
-# ========== ВСПОМОГАТЕЛЬНЫЕ ВЬЮХИ ==========
+# ========== ВСПОМОГАТЕЛЬНЫЕ ВЬЮХИ ДЛЯ ФИЛЬТРА СПИСКА ДОГОВОРОВ ==========
+# Эти вьюхи используются в contract_filter.html для динамической загрузки
+# зависимых полей (работы по типу договора, районы по региону)
 
 class FilterWorksView(LoginRequiredMixin, View):
-    """HTMX: получить работы по типу договора"""
+    """HTMX: получить работы по типу договора (для фильтра списка)"""
 
     def get(self, request):
         contract_type = request.GET.get('contract_type')
         works = ContractFilterService.get_works_by_contract_type(contract_type)
         selected_work = request.GET.get('work', '')
 
-        return render(request, 'contracts/partials/work_select.html', {
+        # ОБНОВЛЁННЫЙ ПУТЬ: шаблон переименован и перемещён
+        return render(request, 'contracts/partials/partials_contract_list_filter/_work_select.html', {
             'works': works,
             'selected_work': selected_work
         })
 
 
 class FilterDistrictsView(LoginRequiredMixin, View):
-    """HTMX: получить районы по региону"""
+    """HTMX: получить районы по региону (для фильтра списка)"""
 
     def get(self, request):
         region_id = request.GET.get('region')
         districts = ContractFilterService.get_districts_by_region(region_id)
         selected_district = request.GET.get('district', '')
 
-        return render(request, 'contracts/partials/district_select.html', {
+        # ОБНОВЛЁННЫЙ ПУТЬ: шаблон переименован и перемещён
+        return render(request, 'contracts/partials/partials_contract_list_filter/_district_select.html', {
             'districts': districts,
             'selected_district': selected_district
         })
 
 
-class FilterExecutorsView(LoginRequiredMixin, View):
-    """HTMX: получить исполнителей по типу договора"""
+# ========== ВСПОМОГАТЕЛЬНЫЕ ВЬЮХИ ДЛЯ ФОРМЫ ДОГОВОРА ==========
+# Эти вьюхи используются в contract_form.html для динамической загрузки полей
+
+class ContractFormFilterExecutorsView(LoginRequiredMixin, View):
+    """HTMX: получить исполнителей по типу договора (для формы договора)"""
 
     def get(self, request):
         contract_type = request.GET.get('type')
@@ -492,8 +499,8 @@ class FilterExecutorsView(LoginRequiredMixin, View):
         })
 
 
-class FilterWorksView(LoginRequiredMixin, View):
-    """HTMX: получить работы по типу договора"""
+class ContractFormFilterWorksView(LoginRequiredMixin, View):
+    """HTMX: получить работы по типу договора (для формы договора)"""
 
     def get(self, request):
         contract_type = request.GET.get('type')
@@ -520,7 +527,7 @@ class FilterWorksView(LoginRequiredMixin, View):
 
 
 class CustomerSearchView(LoginRequiredMixin, View):
-    """HTMX: поиск заказчика по названию или ИНН"""
+    """HTMX: поиск заказчика по названию или ИНН (для формы договора)"""
 
     def get(self, request):
         query = request.GET.get('q', '').strip()
@@ -539,8 +546,8 @@ class CustomerSearchView(LoginRequiredMixin, View):
         })
 
 
-class FilterDistrictsByRegionView(LoginRequiredMixin, View):
-    """HTMX: получить районы по выбранному региону (для объекта защиты)"""
+class ContractFormFilterDistrictsByRegionView(LoginRequiredMixin, View):
+    """HTMX: получить районы по выбранному региону (для формы договора)"""
 
     def get(self, request):
         region_id = request.GET.get('region')
@@ -558,7 +565,7 @@ class FilterDistrictsByRegionView(LoginRequiredMixin, View):
 
 
 class AkSearchView(LoginRequiredMixin, View):
-    """HTMX: поиск АК по ID, номеру или названию"""
+    """HTMX: поиск АК по ID, номеру или названию (для формы договора)"""
 
     def get(self, request):
         query = request.GET.get('q', '').strip()
@@ -585,7 +592,7 @@ class AkSearchView(LoginRequiredMixin, View):
 
 
 class DynamicFieldsView(LoginRequiredMixin, View):
-    """HTMX: обновление всех динамических полей при смене типа договора"""
+    """HTMX: обновление всех динамических полей при смене типа договора (для формы договора)"""
 
     def get(self, request):
         contract_type = request.GET.get('type')

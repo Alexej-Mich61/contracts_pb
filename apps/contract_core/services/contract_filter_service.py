@@ -318,7 +318,13 @@ class ContractFilterService:
 
     @staticmethod
     def get_works_by_contract_type(contract_type):
-        """Получить работы по типу договора"""
+        """
+        Получить работы по типу договора.
+
+        Используется в:
+            - views.FilterWorksView (для фильтра списка договоров)
+            - templates/contracts/partials/partials_contract_list_filter/_work_select.html
+        """
         if not contract_type:
             return Work.objects.filter(is_active=True)
 
@@ -330,7 +336,13 @@ class ContractFilterService:
 
     @staticmethod
     def get_districts_by_region(region_id):
-        """Получить районы по региону"""
+        """
+        Получить районы по региону.
+
+        Используется в:
+            - views.FilterDistrictsView (для фильтра списка договоров)
+            - templates/contracts/partials/partials_contract_list_filter/_district_select.html
+        """
         if region_id:
             return District.objects.filter(region_id=region_id)
         return District.objects.all()

@@ -7,44 +7,77 @@ from . import views
 app_name = "contract_core"
 
 urlpatterns = [
-    # Договоры (объединённый подход)
-    # Список договоров (главная страница)
+    # ========== СПИСОК ДОГОВОРОВ И ФИЛЬТРАЦИЯ ==========
+    # Главная страница списка договоров
     path("contracts/", views.ContractListView.as_view(), name="contract_list"),
 
-    # HTMX эндпоинты
-    path("contracts/filter/", views.ContractListHtmxView.as_view(), name="contract_list_htmx"),
-    path("contracts/filter/works/", views.FilterWorksView.as_view(), name="filter_works"),
-    path("contracts/filter/districts/", views.FilterDistrictsView.as_view(), name="filter_districts"),
-    # HTMX эндпоинты для формы договора
-    path("contracts/filter/executors/",
-         views.FilterExecutorsView.as_view(),
-         name="filter_executors"),
-    path("contracts/filter/works/",
-         views.FilterWorksView.as_view(),
-         name="filter_works"),
-    path("contracts/search/customers/",
-         views.CustomerSearchView.as_view(),
-         name="search_customers"),
-    path("contracts/filter/dynamic-fields/",
-         views.DynamicFieldsView.as_view(),
-         name="dynamic_fields"),
-    path("contracts/filter/districts-by-region/",
-         views.FilterDistrictsByRegionView.as_view(),
-         name="filter_districts_by_region"),
-    path("contracts/search/ak/",
-         views.AkSearchView.as_view(),
-         name="search_ak"),
+    # HTMX эндпоинты для фильтра списка договоров (contract_filter.html)
+    # Используются в: templates/contracts/partials/contract_filter.html
+    path(
+        "contracts/filter/",
+        views.ContractListHtmxView.as_view(),
+        name="contract_list_htmx"
+    ),
+    path(
+        "contracts/filter/works/",
+        views.FilterWorksView.as_view(),  # Возвращает _work_select.html
+        name="filter_works"
+    ),
+    path(
+        "contracts/filter/districts/",
+        views.FilterDistrictsView.as_view(),  # Возвращает _district_select.html
+        name="filter_districts"
+    ),
 
-    # Действия с договором
-    path("contracts/<int:contract_pk>/systems/<int:system_type_pk>/mark/",
-         views.MarkSystemCheckView.as_view(),
-         name="mark_system_check"),
-    path("contracts/<int:contract_pk>/objects/<int:object_pk>/ak/<int:ak_pk>/add/",
-         views.AddAkToObjectView.as_view(),
-         name="add_ak_to_object"),
-    path("contracts/<int:contract_pk>/objects/<int:object_pk>/ak/<int:ak_pk>/remove/",
-         views.RemoveAkFromObjectView.as_view(),
-         name="remove_ak_from_object"),
+    # ========== HTMX ЭНДПОИНТЫ ДЛЯ ФОРМЫ ДОГОВОРА ==========
+    # Используются в: templates/contracts/contract_form.html и related partials
+    path(
+        "contracts/form/executors/",
+        views.ContractFormFilterExecutorsView.as_view(),
+        name="contract_form_executors"
+    ),
+    path(
+        "contracts/form/works/",
+        views.ContractFormFilterWorksView.as_view(),
+        name="contract_form_works"
+    ),
+    path(
+        "contracts/form/customers/search/",
+        views.CustomerSearchView.as_view(),
+        name="search_customers"
+    ),
+    path(
+        "contracts/form/dynamic-fields/",
+        views.DynamicFieldsView.as_view(),
+        name="dynamic_fields"
+    ),
+    path(
+        "contracts/form/districts-by-region/",
+        views.ContractFormFilterDistrictsByRegionView.as_view(),
+        name="filter_districts_by_region"
+    ),
+    path(
+        "contracts/form/ak/search/",
+        views.AkSearchView.as_view(),
+        name="search_ak"
+    ),
+
+    # ========== ДЕЙСТВИЯ С ДОГОВОРОМ ==========
+    path(
+        "contracts/<int:contract_pk>/systems/<int:system_type_pk>/mark/",
+        views.MarkSystemCheckView.as_view(),
+        name="mark_system_check"
+    ),
+    path(
+        "contracts/<int:contract_pk>/objects/<int:object_pk>/ak/<int:ak_pk>/add/",
+        views.AddAkToObjectView.as_view(),
+        name="add_ak_to_object"
+    ),
+    path(
+        "contracts/<int:contract_pk>/objects/<int:object_pk>/ak/<int:ak_pk>/remove/",
+        views.RemoveAkFromObjectView.as_view(),
+        name="remove_ak_from_object"
+    ),
 
 
     # Форма создания/редактирования (отдельная страница)
