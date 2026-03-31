@@ -1,4 +1,4 @@
-<!--templates/catalogs/companies_list.html-->
+<!-- templates/catalogs/companies_list.html -->
 {% extends "base.html" %}
 {% block title %}Справочник компаний{% endblock %}
 
@@ -24,11 +24,27 @@
 
 <!-- Модальное окно статистики -->
 <div class="modal fade" id="statsModal" tabindex="-1" aria-labelledby="statsModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">  <!-- было modal-sm, стало modal-lg -->
+    <div class="modal-dialog modal-lg">
         <div class="modal-content" id="statsModalContent">
-            <!-- Контент загружается через HTMX -->
             <div class="modal-header">
                 <h5 class="modal-title" id="statsModalLabel">Загрузка...</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Загрузка...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно детальной информации о компании -->
+<div class="modal fade" id="companyDetailModal" tabindex="-1" aria-labelledby="companyDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content" id="companyDetailModalContent">
+            <div class="modal-header">
+                <h5 class="modal-title" id="companyDetailModalLabel">Загрузка...</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body text-center">
@@ -146,7 +162,7 @@
                 hx-target="#modalContent"
                 data-bs-toggle="modal"
                 data-bs-target="#companyModal">
-            <i class="bi bi-plus-lg"></i> Добавить компанию
+            <i class="bi bi-plus-lg me-1"></i>Добавить компанию
         </button>
     </div>
 
@@ -156,13 +172,13 @@
                 class="btn btn-outline-secondary"
                 onclick="window.print();"
                 title="Распечатать текущую страницу">
-            <i class="bi bi-printer"></i> Печать
+            <i class="bi bi-printer me-1"></i>Печать
         </button>
 
         <a href="{% url 'contract_core:companies_list_excel' %}{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}"
            class="btn btn-outline-success"
            title="Экспортировать в Excel с учетом текущих фильтров">
-            <i class="bi bi-file-earmark-excel"></i> Excel
+            <i class="bi bi-file-earmark-excel me-1"></i>Excel
         </a>
     </div>
 
@@ -179,6 +195,7 @@
       <th>Телефон</th>
       <th>Роли</th>
       <th>Уведомление</th>
+      <th class="text-center" style="width: 80px;">Действия</th>
     </tr>
   </thead>
   <tbody>
@@ -186,19 +203,21 @@
       <tr>
         <td>
           <a href="#"
-             hx-get="{% url 'contract_core:company_update' company.pk %}"
-             hx-target="#modalContent"
+             class="text-decoration-none"
+             hx-get="{% url 'contract_core:company_detail_htmx' company.pk %}"
+             hx-target="#companyDetailModalContent"
              data-bs-toggle="modal"
-             data-bs-target="#companyModal">
+             data-bs-target="#companyDetailModal">
             {{ company.pk }}
           </a>
         </td>
         <td>
           <a href="#"
-             hx-get="{% url 'contract_core:company_update' company.pk %}"
-             hx-target="#modalContent"
+             class="text-decoration-none fw-medium"
+             hx-get="{% url 'contract_core:company_detail_htmx' company.pk %}"
+             hx-target="#companyDetailModalContent"
              data-bs-toggle="modal"
-             data-bs-target="#companyModal">
+             data-bs-target="#companyDetailModal">
             {{ company.name }}
           </a>
           {% if company.description %}
@@ -207,7 +226,7 @@
             </small>
           {% endif %}
         </td>
-        <td>{{ company.inn }}</td>
+        <td>{{ company.inn|default:"—" }}</td>
         <td>
           {% if company.email %}
             <a href="mailto:{{ company.email }}">{{ company.email }}</a>
@@ -235,10 +254,21 @@
             <span class="badge bg-secondary"><i class="bi bi-x-circle"></i> Нет</span>
           {% endif %}
         </td>
+        <td class="text-center">
+            <button type="button"
+                    class="btn btn-outline-primary btn-sm"
+                    hx-get="{% url 'contract_core:company_update' company.pk %}"
+                    hx-target="#modalContent"
+                    data-bs-toggle="modal"
+                    data-bs-target="#companyModal"
+                    title="Редактировать компанию">
+                <i class="bi bi-pencil-square"></i>
+            </button>
+        </td>
       </tr>
     {% empty %}
       <tr>
-        <td colspan="7" class="text-center text-muted py-4">
+        <td colspan="8" class="text-center text-muted py-4">
             {% if search_q or search_id or selected_notification %}
                 Ничего не найдено
             {% else %}
@@ -291,7 +321,7 @@
 </nav>
 {% endif %}
 
-<!-- Модальное окно компании -->
+<!-- Модальное окно для формы (добавление/редактирование) -->
 <div class="modal fade" id="companyModal" tabindex="-1" aria-labelledby="companyModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-lg">
     <div class="modal-content" id="modalContent">

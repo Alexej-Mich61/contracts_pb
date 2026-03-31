@@ -958,6 +958,22 @@ class AkUpdateView(LoginRequiredMixin, UpdateView):
             return toast_fail(modal_id="akModal")
         return self.render_to_response(self.get_context_data(form=form))
 
+class AkDetailHtmxView(LoginRequiredMixin, DetailView):
+    """HTMX эндпоинт для модального окна детальной информации об АК."""
+    model = Ak
+    template_name = "catalogs/partials/ak_detail_modal.html"
+    context_object_name = "ak"
+
+    def get(self, request, *args, **kwargs):
+        response = super().get(request, *args, **kwargs)
+
+        # Для HTMX-запросов возвращаем только контент модалки
+        if request.headers.get('HX-Request'):
+            return response
+
+        # Для прямого захода - редирект на список
+        return HttpResponseRedirect(reverse_lazy('contract_core:ak_list'))
+
 # для модального окна статистики по АК
 class AkStatsView(LoginRequiredMixin, View):
     """Возвращает статистику по АК для модального окна."""
@@ -1118,6 +1134,23 @@ class CompanyUpdateView(LoginRequiredMixin, UpdateView):
             return toast_fail()
 
         return self.render_to_response(self.get_context_data(form=form))
+
+
+class CompanyDetailHtmxView(LoginRequiredMixin, DetailView):
+    """HTMX эндпоинт для модального окна детальной информации о компании."""
+    model = Company
+    template_name = "catalogs/partials/company_detail_modal.html"
+    context_object_name = "company"
+
+    def get(self, request, *args, **kwargs):
+        response = super().get(request, *args, **kwargs)
+
+        # Для HTMX-запросов возвращаем только контент модалки
+        if request.headers.get('HX-Request'):
+            return response
+
+        # Для прямого захода - редирект на список
+        return HttpResponseRedirect(reverse_lazy('contract_core:companies_list'))
 
 
 class CompanyStatsView(LoginRequiredMixin, View):

@@ -1,0 +1,167 @@
+<!-- templates/catalogs/partials/company_detail_modal.html -->
+<div class="modal-header bg-light">
+    <div class="d-flex align-items-center gap-2">
+        <span class="badge bg-primary fs-6">ID: {{ company.pk }}</span>
+        <h5 class="modal-title mb-0" id="companyDetailModalLabel">{{ company.name }}</h5>
+    </div>
+    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+</div>
+
+<div class="modal-body">
+    <div class="row g-3">
+        <!-- Основная информация -->
+        <div class="col-md-6">
+            <div class="card h-100 border-0 bg-light">
+                <div class="card-body">
+                    <h6 class="card-subtitle mb-2 text-muted">
+                        <i class="bi bi-info-circle me-1"></i>Основная информация
+                    </h6>
+                    <table class="table table-sm table-borderless mb-0">
+                        <tr>
+                            <td class="text-muted" style="width: 35%">Полное название:</td>
+                            <td class="fw-medium">{{ company.name }}</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">ИНН:</td>
+                            <td class="fw-medium">{{ company.inn|default:"—" }}</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Код ФИАС:</td>
+                            <td class="fw-medium">{{ company.fias_code|default:"—" }}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Контактная информация -->
+        <div class="col-md-6">
+            <div class="card h-100 border-0 bg-light">
+                <div class="card-body">
+                    <h6 class="card-subtitle mb-2 text-muted">
+                        <i class="bi bi-envelope me-1"></i>Контакты
+                    </h6>
+                    <table class="table table-sm table-borderless mb-0">
+                        <tr>
+                            <td class="text-muted" style="width: 35%">E-mail:</td>
+                            <td class="fw-medium">
+                                {% if company.email %}
+                                    <a href="mailto:{{ company.email }}">{{ company.email }}</a>
+                                {% else %}
+                                    <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Телефон:</td>
+                            <td class="fw-medium">
+                                {% if company.phone %}
+                                    <a href="tel:{{ company.phone }}">{{ company.phone }}</a>
+                                {% else %}
+                                    <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Роли компании -->
+        <div class="col-12">
+            <div class="card border-0 bg-light">
+                <div class="card-body">
+                    <h6 class="card-subtitle mb-2 text-muted">
+                        <i class="bi bi-briefcase me-1"></i>Роли в системе
+                    </h6>
+                    <div class="d-flex flex-wrap gap-2">
+                        {% if company.is_customer %}
+                            <span class="badge bg-primary fs-6"><i class="bi bi-person-check me-1"></i>Заказчик</span>
+                        {% endif %}
+                        {% if company.is_licensee %}
+                            <span class="badge bg-success fs-6"><i class="bi bi-shield-check me-1"></i>Лицензиат МЧС</span>
+                        {% endif %}
+                        {% if company.is_laboratory %}
+                            <span class="badge bg-info fs-6"><i class="bi bi-flask me-1"></i>Лаборатория</span>
+                        {% endif %}
+                        {% if company.is_subcontractor %}
+                            <span class="badge bg-warning text-dark fs-6"><i class="bi bi-tools me-1"></i>Субподрядчик</span>
+                        {% endif %}
+                        {% if not company.is_customer and not company.is_licensee and not company.is_laboratory and not company.is_subcontractor %}
+                            <span class="text-muted">Роли не назначены</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Согласие на уведомление -->
+        <div class="col-12">
+            <div class="card border-0 {% if company.notification_agreed %}bg-success bg-opacity-10{% else %}bg-secondary bg-opacity-10{% endif %}">
+                <div class="card-body">
+                    <h6 class="card-subtitle mb-2 text-muted">
+                        <i class="bi bi-bell me-1"></i>Согласие на уведомление
+                    </h6>
+                    {% if company.notification_agreed %}
+                        <span class="badge bg-success fs-6"><i class="bi bi-check-circle me-1"></i>Согласие дано</span>
+                        <small class="d-block text-muted mt-2">Компания согласна получать уведомления</small>
+                    {% else %}
+                        <span class="badge bg-secondary fs-6"><i class="bi bi-x-circle me-1"></i>Согласие не дано</span>
+                        <small class="d-block text-muted mt-2">Компания не дала согласие на получение уведомлений</small>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Описание -->
+        {% if company.description %}
+        <div class="col-12">
+            <div class="card border-0 bg-light">
+                <div class="card-body">
+                    <h6 class="card-subtitle mb-2 text-muted">
+                        <i class="bi bi-card-text me-1"></i>Описание
+                    </h6>
+                    <p class="mb-0">{{ company.description|linebreaks }}</p>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Системная информация -->
+        <div class="col-12">
+            <div class="card border-0 bg-light">
+                <div class="card-body">
+                    <h6 class="card-subtitle mb-2 text-muted">
+                        <i class="bi bi-clock-history me-1"></i>Системная информация
+                    </h6>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <small class="text-muted">Создано:</small>
+                            <div class="fw-medium">
+                                {{ company.created_at|default:"—"|date:"d.m.Y H:i" }}
+                                {% if company.created_by %}
+                                    <span class="text-muted">— {{ company.created_by.get_full_name|default:company.created_by.username }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <small class="text-muted">Изменено:</small>
+                            <div class="fw-medium">
+                                {{ company.updated_at|default:"—"|date:"d.m.Y H:i" }}
+                                {% if company.updated_by %}
+                                    <span class="text-muted">— {{ company.updated_by.get_full_name|default:company.updated_by.username }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal-footer bg-light">
+    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+        <i class="bi bi-x-lg me-1"></i>Закрыть
+    </button>
+</div>

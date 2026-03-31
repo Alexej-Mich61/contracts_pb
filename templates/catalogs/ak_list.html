@@ -1,4 +1,4 @@
-<!--templates/catalogs/ak_list.html-->
+<!-- templates/catalogs/ak_list.html -->
 {% extends "base.html" %}
 
 {% block title %}Справочник АК{% endblock %}
@@ -29,6 +29,23 @@
         <div class="modal-content" id="statsModalContent">
             <div class="modal-header">
                 <h5 class="modal-title" id="statsModalLabel">Загрузка...</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Загрузка...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно детальной информации -->
+<div class="modal fade" id="akDetailModal" tabindex="-1" aria-labelledby="akDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content" id="akDetailModalContent">
+            <div class="modal-header">
+                <h5 class="modal-title" id="akDetailModalLabel">Загрузка...</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body text-center">
@@ -144,7 +161,7 @@
         hx-target="#modalContent"
         data-bs-toggle="modal"
         data-bs-target="#akModal">
-    + Добавить АК
+    <i class="bi bi-plus-lg me-1"></i>Добавить АК
 </button>
 
 <!-- Таблица с группировкой -->
@@ -157,6 +174,7 @@
             <th>Адрес</th>
             <th>Регион</th>
             <th>Район</th>
+            <th class="text-center" style="width: 80px;">Действия</th>
         </tr>
     </thead>
     <tbody>
@@ -167,7 +185,7 @@
             {% for region in region_list %}
                 {# Заголовок региона #}
                 <tr class="table-secondary">
-                    <td colspan="6" class="fw-bold">
+                    <td colspan="7" class="fw-bold">
                         <i class="bi bi-geo-alt-fill me-2"></i>{{ region.grouper|default:"Без региона" }}
                     </td>
                 </tr>
@@ -177,44 +195,58 @@
                 {% for district in district_list %}
                     {# Заголовок района #}
                     <tr class="table-light">
-                        <td colspan="6" class="ps-4 fst-italic text-muted">
+                        <td colspan="7" class="ps-4 fst-italic text-muted">
                             <i class="bi bi-geo me-2"></i>{{ district.grouper|default:"Без района" }}
                         </td>
                     </tr>
 
-                    {# Записи АК внутри района (уже отсортированы по номеру) #}
+                    {# Записи АК внутри района #}
                     {% for ak in district.list %}
                     <tr>
                         <td class="ps-5">
                             <a href="#"
-                               hx-get="{% url 'contract_core:ak_update' ak.pk %}"
-                               hx-target="#modalContent"
+                               class="text-decoration-none"
+                               hx-get="{% url 'contract_core:ak_detail_htmx' ak.pk %}"
+                               hx-target="#akDetailModalContent"
                                data-bs-toggle="modal"
-                               data-bs-target="#akModal">
+                               data-bs-target="#akDetailModal">
                                 {{ ak.pk }}
                             </a>
                         </td>
                         <td class="ps-5">
                             <a href="#"
-                               hx-get="{% url 'contract_core:ak_update' ak.pk %}"
-                               hx-target="#modalContent"
+                               class="text-decoration-none fw-medium"
+                               hx-get="{% url 'contract_core:ak_detail_htmx' ak.pk %}"
+                               hx-target="#akDetailModalContent"
                                data-bs-toggle="modal"
-                               data-bs-target="#akModal">
+                               data-bs-target="#akDetailModal">
                                 {{ ak.number }}
                             </a>
                         </td>
                         <td class="ps-5">
                             <a href="#"
-                               hx-get="{% url 'contract_core:ak_update' ak.pk %}"
-                               hx-target="#modalContent"
+                               class="text-decoration-none"
+                               hx-get="{% url 'contract_core:ak_detail_htmx' ak.pk %}"
+                               hx-target="#akDetailModalContent"
                                data-bs-toggle="modal"
-                               data-bs-target="#akModal">
+                               data-bs-target="#akDetailModal">
                                 {{ ak.name }}
                             </a>
                         </td>
                         <td class="ps-5">{{ ak.address }}</td>
                         <td>{{ ak.district.region.name|default:"-" }}</td>
                         <td>{{ ak.district.name|default:"-" }}</td>
+                        <td class="text-center">
+                            <button type="button"
+                                    class="btn btn-outline-primary btn-sm"
+                                    hx-get="{% url 'contract_core:ak_update' ak.pk %}"
+                                    hx-target="#modalContent"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#akModal"
+                                    title="Редактировать АК">
+                                <i class="bi bi-pencil-square"></i>
+                            </button>
+                        </td>
                     </tr>
                     {% endfor %}
                 {% endfor %}
@@ -226,38 +258,52 @@
             <tr>
                 <td>
                     <a href="#"
-                       hx-get="{% url 'contract_core:ak_update' ak.pk %}"
-                       hx-target="#modalContent"
+                       class="text-decoration-none"
+                       hx-get="{% url 'contract_core:ak_detail_htmx' ak.pk %}"
+                       hx-target="#akDetailModalContent"
                        data-bs-toggle="modal"
-                       data-bs-target="#akModal">
+                       data-bs-target="#akDetailModal">
                         {{ ak.pk }}
                     </a>
                 </td>
                 <td>
                     <a href="#"
-                       hx-get="{% url 'contract_core:ak_update' ak.pk %}"
-                       hx-target="#modalContent"
+                       class="text-decoration-none fw-medium"
+                       hx-get="{% url 'contract_core:ak_detail_htmx' ak.pk %}"
+                       hx-target="#akDetailModalContent"
                        data-bs-toggle="modal"
-                       data-bs-target="#akModal">
+                       data-bs-target="#akDetailModal">
                         {{ ak.number }}
                     </a>
                 </td>
                 <td>
                     <a href="#"
-                       hx-get="{% url 'contract_core:ak_update' ak.pk %}"
-                       hx-target="#modalContent"
+                       class="text-decoration-none"
+                       hx-get="{% url 'contract_core:ak_detail_htmx' ak.pk %}"
+                       hx-target="#akDetailModalContent"
                        data-bs-toggle="modal"
-                       data-bs-target="#akModal">
+                       data-bs-target="#akDetailModal">
                         {{ ak.name }}
                     </a>
                 </td>
                 <td>{{ ak.address }}</td>
                 <td>{{ ak.district.region.name|default:"-" }}</td>
                 <td>{{ ak.district.name|default:"-" }}</td>
+                <td class="text-center">
+                    <button type="button"
+                            class="btn btn-outline-primary btn-sm"
+                            hx-get="{% url 'contract_core:ak_update' ak.pk %}"
+                            hx-target="#modalContent"
+                            data-bs-toggle="modal"
+                            data-bs-target="#akModal"
+                            title="Редактировать АК">
+                        <i class="bi bi-pencil-square"></i>
+                    </button>
+                </td>
             </tr>
             {% empty %}
             <tr>
-                <td colspan="6" class="text-center text-muted py-4">
+                <td colspan="7" class="text-center text-muted py-4">
                     Нет АК в базе.
                 </td>
             </tr>
@@ -266,7 +312,7 @@
 
         {% if is_grouped and not aks %}
         <tr>
-            <td colspan="6" class="text-center text-muted py-4">
+            <td colspan="7" class="text-center text-muted py-4">
                 Ничего не найдено
             </td>
         </tr>
@@ -315,7 +361,7 @@
 </nav>
 {% endif %}
 
-<!-- Модальное окно -->
+<!-- Модальное окно для формы (добавление/редактирование) -->
 <div class="modal fade" id="akModal" tabindex="-1" aria-labelledby="akModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-lg">
     <div class="modal-content" id="modalContent">

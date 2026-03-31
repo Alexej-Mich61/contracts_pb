@@ -1,0 +1,99 @@
+<!-- templates/catalogs/partials/ak_detail_modal.html -->
+<div class="modal-header bg-light">
+    <div class="d-flex align-items-center gap-2">
+        <span class="badge bg-primary fs-6">АК №{{ ak.number }}</span>
+        <h5 class="modal-title mb-0" id="akDetailModalLabel">{{ ak.name }}</h5>
+    </div>
+    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+</div>
+
+<div class="modal-body">
+    <div class="row g-3">
+        <!-- Основная информация -->
+        <div class="col-md-6">
+            <div class="card h-100 border-0 bg-light">
+                <div class="card-body">
+                    <h6 class="card-subtitle mb-2 text-muted">
+                        <i class="bi bi-info-circle me-1"></i>Основная информация
+                    </h6>
+                    <table class="table table-sm table-borderless mb-0">
+                        <tr>
+                            <td class="text-muted" style="width: 40%">ID:</td>
+                            <td class="fw-medium">{{ ak.pk }}</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Номер АК:</td>
+                            <td class="fw-medium">{{ ak.number }}</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Наименование:</td>
+                            <td class="fw-medium">{{ ak.name }}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Локация -->
+        <div class="col-md-6">
+            <div class="card h-100 border-0 bg-light">
+                <div class="card-body">
+                    <h6 class="card-subtitle mb-2 text-muted">
+                        <i class="bi bi-geo-alt me-1"></i>Локация
+                    </h6>
+                    <table class="table table-sm table-borderless mb-0">
+                        <tr>
+                            <td class="text-muted" style="width: 40%">Регион:</td>
+                            <td class="fw-medium">{{ ak.district.region.name|default:"-" }}</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Район:</td>
+                            <td class="fw-medium">{{ ak.district.name|default:"-" }}</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Адрес:</td>
+                            <td class="fw-medium">{{ ak.address|default:"-" }}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Системная информация -->
+        <div class="col-12">
+            <div class="card border-0 bg-light">
+                <div class="card-body">
+                    <h6 class="card-subtitle mb-2 text-muted">
+                        <i class="bi bi-clock-history me-1"></i>Системная информация
+                    </h6>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <small class="text-muted">Создано:</small>
+                            <div class="fw-medium">
+                                {{ ak.created_at|default:"-"|date:"d.m.Y H:i" }}
+                                {% if ak.created_by %}
+                                    <span class="text-muted">— {{ ak.created_by.get_full_name|default:ak.created_by.username }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <small class="text-muted">Изменено:</small>
+                            <div class="fw-medium">
+                                {{ ak.updated_at|default:"-"|date:"d.m.Y H:i" }}
+                                {% if ak.updated_by %}
+                                    <span class="text-muted">— {{ ak.updated_by.get_full_name|default:ak.updated_by.username }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal-footer bg-light">
+    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+        <i class="bi bi-x-lg me-1"></i>Закрыть
+    </button>
+</div>
