@@ -60,7 +60,8 @@
 <!-- Информация о лимите -->
 {% if is_limited %}
 <div class="alert alert-info alert-dismissible fade show py-2 mb-3">
-    <small><i class="bi bi-info-circle"></i> Показаны <strong>10 последних</strong> добавленных АК. Используйте поиск или фильтры для просмотра всех записей.</small>
+    <small><i class="bi bi-info-circle"></i> Показаны
+        <strong>10 последних</strong> добавленных АК. Используйте поиск или фильтры для просмотра всех записей.</small>
     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
 </div>
 {% endif %}
@@ -77,7 +78,7 @@
                     aria-controls="filterCollapse">
                 <i class="bi bi-funnel me-2"></i> Фильтры и поиск
                 {% if not is_limited %}
-                    <span class="badge bg-primary ms-2">Активны</span>
+                <span class="badge bg-primary ms-2">Активны</span>
                 {% endif %}
             </button>
         </h2>
@@ -154,7 +155,8 @@
     </div>
 </div>
 
-<!-- Кнопка добавления -->
+<!-- Кнопка "Добавить АК" — видна только при наличии права -->
+{% if can_manage_aks %}
 <button type="button"
         class="btn btn-primary mb-3"
         hx-get="{% url 'contract_core:ak_create' %}"
@@ -163,211 +165,217 @@
         data-bs-target="#akModal">
     <i class="bi bi-plus-lg me-1"></i>Добавить АК
 </button>
+{% endif %}
 
 <!-- Таблица с группировкой -->
 <table class="table table-hover">
     <thead>
-        <tr>
-            <th>ID</th>
-            <th>Номер</th>
-            <th>Наименование</th>
-            <th>Адрес</th>
-            <th>Регион</th>
-            <th>Район</th>
-            <th class="text-center" style="width: 80px;">Действия</th>
-        </tr>
+    <tr>
+        <th>ID</th>
+        <th>Номер</th>
+        <th>Наименование</th>
+        <th>Адрес</th>
+        <th>Регион</th>
+        <th>Район</th>
+        <th class="text-center" style="width: 80px;">Действия</th>
+    </tr>
     </thead>
     <tbody>
-        {% if is_grouped %}
-            {# Группировка по региону → району #}
-            {% regroup aks by district.region.name as region_list %}
+    {% if is_grouped %}
+    {# Группировка по региону → району #}
+    {% regroup aks by district.region.name as region_list %}
 
-            {% for region in region_list %}
-                {# Заголовок региона #}
-                <tr class="table-secondary">
-                    <td colspan="7" class="fw-bold">
-                        <i class="bi bi-geo-alt-fill me-2"></i>{{ region.grouper|default:"Без региона" }}
-                    </td>
-                </tr>
+    {% for region in region_list %}
+    {# Заголовок региона #}
+    <tr class="table-secondary">
+        <td colspan="7" class="fw-bold">
+            <i class="bi bi-geo-alt-fill me-2"></i>{{ region.grouper|default:"Без региона" }}
+        </td>
+    </tr>
 
-                {% regroup region.list by district.name as district_list %}
+    {% regroup region.list by district.name as district_list %}
 
-                {% for district in district_list %}
-                    {# Заголовок района #}
-                    <tr class="table-light">
-                        <td colspan="7" class="ps-4 fst-italic text-muted">
-                            <i class="bi bi-geo me-2"></i>{{ district.grouper|default:"Без района" }}
-                        </td>
-                    </tr>
+    {% for district in district_list %}
+    {# Заголовок района #}
+    <tr class="table-light">
+        <td colspan="7" class="ps-4 fst-italic text-muted">
+            <i class="bi bi-geo me-2"></i>{{ district.grouper|default:"Без района" }}
+        </td>
+    </tr>
 
-                    {# Записи АК внутри района #}
-                    {% for ak in district.list %}
-                    <tr>
-                        <td class="ps-5">
-                            <a href="#"
-                               class="text-decoration-none"
-                               hx-get="{% url 'contract_core:ak_detail_htmx' ak.pk %}"
-                               hx-target="#akDetailModalContent"
-                               data-bs-toggle="modal"
-                               data-bs-target="#akDetailModal">
-                                {{ ak.pk }}
-                            </a>
-                        </td>
-                        <td class="ps-5">
-                            <a href="#"
-                               class="text-decoration-none fw-medium"
-                               hx-get="{% url 'contract_core:ak_detail_htmx' ak.pk %}"
-                               hx-target="#akDetailModalContent"
-                               data-bs-toggle="modal"
-                               data-bs-target="#akDetailModal">
-                                {{ ak.number }}
-                            </a>
-                        </td>
-                        <td class="ps-5">
-                            <a href="#"
-                               class="text-decoration-none"
-                               hx-get="{% url 'contract_core:ak_detail_htmx' ak.pk %}"
-                               hx-target="#akDetailModalContent"
-                               data-bs-toggle="modal"
-                               data-bs-target="#akDetailModal">
-                                {{ ak.name }}
-                            </a>
-                        </td>
-                        <td class="ps-5">{{ ak.address }}</td>
-                        <td>{{ ak.district.region.name|default:"-" }}</td>
-                        <td>{{ ak.district.name|default:"-" }}</td>
-                        <td class="text-center">
-                            <button type="button"
-                                    class="btn btn-outline-primary btn-sm"
-                                    hx-get="{% url 'contract_core:ak_update' ak.pk %}"
-                                    hx-target="#modalContent"
-                                    data-bs-toggle="modal"
-                                    data-bs-target="#akModal"
-                                    title="Редактировать АК">
-                                <i class="bi bi-pencil-square"></i>
-                            </button>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                {% endfor %}
-            {% endfor %}
+    {# Записи АК внутри района #}
+    {% for ak in district.list %}
+    <tr>
+        <td class="ps-5">
+            <a href="#"
+               class="text-decoration-none"
+               hx-get="{% url 'contract_core:ak_detail_htmx' ak.pk %}"
+               hx-target="#akDetailModalContent"
+               data-bs-toggle="modal"
+               data-bs-target="#akDetailModal">
+                {{ ak.pk }}
+            </a>
+        </td>
+        <td class="ps-5">
+            <a href="#"
+               class="text-decoration-none fw-medium"
+               hx-get="{% url 'contract_core:ak_detail_htmx' ak.pk %}"
+               hx-target="#akDetailModalContent"
+               data-bs-toggle="modal"
+               data-bs-target="#akDetailModal">
+                {{ ak.number }}
+            </a>
+        </td>
+        <td class="ps-5">
+            <a href="#"
+               class="text-decoration-none"
+               hx-get="{% url 'contract_core:ak_detail_htmx' ak.pk %}"
+               hx-target="#akDetailModalContent"
+               data-bs-toggle="modal"
+               data-bs-target="#akDetailModal">
+                {{ ak.name }}
+            </a>
+        </td>
+        <td class="ps-5">{{ ak.address }}</td>
+        <td>{{ ak.district.region.name|default:"-" }}</td>
+        <td>{{ ak.district.name|default:"-" }}</td>
+        <!--                        кнопка Редактировать (если есть разрешение)-->
+        <td class="text-center">
+            {% if can_manage_aks %}
+            <button type="button"
+                    class="btn btn-outline-primary btn-sm"
+                    hx-get="{% url 'contract_core:ak_update' ak.pk %}"
+                    hx-target="#modalContent"
+                    data-bs-toggle="modal"
+                    data-bs-target="#akModal"
+                    title="Редактировать АК">
+                <i class="bi bi-pencil-square"></i>
+            </button>
+            {% endif %}
+        </td>
+    </tr>
+    {% endfor %}
+    {% endfor %}
+    {% endfor %}
 
-        {% else %}
-            {# Обычный список без группировки (последние 10) #}
-            {% for ak in aks %}
-            <tr>
-                <td>
-                    <a href="#"
-                       class="text-decoration-none"
-                       hx-get="{% url 'contract_core:ak_detail_htmx' ak.pk %}"
-                       hx-target="#akDetailModalContent"
-                       data-bs-toggle="modal"
-                       data-bs-target="#akDetailModal">
-                        {{ ak.pk }}
-                    </a>
-                </td>
-                <td>
-                    <a href="#"
-                       class="text-decoration-none fw-medium"
-                       hx-get="{% url 'contract_core:ak_detail_htmx' ak.pk %}"
-                       hx-target="#akDetailModalContent"
-                       data-bs-toggle="modal"
-                       data-bs-target="#akDetailModal">
-                        {{ ak.number }}
-                    </a>
-                </td>
-                <td>
-                    <a href="#"
-                       class="text-decoration-none"
-                       hx-get="{% url 'contract_core:ak_detail_htmx' ak.pk %}"
-                       hx-target="#akDetailModalContent"
-                       data-bs-toggle="modal"
-                       data-bs-target="#akDetailModal">
-                        {{ ak.name }}
-                    </a>
-                </td>
-                <td>{{ ak.address }}</td>
-                <td>{{ ak.district.region.name|default:"-" }}</td>
-                <td>{{ ak.district.name|default:"-" }}</td>
-                <td class="text-center">
-                    <button type="button"
-                            class="btn btn-outline-primary btn-sm"
-                            hx-get="{% url 'contract_core:ak_update' ak.pk %}"
-                            hx-target="#modalContent"
-                            data-bs-toggle="modal"
-                            data-bs-target="#akModal"
-                            title="Редактировать АК">
-                        <i class="bi bi-pencil-square"></i>
-                    </button>
-                </td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="7" class="text-center text-muted py-4">
-                    Нет АК в базе.
-                </td>
-            </tr>
-            {% endfor %}
-        {% endif %}
+    {% else %}
+    {# Обычный список без группировки (последние 10) #}
+    {% for ak in aks %}
+    <tr>
+        <td>
+            <a href="#"
+               class="text-decoration-none"
+               hx-get="{% url 'contract_core:ak_detail_htmx' ak.pk %}"
+               hx-target="#akDetailModalContent"
+               data-bs-toggle="modal"
+               data-bs-target="#akDetailModal">
+                {{ ak.pk }}
+            </a>
+        </td>
+        <td>
+            <a href="#"
+               class="text-decoration-none fw-medium"
+               hx-get="{% url 'contract_core:ak_detail_htmx' ak.pk %}"
+               hx-target="#akDetailModalContent"
+               data-bs-toggle="modal"
+               data-bs-target="#akDetailModal">
+                {{ ak.number }}
+            </a>
+        </td>
+        <td>
+            <a href="#"
+               class="text-decoration-none"
+               hx-get="{% url 'contract_core:ak_detail_htmx' ak.pk %}"
+               hx-target="#akDetailModalContent"
+               data-bs-toggle="modal"
+               data-bs-target="#akDetailModal">
+                {{ ak.name }}
+            </a>
+        </td>
+        <td>{{ ak.address }}</td>
+        <td>{{ ak.district.region.name|default:"-" }}</td>
+        <td>{{ ak.district.name|default:"-" }}</td>
+        <td class="text-center">
+            {% if can_manage_aks %}
+            <button type="button"
+                    class="btn btn-outline-primary btn-sm"
+                    hx-get="{% url 'contract_core:ak_update' ak.pk %}"
+                    hx-target="#modalContent"
+                    data-bs-toggle="modal"
+                    data-bs-target="#akModal"
+                    title="Редактировать АК">
+                <i class="bi bi-pencil-square"></i>
+            </button>
+            {% endif %}
+        </td>
+    </tr>
+    {% empty %}
+    <tr>
+        <td colspan="7" class="text-center text-muted py-4">
+            Нет АК в базе.
+        </td>
+    </tr>
+    {% endfor %}
+    {% endif %}
 
-        {% if is_grouped and not aks %}
-        <tr>
-            <td colspan="7" class="text-center text-muted py-4">
-                Ничего не найдено
-            </td>
-        </tr>
-        {% endif %}
+    {% if is_grouped and not aks %}
+    <tr>
+        <td colspan="7" class="text-center text-muted py-4">
+            Ничего не найдено
+        </td>
+    </tr>
+    {% endif %}
     </tbody>
 </table>
 
 <!-- Пагинация Bootstrap -->
 {% if page_obj.has_other_pages %}
 <nav aria-label="Навигация по страницам">
-  <ul class="pagination justify-content-center">
-    {% if page_obj.has_previous %}
-      <li class="page-item">
-        <a class="page-link" href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">«</a>
-      </li>
-      <li class="page-item">
-        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">‹</a>
-      </li>
-    {% else %}
-      <li class="page-item disabled"><span class="page-link">«</span></li>
-      <li class="page-item disabled"><span class="page-link">‹</span></li>
-    {% endif %}
-
-    {% for num in page_obj.paginator.page_range %}
-      {% if page_obj.number == num %}
-        <li class="page-item active"><span class="page-link">{{ num }}</span></li>
-      {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+    <ul class="pagination justify-content-center">
+        {% if page_obj.has_previous %}
         <li class="page-item">
-          <a class="page-link" href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ num }}</a>
+            <a class="page-link" href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">«</a>
         </li>
-      {% endif %}
-    {% endfor %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">‹</a>
+        </li>
+        {% else %}
+        <li class="page-item disabled"><span class="page-link">«</span></li>
+        <li class="page-item disabled"><span class="page-link">‹</span></li>
+        {% endif %}
 
-    {% if page_obj.has_next %}
-      <li class="page-item">
-        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">›</a>
-      </li>
-      <li class="page-item">
-        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">»</a>
-      </li>
-    {% else %}
-      <li class="page-item disabled"><span class="page-link">›</span></li>
-      <li class="page-item disabled"><span class="page-link">»</span></li>
-    {% endif %}
-  </ul>
+        {% for num in page_obj.paginator.page_range %}
+        {% if page_obj.number == num %}
+        <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ num }}</a>
+        </li>
+        {% endif %}
+        {% endfor %}
+
+        {% if page_obj.has_next %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">›</a>
+        </li>
+        <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">»</a>
+        </li>
+        {% else %}
+        <li class="page-item disabled"><span class="page-link">›</span></li>
+        <li class="page-item disabled"><span class="page-link">»</span></li>
+        {% endif %}
+    </ul>
 </nav>
 {% endif %}
 
 <!-- Модальное окно для формы (добавление/редактирование) -->
 <div class="modal fade" id="akModal" tabindex="-1" aria-labelledby="akModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-lg">
-    <div class="modal-content" id="modalContent">
-      <!-- Сюда подгружается форма через HTMX -->
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content" id="modalContent">
+            <!-- Сюда подгружается форма через HTMX -->
+        </div>
     </div>
-  </div>
 </div>
 
 {% endblock %}

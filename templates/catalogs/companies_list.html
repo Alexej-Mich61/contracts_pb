@@ -155,6 +155,7 @@
 <div class="btn-toolbar justify-content-between mb-3" role="toolbar" aria-label="Toolbar with action buttons">
 
     <!-- Левая группа: Добавить компанию -->
+    {% if can_manage_companies %}
     <div class="btn-group" role="group" aria-label="Add company">
         <button type="button"
                 class="btn btn-primary"
@@ -165,6 +166,9 @@
             <i class="bi bi-plus-lg me-1"></i>Добавить компанию
         </button>
     </div>
+    {% else %}
+    <div></div>  <!-- placeholder для сохранения layout -->
+    {% endif %}
 
     <!-- Правая группа: Печать и Экспорт -->
     <div class="btn-group" role="group" aria-label="Export buttons">
@@ -254,17 +258,19 @@
             <span class="badge bg-secondary"><i class="bi bi-x-circle"></i> Нет</span>
           {% endif %}
         </td>
-        <td class="text-center">
-            <button type="button"
-                    class="btn btn-outline-primary btn-sm"
-                    hx-get="{% url 'contract_core:company_update' company.pk %}"
-                    hx-target="#modalContent"
-                    data-bs-toggle="modal"
-                    data-bs-target="#companyModal"
-                    title="Редактировать компанию">
-                <i class="bi bi-pencil-square"></i>
-            </button>
-        </td>
+          <td class="text-center">
+              {% if can_manage_companies %}
+              <button type="button"
+                      class="btn btn-outline-primary btn-sm"
+                      hx-get="{% url 'contract_core:company_update' company.pk %}"
+                      hx-target="#modalContent"
+                      data-bs-toggle="modal"
+                      data-bs-target="#companyModal"
+                      title="Редактировать компанию">
+                  <i class="bi bi-pencil-square"></i>
+              </button>
+              {% endif %}
+          </td>
       </tr>
     {% empty %}
       <tr>

@@ -26,6 +26,8 @@ from apps.contract_core.export_excel.works_sum_report_excel import WorksSumRepor
 from apps.contract_core.services.status_sum_report_service import StatusSumReportService
 from apps.contract_core.export_excel.status_sum_report_excel import StatusSumReportExcelExporter
 
+from apps.identity.mixins import PermissionRequiredMixin
+
 from .mixins import ContractAccessMixin
 
 from .models import (
@@ -840,6 +842,7 @@ class StatusSumReportExcelView(LoginRequiredMixin, View):
 
 # Вьюхи Справочник AK
 class AkListView(LoginRequiredMixin, ListView):
+    """Список абонентских комплектов (АК)"""
     model = Ak
     template_name = "catalogs/ak_list.html"
     context_object_name = "aks"
@@ -847,9 +850,7 @@ class AkListView(LoginRequiredMixin, ListView):
 
     def get_paginate_by(self, queryset):
         filter_service = AkFilterService(self.request.GET)
-        if filter_service.has_active_filters():
-            return self.paginate_by
-        return 10
+        return self.paginate_by if filter_service.has_active_filters() else 10
 
     def get_ordering(self):
         """Динамическое определение сортировки."""
@@ -858,27 +859,22 @@ class AkListView(LoginRequiredMixin, ListView):
         # При активных фильтрах: регион → район → номер АК
         if filter_service.has_active_filters():
             return ['district__region__name', 'district__name', 'number']
-
-        # Без фильтров: последние добавленные (как раньше)
+        # Без фильтров: последние добавленные
         return ['-id']
 
     def get_queryset(self):
         filter_service = AkFilterService(self.request.GET)
         qs = filter_service.filter()
-
         # Применяем сортировку
         ordering = self.get_ordering()
         qs = qs.order_by(*ordering)
-
         # Применяем срез только если нет фильтров
         if not filter_service.has_active_filters():
             qs = qs[:10]
-
         return qs
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-
         filter_service = AkFilterService(self.request.GET)
         context.update(filter_service.get_context_data())
 
@@ -888,23 +884,27 @@ class AkListView(LoginRequiredMixin, ListView):
         # Флаг для шаблона — применена ли группировка
         context['is_grouped'] = filter_service.has_active_filters()
 
+        # Права пользователя для шаблона
+        user = self.request.user
+        context['can_manage_aks'] = user.can_manage_aks()
+
         # Все регионы для выпадающего списка
         context['regions'] = Region.objects.all().order_by('name')
-
         # Районы для выбранного региона
         region_id = self.request.GET.get('region', '').strip()
         if region_id and region_id.isdigit():
             context['districts'] = District.objects.filter(region_id=int(region_id)).order_by('name')
         else:
             context['districts'] = District.objects.none()
-
         return context
 
-class AkCreateView(LoginRequiredMixin, CreateView):
+class AkCreateView(PermissionRequiredMixin, LoginRequiredMixin, CreateView):
+    """Создание АК"""
     model = Ak
     form_class = AkForm
     template_name = "catalogs/partials/ak_form_modal.html"
     success_url = reverse_lazy('contract_core:ak_list')
+    permission = 'can_manage_aks'  # ← проверка через миксин
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -913,14 +913,12 @@ class AkCreateView(LoginRequiredMixin, CreateView):
 
     def form_valid(self, form):
         self.object = form.save()
-
         if self.request.headers.get('HX-Request'):
             # modal_id указываем именно тот, который используется в шаблоне АК
             return toast_ok(
                 refresh_url=reverse_lazy('contract_core:ak_list'),
                 modal_id="akModal"
             )
-
         # Для обычного (не-HTMX) запроса
         messages.success(self.request, "АК успешно добавлен!")
         return HttpResponseRedirect(self.success_url)
@@ -930,11 +928,12 @@ class AkCreateView(LoginRequiredMixin, CreateView):
             return toast_fail(modal_id="akModal")
         return self.render_to_response(self.get_context_data(form=form))
 
-class AkUpdateView(LoginRequiredMixin, UpdateView):
+class AkUpdateView(PermissionRequiredMixin, LoginRequiredMixin, UpdateView):
     model = Ak
     form_class = AkForm
     template_name = "catalogs/partials/ak_form_modal.html"
     success_url = reverse_lazy('contract_core:ak_list')
+    permission = 'can_manage_aks'  # ← добавить проверку прав
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -959,7 +958,7 @@ class AkUpdateView(LoginRequiredMixin, UpdateView):
         return self.render_to_response(self.get_context_data(form=form))
 
 class AkDetailHtmxView(LoginRequiredMixin, DetailView):
-    """HTMX эндпоинт для модального окна детальной информации об АК."""
+    """HTMX эндпоинт для модального окна детальной информации об АК (только просмотр — без прав)"""
     model = Ak
     template_name = "catalogs/partials/ak_detail_modal.html"
     context_object_name = "ak"
@@ -980,10 +979,8 @@ class AkStatsView(LoginRequiredMixin, View):
 
     def get(self, request, *args, **kwargs):
         from django.db.models import Q
-
         # Общее количество
         total = Ak.objects.count()
-
         # По регионам (через district__region)
         by_region = (
             Ak.objects
@@ -1058,6 +1055,11 @@ class CompaniesListView(LoginRequiredMixin, ListView):
         filter_service = CompanyFilterService(self.request.GET)
         context.update(filter_service.get_context_data())
         context['is_limited'] = not filter_service.has_active_filters()
+
+        # Права пользователя для шаблона
+        user = self.request.user
+        context['can_manage_companies'] = user.can_manage_companies()
+
         return context
 
 
@@ -1078,11 +1080,12 @@ class CompaniesListExcelView(LoginRequiredMixin, View):
 
 
 # c HTMX
-class CompanyCreateView(LoginRequiredMixin, CreateView):
+class CompanyCreateView(PermissionRequiredMixin, LoginRequiredMixin, CreateView):
     model = Company
     form_class = CompanyForm
     template_name = "catalogs/partials/company_form_modal.html"
     success_url = reverse_lazy('contract_core:companies_list')
+    permission = 'can_manage_companies'  # ← проверка прав
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -1097,7 +1100,6 @@ class CompanyCreateView(LoginRequiredMixin, CreateView):
                 refresh_url=reverse_lazy('contract_core:companies_list')
             )
 
-        # Для обычного (не-HTMX) запроса оставляем стандартное поведение Django
         messages.success(self.request, "Успешное сохранение!")
         return HttpResponseRedirect(self.success_url)
 
@@ -1109,11 +1111,12 @@ class CompanyCreateView(LoginRequiredMixin, CreateView):
 
 
 # c HTMX
-class CompanyUpdateView(LoginRequiredMixin, UpdateView):
+class CompanyUpdateView(PermissionRequiredMixin, LoginRequiredMixin, UpdateView):
     model = Company
     form_class = CompanyForm
     template_name = "catalogs/partials/company_form_modal.html"
     success_url = reverse_lazy('contract_core:companies_list')
+    permission = 'can_manage_companies'  # ← проверка прав
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

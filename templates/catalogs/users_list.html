@@ -1,3 +1,4 @@
+<!-- templates/catalogs/users_list.html -->
 {% extends "base.html" %}
 
 {% block title %}Справочник Пользователей{% endblock %}
@@ -139,21 +140,36 @@
                 {# Колонка 6: Разрешения менеджера #}
                 <div class="col" style="min-width: 250px;">
                     <div class="fw-bold fs-6 mb-1">Разрешения</div>
-                    {% if user.category == 'manager' and user.manager_permissions %}
+                    {% if user.is_manager and user.manager_permissions %}
                         <ul class="list-unstyled fs-6 mb-0">
-                            {% if user.manager_permissions.can_mark_final_act %}
-                                <li>может отмечать итоговый акт сформированным</li>
+                            {% if user.manager_permissions.can_add_contract %}
+                                <li class="text-success">✓ может добавлять договоры</li>
                             {% endif %}
-                            {% if user.manager_permissions.can_edit_system_checklist %}
-                                <li>может редактировать чек-лист Системы</li>
+                            {% if user.manager_permissions.can_edit_contract_main_fields %}
+                                <li class="text-success">✓ может редактировать основные поля договора</li>
                             {% endif %}
                             {% if user.manager_permissions.can_edit_signing_stages %}
-                                <li>может редактировать стадии подписания</li>
+                                <li class="text-success">✓ может редактировать стадии подписания</li>
+                            {% endif %}
+                            {% if user.manager_permissions.can_edit_system_checklist %}
+                                <li class="text-success">✓ может редактировать чек-лист Системы</li>
+                            {% endif %}
+                            {% if user.manager_permissions.can_mark_final_act %}
+                                <li class="text-success">✓ может отмечать итоговый акт сформированным</li>
                             {% endif %}
                             {% if user.manager_permissions.can_edit_interim_act %}
-                                <li>может редактировать этапные акты</li>
+                                <li class="text-success">✓ может редактировать этапные акты</li>
+                            {% endif %}
+                            {% if user.manager_permissions.can_manage_companies %}
+                                <li class="text-success">✓ может управлять компаниями</li>
+                            {% endif %}
+                            {% if user.manager_permissions.can_manage_aks %}
+                                <li class="text-success">✓ может управлять АК</li>
                             {% endif %}
                         </ul>
+                        {% if not user.manager_permissions.can_add_contract and not user.manager_permissions.can_edit_contract_main_fields and not user.manager_permissions.can_edit_signing_stages and not user.manager_permissions.can_edit_system_checklist and not user.manager_permissions.can_mark_final_act and not user.manager_permissions.can_edit_interim_act and not user.manager_permissions.can_manage_companies and not user.manager_permissions.can_manage_aks %}
+                            <span class="text-warning fs-6">⚠️ Нет разрешений</span>
+                        {% endif %}
                     {% else %}
                         <span class="text-muted fs-6">—</span>
                     {% endif %}
