@@ -17,7 +17,8 @@
                       hx-get="{% url 'contract_core:contract_list_htmx' %}"
                       hx-target="#contracts-container"
                       hx-trigger="submit"
-                      hx-indicator="#filter-spinner">
+                      hx-indicator="#filter-spinner"
+                      hx-push-url="true">
 
                     <div class="row g-3">
                         <!-- Базовые фильтры -->

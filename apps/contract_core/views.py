@@ -61,6 +61,7 @@ from apps.contract_core.services.signing_stage_report_service import (
 from apps.contract_core.services.toasts import toast_ok, toast_fail
 from .export_excel import SigningStageReportExporter
 from apps.contract_core.export_excel.companies_list_excel import export_companies_to_excel
+from render_block import render_block_to_string
 
 
 
@@ -180,14 +181,12 @@ class ContractListView(LoginRequiredMixin, ListView):
 class ContractListHtmxView(LoginRequiredMixin, ListView):
     """HTMX эндпоинт для фильтрованного списка договоров"""
     model = Contract
-    template_name = "contracts/partials/contract_list_content.html"
+    template_name = "contracts/contract_list.html"  # Тот же шаблон!
     context_object_name = "contracts"
     paginate_by = 10
 
     def _has_active_filters(self):
-        """Проверяет, есть ли активные фильтры в GET-параметрах."""
         ignored = {'page', 'csrfmiddlewaretoken', 'hx-request', 'hx-target', 'hx-current-url'}
-
         for key, value in self.request.GET.items():
             if key in ignored:
                 continue
@@ -205,9 +204,23 @@ class ContractListHtmxView(LoginRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['total_count'] = self.get_queryset().count()
-        context['is_limited'] = not self._has_active_filters()  # добавляем для HTMX
-        context['request'] = self.request  # для построения URL в шаблоне
+        context['is_limited'] = not self._has_active_filters()
         return context
+
+    def render_to_response(self, context, **response_kwargs):
+        # Проверяем HTMX через middleware (request.htmx)
+        if getattr(self.request, 'htmx', False):
+            # Рендерим ТОЛЬКО блок contracts_list, а не весь шаблон
+            html = render_block_to_string(
+                self.template_name,
+                'contracts_list',  # Имя блока из шаблона
+                context,
+                request=self.request
+            )
+            return HttpResponse(html)
+
+        # Для обычного запроса - рендерим всё как обычно
+        return super().render_to_response(context, **response_kwargs)
 
 
 # ========== CRUD ПРЕДСТАВЛЕНИЯ ==========

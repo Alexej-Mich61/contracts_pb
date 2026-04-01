@@ -64,6 +64,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'config.middleware.CurrentUserMiddleware', # ← мой middleware.py, путь указан от корня проекта
     'auditlog.middleware.AuditlogMiddleware',
+    'django_htmx.middleware.HtmxMiddleware',  # <-- Обязательно
 ]
 
 ROOT_URLCONF = "config.urls"

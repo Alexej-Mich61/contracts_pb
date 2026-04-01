@@ -1,19 +1,20 @@
 <!-- templates/contracts/contract_list.html -->
 {% extends "base.html" %}
+{% load humanize %}
 
 {% block title %}Контракты{% endblock %}
 
 {% block content %}
 <div class="container mt-4">
-    <!-- Заголовок -->
+    <!-- Заголовок (не входит в блок - не перерендеривается при фильтрации) -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 class="mb-0">Контракты</h1>
         <span class="badge bg-secondary fs-5" id="contract-count">
-            {{ page_obj.paginator.count|default:contracts|length }}
+            {{ total_count|default:contracts|length }}
         </span>
     </div>
 
-    <!-- Информация о лимите -->
+    <!-- Информация о лимите (не входит в блок) -->
     {% if is_limited %}
     <div class="alert alert-info alert-dismissible fade show py-2 mb-3" id="limit-alert">
         <small><i class="bi bi-info-circle"></i> Показаны <strong>10 последних</strong> добавленных договоров. Используйте фильтры для просмотра всех записей.</small>
@@ -21,56 +22,85 @@
     </div>
     {% endif %}
 
-    <!-- Фильтр -->
+    <!-- Фильтр (не входит в блок - не перерендеривается при фильтрации) -->
     {% include "contracts/partials/contract_filter.html" %}
 
-    <!-- Кнопка создания -->
+    <!-- Кнопка создания (не входит в блок) -->
     <a href="{% url 'contract_core:contract_create' %}" class="btn btn-primary mb-4">
         + Новый договор
     </a>
 
-    <!-- Список договоров -->
+    <!-- НАЧАЛО БЛОКА: Этот блок рендерится отдельно для HTMX-запросов -->
+    {% block contracts_list %}
     <div id="contracts-container" class="row g-3">
         {% for contract in contracts %}
             {% include "contracts/partials/contract_card.html" %}
         {% empty %}
             <div class="col-12">
-                <div class="alert alert-info text-center py-5">
-                    Нет договоров в базе
+                <div class="alert alert-info text-center py-5" id="empty-state">
+                    <h5>Договоры не найдены</h5>
+                    <p class="mb-0">Попробуйте изменить параметры фильтра</p>
                 </div>
             </div>
         {% endfor %}
-    </div>
 
-    <!-- Пагинация (только если не лимитированный режим) -->
-    {% if is_paginated and not is_limited %}
-        <nav aria-label="Пагинация" class="mt-4">
-            <ul class="pagination justify-content-center">
-                {% if page_obj.has_previous %}
-                    <li class="page-item">
-                        <a class="page-link" href="?page=1">«</a>
+        <!-- Пагинация (внутри блока - обновляется вместе со списком) -->
+        {% if is_paginated and not is_limited %}
+        <div class="col-12">
+            <nav aria-label="Пагинация" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="#"
+                               hx-get="{% url 'contract_core:contract_list_htmx' %}?page=1"
+                               hx-target="#contracts-container"
+                               hx-indicator="#contracts-container">
+                                «
+                            </a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="#"
+                               hx-get="{% url 'contract_core:contract_list_htmx' %}?page={{ page_obj.previous_page_number }}"
+                               hx-target="#contracts-container"
+                               hx-indicator="#contracts-container">
+                                ‹
+                            </a>
+                        </li>
+                    {% endif %}
+
+                    <li class="page-item disabled">
+                        <span class="page-link">Страница {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}</span>
                     </li>
-                    <li class="page-item">
-                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}">‹</a>
-                    </li>
-                {% endif %}
-                <li class="page-item disabled">
-                    <span class="page-link">Страница {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}</span>
-                </li>
-                {% if page_obj.has_next %}
-                    <li class="page-item">
-                        <a class="page-link" href="?page={{ page_obj.next_page_number }}">›</a>
-                    </li>
-                    <li class="page-item">
-                        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">»</a>
-                    </li>
-                {% endif %}
-            </ul>
-        </nav>
-    {% endif %}
+
+                    {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="#"
+                               hx-get="{% url 'contract_core:contract_list_htmx' %}?page={{ page_obj.next_page_number }}"
+                               hx-target="#contracts-container"
+                               hx-indicator="#contracts-container">
+                                ›
+                            </a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="#"
+                               hx-get="{% url 'contract_core:contract_list_htmx' %}?page={{ page_obj.paginator.num_pages }}"
+                               hx-target="#contracts-container"
+                               hx-indicator="#contracts-container">
+                                »
+                            </a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
+    </div>
+    {% endblock contracts_list %}
+    <!-- КОНЕЦ БЛОКА -->
+
 </div>
 
-<!-- Модальное окно для деталей и истории -->
+<!-- Модальное окно (вне контейнера, чтобы не перерендеривалось) -->
 <div class="modal fade" id="contractModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-scrollable">
         <div class="modal-content" id="modal-content">
@@ -78,4 +108,4 @@
         </div>
     </div>
 </div>
-{% endblock %}
+{% endblock content %}
