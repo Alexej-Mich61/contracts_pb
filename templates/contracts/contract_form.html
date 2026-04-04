@@ -24,19 +24,25 @@
             </div>
             <div class="card-body">
 
-                {% if form.errors or signing_stage_form.errors %}
+                {% if form.errors or protection_object_formset.errors or signing_stage_form.errors %}
                     <div class="alert alert-danger">
                         <h6 class="alert-heading"><i class="bi bi-exclamation-triangle me-2"></i>Ошибки заполнения:</h6>
                         <ul class="mb-0">
                             {% for field, errors in form.errors.items %}
                                 {% for error in errors %}
-                                    <li>{{ field }}: {{ error }}</li>
+                                    <li>{{ form.fields.field.label|default:field }}: {{ error }}</li>
+                                {% endfor %}
+                            {% endfor %}
+                            {% if protection_object_formset.non_form_errors %}
+                                <li>Объекты защиты: {{ protection_object_formset.non_form_errors }}</li>
+                            {% endif %}
+                            {% for err_form in protection_object_formset %}
+                                {% for field, errors in err_form.errors.items %}
+                                    <li>Объект защиты {{ forloop.parentloop.counter }} - {{ err_form.fields.field.label|default:field }}: {{ error }}</li>
                                 {% endfor %}
                             {% endfor %}
                             {% for field, errors in signing_stage_form.errors.items %}
-                                {% for error in errors %}
-                                    <li>Стадия подписания - {{ field }}: {{ error }}</li>
-                                {% endfor %}
+                                <li>Стадия подписания - {{ signing_stage_form.fields.field.label|default:field }}: {{ error }}</li>
                             {% endfor %}
                         </ul>
                     </div>
@@ -53,19 +59,27 @@
                                 Тип договора
                                 {% if form.type.field.required %}<span class="text-danger">*</span>{% endif %}
                             </label>
-                            {{ form.type }}
-                            {% if form.type.help_text %}
-                                <div class="form-text">{{ form.type.help_text }}</div>
-                            {% endif %}
+                            <select name="type"
+                                    id="{{ form.type.id_for_label }}"
+                                    class="form-select"
+                                    hx-get="{% url 'contract_core:dynamic_fields' %}"
+                                    hx-trigger="change"
+                                    hx-target="#dynamic-fields-container"
+                                    hx-swap="innerHTML"
+                                    hx-include="[name='type'],[name='executor'],[name='work']">
+                                {% for value, label in form.fields.type.choices %}
+                                <option value="{{ value }}" {% if form.type.value == value %}selected{% endif %}>
+                                    {{ label }}
+                                </option>
+                                {% endfor %}
+                            </select>
                         </div>
 
                         <!-- Динамические поля (исполнитель + работы) -->
-                        <div id="dynamic-fields-container"
-                             hx-get="{% url 'contract_core:dynamic_fields' %}"
-                             hx-trigger="change from:#{{ form.type.id_for_label }}"
-                             hx-include="#{{ form.type.id_for_label }}, [name='csrfmiddlewaretoken']"
-                             hx-swap="innerHTML">
-                            {% include "contracts/partials/contract_form_dynamic_fields.html" %}
+                        <div id="dynamic-fields-wrapper">
+                            <div id="dynamic-fields-container">
+                                {% include "contracts/partials/partials_contract_form/_contract_form_dynamic_fields.html" %}
+                            </div>
                         </div>
 
                         <div class="row">
@@ -88,25 +102,36 @@
                         </div>
 
                         <!-- Заказчик с autocomplete -->
-                        <div class="mb-3 position-relative">
-                            <label for="{{ form.customer_search.id_for_label }}" class="form-label fw-semibold">
-                                Заказчик
-                                <span class="text-danger">*</span>
-                            </label>
-                            <div class="input-group">
-                                {{ form.customer_search }}
-                                <span class="input-group-text customer-search-indicator" style="display:none;">
-                                    <span class="spinner-border spinner-border-sm"></span>
-                                </span>
-                            </div>
-                            {{ form.customer }}
-                            <div id="customer-search-results" class="position-absolute w-100 bg-white border rounded shadow-sm mt-1" style="z-index:1050; max-height:300px; overflow-y:auto;">
-                                <!-- Результаты поиска здесь -->
-                            </div>
-                            {% if form.customer_search.help_text %}
-                                <div class="form-text">{{ form.customer_search.help_text }}</div>
-                            {% endif %}
-                        </div>
+                        <div class="mb-3 position-relative customer-search-container">
+    <label for="{{ form.customer_search.id_for_label }}" class="form-label fw-semibold">
+        Заказчик
+        <span class="text-danger">*</span>
+    </label>
+    <div class="input-group">
+        <input type="text"
+               name="q"
+               id="{{ form.customer_search.id_for_label }}"
+               class="form-control"
+               placeholder="Введите название или ИНН..."
+               hx-get="{% url 'contract_core:search_customers' %}"
+               hx-trigger="keyup changed delay:300ms, search"
+               hx-target="#customer-search-results"
+               hx-indicator=".customer-search-indicator"
+               autocomplete="off"
+               value="{{ form.customer_search.value|default:'' }}">
+        <span class="input-group-text customer-search-indicator htmx-indicator">
+            <span class="spinner-border spinner-border-sm"></span>
+        </span>
+    </div>
+    {{ form.customer }}  {# Hidden input для ID заказчика #}
+    <div id="customer-search-results"
+         class="position-absolute w-100 bg-white border rounded shadow-sm mt-1"
+         style="z-index:1050; max-height:300px; overflow-y:auto; display:none;">
+    </div>
+    {% if form.customer_search.help_text %}
+        <div class="form-text">{{ form.customer_search.help_text }}</div>
+    {% endif %}
+</div>
 
                         <div class="row">
                             <div class="col-md-6 mb-3">
@@ -187,7 +212,7 @@
             </div>
         </div>
 
-        <!-- Стадия подписания (и при создании, и при редактировании) -->
+        <!-- Стадия подписания -->
         {% if signing_stage_form %}
             <div class="card shadow-sm mb-4 border-warning">
                 <div class="card-header bg-warning text-dark">
@@ -201,6 +226,9 @@
                                 <span class="text-danger">*</span>
                             </label>
                             {{ signing_stage_form.stage }}
+                            {% if signing_stage_form.stage.errors %}
+                                <div class="text-danger small">{{ signing_stage_form.stage.errors.0 }}</div>
+                            {% endif %}
                         </div>
                         <div class="col-md-8">
                             <label for="{{ signing_stage_form.note.id_for_label }}" class="form-label fw-semibold">
@@ -252,7 +280,9 @@
 
                                     <!-- Форма для отметки системы -->
                                     <div class="mt-2 pt-2 border-top">
-                                        <form method="post" action="{% url 'contract_core:mark_system_check' object.pk check.system_type.pk %}" class="d-inline">
+                                        <form method="post"
+                                              action="{% url 'contract_core:mark_system_check' object.pk check.system_type.pk %}"
+                                              class="d-inline">
                                             {% csrf_token %}
                                             <div class="input-group input-group-sm">
                                                 <input type="text" name="note" class="form-control" placeholder="Примечание..." maxlength="200" value="{{ check.note|default:'' }}">
@@ -318,7 +348,7 @@
         {% endif %}
 
         <!-- Промежуточные акты (только при редактировании) -->
-        {% if object %}
+        {% if object and interim_act_formset %}
             <div class="card shadow-sm mb-4">
                 <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
                     <h6 class="mb-0"><i class="bi bi-files me-2"></i>Промежуточные акты</h6>
@@ -352,7 +382,12 @@
                                     </div>
                                     <div class="col-md-1 mb-2 text-end">
                                         {% if form.instance.pk %}
-                                            {{ form.DELETE }} <label class="text-danger" title="Удалить"><i class="bi bi-trash"></i></label>
+                                            <div class="form-check">
+                                                {{ form.DELETE }}
+                                                <label class="form-check-label text-danger" title="Удалить">
+                                                    <i class="bi bi-trash"></i>
+                                                </label>
+                                            </div>
                                         {% else %}
                                             <button type="button" class="btn btn-outline-danger btn-sm" onclick="this.closest('.interim-act-form').remove()">
                                                 <i class="bi bi-x-lg"></i>
@@ -396,117 +431,24 @@
         <div class="card shadow-sm mb-4">
             <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
                 <h6 class="mb-0"><i class="bi bi-building me-2"></i>Объекты защиты</h6>
-                <button type="button" class="btn btn-light btn-sm" onclick="addProtectionObject()">
+                <button type="button" class="btn btn-light btn-sm" id="add-protection-object-btn">
                     <i class="bi bi-plus-lg me-1"></i>Добавить объект
                 </button>
             </div>
             <div class="card-body" id="protection-objects-container">
                 {{ protection_object_formset.management_form }}
-                {% for form in protection_object_formset %}
-                    <div class="protection-object-form border rounded p-3 mb-3 bg-light" data-index="{{ forloop.counter0 }}">
-                        {{ form.id }}
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                {{ form.name.label_tag }}
-                                {{ form.name }}
-                            </div>
-                            <div class="col-md-3 mb-3">
-                                {{ form.region.label_tag }}
-                                {{ form.region }}
-                            </div>
-                            <div class="col-md-3 mb-3 district-wrapper">
-                                {% include "contracts/partials/contract_form_district_field.html" with field=form.district districts=form.fields.district.queryset %}
-                            </div>
-                        </div>
+                <div id="protection-objects-list">
+                    {% for form in protection_object_formset %}
+                        {% include "contracts/partials/partials_contract_form/_contract_form_protection_object_form.html" with form=form index=forloop.counter0 object=object %}
+                    {% endfor %}
+                </div>
 
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                {{ form.address.label_tag }}
-                                {{ form.address }}
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                {{ form.contacts.label_tag }}
-                                {{ form.contacts }}
-                            </div>
-                        </div>
-
-                        <!-- Субподрядчик и суммы -->
-                        <div class="row border-top pt-3 mt-2">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label fw-semibold text-muted">
-                                    <i class="bi bi-building-down me-1"></i>Субподрядчик
-                                </label>
-                                {{ form.subcontractor }}
-                                {% if form.subcontractor.help_text %}
-                                    <div class="form-text">{{ form.subcontractor.help_text }}</div>
-                                {% endif %}
-                            </div>
-                            <div class="col-md-3 mb-3">
-                                <label class="form-label fw-semibold text-muted">
-                                    Сумма субконтракта общая, ₽
-                                </label>
-                                {{ form.total_sum_subcontract }}
-                            </div>
-                            <div class="col-md-3 mb-3">
-                                <label class="form-label fw-semibold text-muted">
-                                    В месяц, ₽
-                                </label>
-                                {{ form.monthly_sum_subcontract }}
-                            </div>
-                        </div>
-
-                        <!-- АК объекта защиты (только при редактировании договора) -->
-                        {% if object and form.instance.pk %}
-                            <div class="row border-top pt-3 mt-2">
-                                <div class="col-12">
-                                    <label class="form-label fw-semibold text-muted">
-                                        <i class="bi bi-broadcast me-1"></i>Абонентские комплекты (АК)
-                                    </label>
-
-                                    <!-- Список привязанных АК -->
-                                    <div id="attached-aks-{{ form.instance.pk }}" class="mb-2">
-                                        {% for ak in form.instance.aks.all %}
-                                            <span class="badge bg-primary me-1 mb-1">
-                                                АК №{{ ak.number }} – {{ ak.name|truncatechars:20 }}
-                                                <button type="button" class="btn-close btn-close-white ms-1" style="font-size:0.5em;"
-                                                        hx-delete="{% url 'contract_core:remove_ak_from_object' object.pk form.instance.pk ak.pk %}"
-                                                        hx-target="#attached-aks-{{ form.instance.pk }}"
-                                                        hx-confirm="Отвязать АК №{{ ak.number }}?"></button>
-                                            </span>
-                                        {% empty %}
-                                            <span class="text-muted small">Нет привязанных АК</span>
-                                        {% endfor %}
-                                    </div>
-
-                                    <!-- Поиск и добавление АК -->
-                                    <div class="position-relative">
-                                        <div class="input-group">
-                                            <input type="text"
-                                                   class="form-control form-control-sm"
-                                                   placeholder="Поиск АК по ID, номеру или названию..."
-                                                   hx-get="{% url 'contract_core:search_ak' %}"
-                                                   hx-trigger="keyup changed delay:400ms"
-                                                   hx-target="#ak-search-results-{{ form.instance.pk }}"
-                                                   hx-indicator=".ak-search-indicator-{{ form.instance.pk }}"
-                                                   name="ak_search">
-                                            <span class="input-group-text ak-search-indicator-{{ form.instance.pk }}" style="display:none;">
-                                                <span class="spinner-border spinner-border-sm"></span>
-                                            </span>
-                                        </div>
-                                        <div id="ak-search-results-{{ form.instance.pk }}"
-                                             class="position-absolute w-100 bg-white border rounded shadow-sm mt-1"
-                                             style="z-index:1050; max-height:200px; overflow-y:auto;">
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        {% endif %}
-
-                        <div class="text-end mt-3">
-                            {{ form.DELETE }} <label class="text-danger"><i class="bi bi-trash"></i> Удалить объект</label>
-                        </div>
-                    </div>
-                {% endfor %}
+                <!-- Пустой шаблон для новых объектов -->
+                <template id="empty-protection-object-form">
+                    {% with form=protection_object_formset.empty_form index="__prefix__" %}
+                        {% include "contracts/partials/partials_contract_form/_contract_form_protection_object_form.html" %}
+                    {% endwith %}
+                </template>
             </div>
         </div>
 
@@ -532,29 +474,47 @@
 
 {% block extra_js %}
 <script>
-// Обработка выбора заказчика из результатов поиска
+// Настройка HTMX для CSRF
+document.body.addEventListener('htmx:configRequest', function(evt) {
+    evt.detail.headers['X-CSRFToken'] = '{{ csrf_token }}';
+});
+
+// Обработка результатов поиска заказчика
 document.addEventListener('htmx:afterSwap', function(evt) {
     if (evt.detail.target.id === 'customer-search-results') {
+        const results = document.getElementById('customer-search-results');
+
+        // Показываем контейнер если есть результаты
+        if (results.innerHTML.trim()) {
+            results.style.display = 'block';
+        } else {
+            results.style.display = 'none';
+        }
+
+        // Навешиваем обработчики клика на результаты
         document.querySelectorAll('.customer-result').forEach(function(el) {
             el.addEventListener('click', function() {
                 const id = this.dataset.id;
                 const name = this.dataset.name;
                 document.getElementById('{{ form.customer.id_for_label }}').value = id;
                 document.getElementById('{{ form.customer_search.id_for_label }}').value = name;
-                document.getElementById('customer-search-results').innerHTML = '';
+                results.innerHTML = '';
+                results.style.display = 'none';
             });
         });
     }
+});
 
-    // Обработка выбора АК из результатов поиска
+    // Поиск АК
     if (evt.detail.target.id && evt.detail.target.id.startsWith('ak-search-results-')) {
         document.querySelectorAll('.ak-result').forEach(function(el) {
             el.addEventListener('click', function() {
                 const akId = this.dataset.id;
                 const objectId = this.closest('[id^="ak-search-results-"]').id.replace('ak-search-results-', '');
+                const url = '{% url "contract_core:add_ak_to_object" 0 0 0 %}'
+                    .replace('/0/0/0/', '/' + {{ object.pk|default:0 }} + '/' + objectId + '/' + akId + '/');
 
-                // Отправляем POST запрос на привязку АК
-                htmx.ajax('POST', '{% url "contract_core:add_ak_to_object" 0 0 0 %}'.replace(/0\/0\/0/, objectId + '/0/' + akId), {
+                htmx.ajax('POST', url, {
                     target: '#attached-aks-' + objectId,
                     swap: 'innerHTML'
                 });
@@ -565,18 +525,14 @@ document.addEventListener('htmx:afterSwap', function(evt) {
 
 // Скрытие результатов поиска при клике вне
 document.addEventListener('click', function(evt) {
-    const searchContainer = document.querySelector('.position-relative');
-    if (searchContainer && !searchContainer.contains(evt.target)) {
+    const customerContainer = document.querySelector('.customer-search-container');
+    if (customerContainer && !customerContainer.contains(evt.target)) {
         const results = document.getElementById('customer-search-results');
-        if (results) results.innerHTML = '';
-    }
-
-    // Скрытие результатов поиска АК
-    document.querySelectorAll('[id^="ak-search-results-"]').forEach(function(el) {
-        if (!el.contains(evt.target) && !evt.target.closest('.position-relative')) {
-            el.innerHTML = '';
+        if (results) {
+            results.innerHTML = '';
+            results.style.display = 'none';
         }
-    });
+    }
 });
 
 // Добавление промежуточного акта
@@ -594,10 +550,41 @@ function addInterimAct() {
     totalForms.value = currentCount + 1;
 }
 
-// Добавление объекта защиты (упрощенно, для полного функционала нужен шаблон)
-function addProtectionObject() {
-    // Здесь можно реализовать через HTMX или клонирование существующей формы
-    alert('Для добавления объекта сохраните договор, затем отредактируйте его');
-}
+// Добавление объекта защиты
+document.getElementById('add-protection-object-btn').addEventListener('click', function() {
+    const container = document.getElementById('protection-objects-list');
+    const template = document.getElementById('empty-protection-object-form');
+    const totalForms = document.getElementById('id_protection_objects-TOTAL_FORMS');
+    const currentCount = parseInt(totalForms.value);
+
+    // Клонируем шаблон
+    let newFormHtml = template.innerHTML;
+
+    // Заменяем префикс
+    newFormHtml = newFormHtml.replace(/__prefix__/g, currentCount);
+
+    // Создаем временный контейнер для парсинга
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = newFormHtml;
+
+    // Обновляем ID и name атрибуты
+    const newForm = tempDiv.firstElementChild;
+    newForm.querySelectorAll('[id*="__prefix__"], [name*="__prefix__"]').forEach(function(el) {
+        el.id = el.id.replace('__prefix__', currentCount);
+        el.name = el.name.replace('__prefix__', currentCount);
+    });
+
+    // Обновляем hx-target для region select
+    const regionSelect = newForm.querySelector('.region-select');
+    if (regionSelect) {
+        regionSelect.setAttribute('hx-get', '{% url "contract_core:filter_districts_by_region" %}');
+    }
+
+    container.appendChild(newForm);
+    totalForms.value = currentCount + 1;
+
+    // Инициализируем HTMX на новых элементах
+    htmx.process(newForm);
+});
 </script>
 {% endblock %}

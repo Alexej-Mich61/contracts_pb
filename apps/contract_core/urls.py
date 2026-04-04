@@ -29,8 +29,17 @@ urlpatterns = [
         name="filter_districts"
     ),
 
+
     # ========== HTMX ЭНДПОИНТЫ ДЛЯ ФОРМЫ ДОГОВОРА ==========
     # Используются в: templates/contracts/contract_form.html и related partials
+
+    # Динамические поля (тип договора → исполнитель + работы)
+    path(
+        "contracts/form/dynamic-fields/",
+        views.DynamicFieldsView.as_view(),
+        name="dynamic_fields"
+    ),
+    # Отдельные эндпоинты (альтернатива dynamic-fields)
     path(
         "contracts/form/executors/",
         views.ContractFormFilterExecutorsView.as_view(),
@@ -41,33 +50,33 @@ urlpatterns = [
         views.ContractFormFilterWorksView.as_view(),
         name="contract_form_works"
     ),
+    # Поиск заказчика
     path(
         "contracts/form/customers/search/",
         views.CustomerSearchView.as_view(),
         name="search_customers"
     ),
-    path(
-        "contracts/form/dynamic-fields/",
-        views.DynamicFieldsView.as_view(),
-        name="dynamic_fields"
-    ),
+    # Каскадный выбор района
     path(
         "contracts/form/districts-by-region/",
         views.ContractFormFilterDistrictsByRegionView.as_view(),
         name="filter_districts_by_region"
     ),
+    # Поиск АК
     path(
         "contracts/form/ak/search/",
         views.AkSearchView.as_view(),
         name="search_ak"
     ),
 
-    # ========== ДЕЙСТВИЯ С ДОГОВОРОМ ==========
+    # ========== ДЕЙСТВИЯ ВНУТРИ ФОРМЫ ==========
+    # Отметка системы
     path(
         "contracts/<int:contract_pk>/systems/<int:system_type_pk>/mark/",
         views.MarkSystemCheckView.as_view(),
         name="mark_system_check"
     ),
+    # Привязка/отвязка АК
     path(
         "contracts/<int:contract_pk>/objects/<int:object_pk>/ak/<int:ak_pk>/add/",
         views.AddAkToObjectView.as_view(),
@@ -79,10 +88,11 @@ urlpatterns = [
         name="remove_ak_from_object"
     ),
 
-
-    # Форма создания/редактирования (отдельная страница)
+    # Форма создания/редактирования CRUD ДОГОВОРОВ (отдельная страница)
     path("contracts/add/", views.ContractCreateView.as_view(), name="contract_create"),
     path("contracts/<int:pk>/edit/", views.ContractUpdateView.as_view(), name="contract_update"),
+    path("contracts/<int:pk>/delete/", views.ContractDeleteView.as_view(), name="contract_delete"),
+
 
     # HTMX эндпоинты для модальных окон
     path("contracts/<int:pk>/detail/", views.ContractDetailHtmxView.as_view(), name="contract_detail_htmx"),

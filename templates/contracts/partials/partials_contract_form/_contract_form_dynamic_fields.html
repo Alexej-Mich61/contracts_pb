@@ -1,11 +1,11 @@
-<!-- templates/contracts/partials/contract_form_dynamic_fields.html -->
+<!-- templates/contracts/partials/partials_contract_form/_contract_form_dynamic_fields.html -->
 <div class="row">
     <div class="col-md-6 mb-3">
-        <label for="{{ form.executor.id_for_label }}" class="form-label fw-semibold">
+        <label for="id_executor" class="form-label fw-semibold">
             Исполнитель
             <span class="text-danger">*</span>
         </label>
-        {{ form.executor }}
+        {% include "contracts/partials/partials_contract_form/_contract_form_executor_select.html" with executors=executors selected=selected_executor %}
         {% if not contract_type %}
             <div class="form-text text-muted">
                 <i class="bi bi-info-circle me-1"></i>Выберите тип договора для активации поля
@@ -13,11 +13,11 @@
         {% endif %}
     </div>
     <div class="col-md-6 mb-3">
-        <label for="{{ form.work.id_for_label }}" class="form-label fw-semibold">
+        <label for="id_work" class="form-label fw-semibold">
             Вид работы
             <span class="text-danger">*</span>
         </label>
-        {{ form.work }}
+        {% include "contracts/partials/partials_contract_form/_contract_form_work_select.html" with works=works selected=selected_work %}
         {% if not contract_type %}
             <div class="form-text text-muted">
                 <i class="bi bi-info-circle me-1"></i>Выберите тип договора для активации поля
