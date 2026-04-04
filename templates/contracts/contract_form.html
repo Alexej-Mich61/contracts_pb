@@ -24,7 +24,7 @@
             </div>
             <div class="card-body">
 
-                {% if form.errors or protection_object_formset.errors or signing_stage_form.errors %}
+                {% if form.errors or protection_object_formset.errors or signing_stage_form.errors or interim_act_formset.errors or final_act_form.errors %}
                     <div class="alert alert-danger">
                         <h6 class="alert-heading"><i class="bi bi-exclamation-triangle me-2"></i>Ошибки заполнения:</h6>
                         <ul class="mb-0">
@@ -41,8 +41,19 @@
                                     <li>Объект защиты {{ forloop.parentloop.counter }} - {{ err_form.fields.field.label|default:field }}: {{ error }}</li>
                                 {% endfor %}
                             {% endfor %}
+                            {% if interim_act_formset.non_form_errors %}
+                                <li>Промежуточные акты: {{ interim_act_formset.non_form_errors }}</li>
+                            {% endif %}
+                            {% for err_form in interim_act_formset %}
+                                {% for field, errors in err_form.errors.items %}
+                                    <li>Промежуточный акт {{ forloop.parentloop.counter }} - {{ err_form.fields.field.label|default:field }}: {{ error }}</li>
+                                {% endfor %}
+                            {% endfor %}
                             {% for field, errors in signing_stage_form.errors.items %}
                                 <li>Стадия подписания - {{ signing_stage_form.fields.field.label|default:field }}: {{ error }}</li>
+                            {% endfor %}
+                            {% for field, errors in final_act_form.errors.items %}
+                                <li>Итоговый акт - {{ final_act_form.fields.field.label|default:field }}: {{ error }}</li>
                             {% endfor %}
                         </ul>
                     </div>
@@ -101,38 +112,94 @@
                             </div>
                         </div>
 
-                        <!-- Заказчик с autocomplete -->
-                        <div class="mb-3 position-relative customer-search-container">
-    <label for="{{ form.customer_search.id_for_label }}" class="form-label fw-semibold">
-        Заказчик
-        <span class="text-danger">*</span>
-    </label>
-    <div class="input-group">
-        <input type="text"
-               name="q"
-               id="{{ form.customer_search.id_for_label }}"
-               class="form-control"
-               placeholder="Введите название или ИНН..."
-               hx-get="{% url 'contract_core:search_customers' %}"
-               hx-trigger="keyup changed delay:300ms, search"
-               hx-target="#customer-search-results"
-               hx-indicator=".customer-search-indicator"
-               autocomplete="off"
-               value="{{ form.customer_search.value|default:'' }}">
-        <span class="input-group-text customer-search-indicator htmx-indicator">
-            <span class="spinner-border spinner-border-sm"></span>
-        </span>
-    </div>
-    {{ form.customer }}  {# Hidden input для ID заказчика #}
-    <div id="customer-search-results"
-         class="position-absolute w-100 bg-white border rounded shadow-sm mt-1"
-         style="z-index:1050; max-height:300px; overflow-y:auto; display:none;">
-    </div>
-    {% if form.customer_search.help_text %}
-        <div class="form-text">{{ form.customer_search.help_text }}</div>
-    {% endif %}
-</div>
+                        <!-- Заказчик -->
+                        <div class="mb-3 position-relative customer-search-container" id="customer-selector">
+                            <label class="form-label fw-semibold">
+                                Заказчик
+                                <span class="text-danger">*</span>
+                            </label>
 
+                            <!-- Скрытое поле для ID заказчика -->
+                            <input type="hidden"
+                                   name="customer"
+                                   id="id_customer"
+                                   value="{{ form.customer.value|default:'' }}">
+
+                            <!-- Блок отображения выбранного заказчика -->
+                            <div id="selected-customer-block" class="{% if not form.customer.value %}d-none{% endif %} mb-2">
+                                <div class="card bg-light border border-primary border-opacity-25">
+                                    <div class="card-body py-2 px-3">
+                                        <div class="d-flex justify-content-between align-items-start">
+                                            <div>
+                                                <div class="fw-semibold text-primary mb-1">
+                                                    <i class="bi bi-building me-1"></i>
+                                                    <span id="selected-customer-name">
+                                {% if object and object.customer %}{{ object.customer.name }}{% endif %}
+                            </span>
+                                                </div>
+                                                <div class="small text-muted" id="selected-customer-inn">
+                                                    {% if object and object.customer %}ИНН: {{ object.customer.inn }}{% endif %}
+                                                </div>
+                                            </div>
+                                            <button type="button"
+                                                    class="btn btn-sm btn-outline-danger ms-2"
+                                                    id="clear-customer-btn"
+                                                    title="Изменить заказчика">
+                                                <i class="bi bi-x-lg"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Поле поиска (скрыто если заказчик уже выбран) -->
+                            <div id="customer-search-block" class="{% if form.customer.value %}d-none{% endif %}">
+                                <div class="input-group">
+            <span class="input-group-text bg-white">
+                <i class="bi bi-search text-muted"></i>
+            </span>
+                                    <!-- ВАЖНО: name="q" обязательно должен быть здесь -->
+                                    <input type="text"
+                                           name="q"
+                                           id="customer-search-input"
+                                           class="form-control"
+                                           placeholder="Введите название компании или ИНН..."
+                                           hx-get="{% url 'contract_core:search_customers' %}"
+                                           hx-trigger="keyup[key=='Enter'], click from:#search-customer-btn"
+                                           hx-target="#customer-search-results"
+                                           hx-indicator=".customer-search-indicator"
+                                           autocomplete="off">
+
+                                    <!-- Кнопка поиска -->
+                                    <button type="button"
+                                            id="search-customer-btn"
+                                            class="btn btn-outline-primary">
+                                        <span class="normal-state">Найти</span>
+                                        <span class="customer-search-indicator htmx-indicator">
+                    <span class="spinner-border spinner-border-sm"></span>
+                </span>
+                                    </button>
+                                </div>
+                                <div class="form-text text-muted">
+                                    <i class="bi bi-info-circle me-1"></i>Введите название или ИНН и нажмите "Найти" или Enter
+                                </div>
+                            </div>
+
+                            <!-- Результаты поиска (выпадающий список) -->
+                            <div id="customer-search-results"
+                                 class="position-absolute w-100 bg-white border rounded shadow-sm mt-1"
+                                 style="z-index:1050; max-height:300px; overflow-y:auto; display:none; left: 0; right: 0;">
+                            </div>
+
+                            <!-- Ошибки валидации -->
+                            {% if form.customer.errors %}
+                            <div class="text-danger small mt-1">
+                                <i class="bi bi-exclamation-circle me-1"></i>{{ form.customer.errors.0 }}
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <!--Срок действия договора-->
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label for="{{ form.date_start.id_for_label }}" class="form-label fw-semibold">
@@ -212,44 +279,45 @@
             </div>
         </div>
 
-        <!-- Стадия подписания -->
+        <!-- Стадия подписания (всегда доступна) -->
         {% if signing_stage_form %}
-            <div class="card shadow-sm mb-4 border-warning">
-                <div class="card-header bg-warning text-dark">
-                    <h6 class="mb-0"><i class="bi bi-pen me-2"></i>Стадия подписания</h6>
-                </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-4">
-                            <label for="{{ signing_stage_form.stage.id_for_label }}" class="form-label fw-semibold">
-                                Текущая стадия
-                                <span class="text-danger">*</span>
-                            </label>
-                            {{ signing_stage_form.stage }}
-                            {% if signing_stage_form.stage.errors %}
-                                <div class="text-danger small">{{ signing_stage_form.stage.errors.0 }}</div>
-                            {% endif %}
-                        </div>
-                        <div class="col-md-8">
-                            <label for="{{ signing_stage_form.note.id_for_label }}" class="form-label fw-semibold">
-                                Примечание к стадии
-                            </label>
-                            {{ signing_stage_form.note }}
-                        </div>
-                    </div>
-                    {% if object and object.signing_stage and object.signing_stage.changed_at %}
-                        <small class="text-muted d-block mt-2">
-                            <i class="bi bi-clock-history me-1"></i>
-                            Последнее изменение: {{ object.signing_stage.changed_at|date:"d.m.Y H:i" }}
-                            {% if object.signing_stage.changed_by %}от {{ object.signing_stage.changed_by }}{% endif %}
-                        </small>
-                    {% endif %}
-                </div>
+        <div class="card shadow-sm mb-4 border-warning">
+            <div class="card-header bg-warning text-dark">
+                <h6 class="mb-0"><i class="bi bi-pen me-2"></i>Стадия подписания</h6>
             </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <label for="{{ signing_stage_form.stage.id_for_label }}" class="form-label fw-semibold">
+                            Текущая стадия
+                            <span class="text-danger">*</span>
+                        </label>
+                        {{ signing_stage_form.stage }}
+                        {% if signing_stage_form.stage.errors %}
+                            <div class="text-danger small">{{ signing_stage_form.stage.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-8">
+                        <label for="{{ signing_stage_form.note.id_for_label }}" class="form-label fw-semibold">
+                            Примечание к стадии
+                        </label>
+                        {{ signing_stage_form.note }}
+                    </div>
+                </div>
+                {% if object and object.signing_stage and object.signing_stage.changed_at %}
+                    <small class="text-muted d-block mt-2">
+                        <i class="bi bi-clock-history me-1"></i>
+                        Последнее изменение: {{ object.signing_stage.changed_at|date:"d.m.Y H:i" }}
+                        {% if object.signing_stage.changed_by %}от {{ object.signing_stage.changed_by }}{% endif %}
+                    </small>
+                {% endif %}
+            </div>
+        </div>
         {% endif %}
 
-        <!-- Отметки по системам (только при редактировании) -->
+        <!-- Отметки по системам -->
         {% if object and system_checks %}
+            <!-- Режим редактирования: показываем реальные отметки -->
             <div class="card shadow-sm mb-4 border-info">
                 <div class="card-header bg-info text-white">
                     <h6 class="mb-0"><i class="bi bi-check2-square me-2"></i>Отметки по системам</h6>
@@ -298,136 +366,152 @@
                     </div>
                 </div>
             </div>
-        {% endif %}
-
-        <!-- Итоговый акт (только при редактировании) -->
-        {% if object and final_act_form %}
-            <div class="card shadow-sm mb-4 border-success">
-                <div class="card-header bg-success text-white">
-                    <h6 class="mb-0"><i class="bi bi-file-earmark-check me-2"></i>Итоговый акт</h6>
+        {% else %}
+            <!-- Режим создания: информационный блок -->
+            <div class="card shadow-sm mb-4 border-info">
+                <div class="card-header bg-info text-white">
+                    <h6 class="mb-0"><i class="bi bi-check2-square me-2"></i>Отметки по системам</h6>
                 </div>
                 <div class="card-body">
-                    <div class="row align-items-end">
-                        <div class="col-md-2 mb-3">
-                            <div class="form-check form-switch">
-                                {{ final_act_form.present }}
-                                <label class="form-check-label fw-semibold" for="{{ final_act_form.present.id_for_label }}">
-                                    Акт сформирован
-                                </label>
-                            </div>
-                        </div>
-                        <div class="col-md-3 mb-3">
-                            <label for="{{ final_act_form.date.id_for_label }}" class="form-label fw-semibold">Дата акта</label>
-                            {{ final_act_form.date }}
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <label for="{{ final_act_form.file.id_for_label }}" class="form-label fw-semibold">Файл акта</label>
-                            {{ final_act_form.file }}
-                            {% if object.final_act and object.final_act.file %}
-                                <div class="mt-1">
-                                    <a href="{{ object.final_act.file.url }}" target="_blank" class="btn btn-sm btn-outline-success">
-                                        <i class="bi bi-eye me-1"></i>Текущий файл
-                                    </a>
-                                </div>
-                            {% endif %}
-                        </div>
-                        <div class="col-md-3 mb-3">
-                            <label for="{{ final_act_form.note.id_for_label }}" class="form-label fw-semibold">Примечание</label>
-                            {{ final_act_form.note }}
+                    <div class="alert alert-info mb-0 d-flex align-items-center">
+                        <i class="bi bi-info-circle-fill me-3 fs-4"></i>
+                        <div>
+                            <strong>Информация:</strong> После сохранения договора здесь будут доступны отметки по системам.
+                            Для отметки требуется сохраненный договор.
                         </div>
                     </div>
-                    {% if object.final_act and object.final_act.checked_at %}
-                        <small class="text-muted">
-                            <i class="bi bi-clock-history me-1"></i>
-                            Отмечено: {{ object.final_act.checked_at|date:"d.m.Y H:i" }}
-                            {% if object.final_act.checked_by %}от {{ object.final_act.checked_by }}{% endif %}
-                        </small>
-                    {% endif %}
                 </div>
             </div>
         {% endif %}
 
-        <!-- Промежуточные акты (только при редактировании) -->
-        {% if object and interim_act_formset %}
-            <div class="card shadow-sm mb-4">
-                <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
-                    <h6 class="mb-0"><i class="bi bi-files me-2"></i>Промежуточные акты</h6>
-                    <button type="button" class="btn btn-light btn-sm" onclick="addInterimAct()">
-                        <i class="bi bi-plus-lg me-1"></i>Добавить акт
-                    </button>
-                </div>
-                <div class="card-body">
-                    {{ interim_act_formset.management_form }}
-                    <div id="interim-acts-container">
-                        {% for form in interim_act_formset %}
-                            <div class="interim-act-form border rounded p-3 mb-3 bg-light">
-                                {{ form.id }}
-                                <div class="row align-items-end">
-                                    <div class="col-md-4 mb-2">
-                                        {{ form.title.label_tag }}
-                                        {{ form.title }}
-                                    </div>
-                                    <div class="col-md-3 mb-2">
-                                        {{ form.date.label_tag }}
-                                        {{ form.date }}
-                                    </div>
-                                    <div class="col-md-4 mb-2">
-                                        {{ form.file.label_tag }}
-                                        {{ form.file }}
-                                        {% if form.instance and form.instance.file %}
-                                            <a href="{{ form.instance.file.url }}" target="_blank" class="btn btn-sm btn-outline-secondary mt-1">
-                                                <i class="bi bi-eye"></i>
-                                            </a>
-                                        {% endif %}
-                                    </div>
-                                    <div class="col-md-1 mb-2 text-end">
-                                        {% if form.instance.pk %}
-                                            <div class="form-check">
-                                                {{ form.DELETE }}
-                                                <label class="form-check-label text-danger" title="Удалить">
-                                                    <i class="bi bi-trash"></i>
-                                                </label>
-                                            </div>
-                                        {% else %}
-                                            <button type="button" class="btn btn-outline-danger btn-sm" onclick="this.closest('.interim-act-form').remove()">
-                                                <i class="bi bi-x-lg"></i>
-                                            </button>
-                                        {% endif %}
-                                    </div>
-                                </div>
-                            </div>
-                        {% endfor %}
+        <!-- Итоговый акт (всегда доступен) -->
+        {% if final_act_form %}
+        <div class="card shadow-sm mb-4 border-success">
+            <div class="card-header bg-success text-white">
+                <h6 class="mb-0"><i class="bi bi-file-earmark-check me-2"></i>Итоговый акт</h6>
+            </div>
+            <div class="card-body">
+                <div class="row align-items-end">
+                    <div class="col-md-2 mb-3">
+                        <div class="form-check form-switch">
+                            {{ final_act_form.present }}
+                            <label class="form-check-label fw-semibold" for="{{ final_act_form.present.id_for_label }}">
+                                Акт сформирован
+                            </label>
+                        </div>
                     </div>
+                    <div class="col-md-3 mb-3">
+                        <label for="{{ final_act_form.date.id_for_label }}" class="form-label fw-semibold">Дата акта</label>
+                        {{ final_act_form.date }}
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="{{ final_act_form.file.id_for_label }}" class="form-label fw-semibold">Файл акта</label>
+                        {{ final_act_form.file }}
+                        {% if object and object.final_act and object.final_act.file %}
+                            <div class="mt-1">
+                                <a href="{{ object.final_act.file.url }}" target="_blank" class="btn btn-sm btn-outline-success">
+                                    <i class="bi bi-eye me-1"></i>Текущий файл
+                                </a>
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label for="{{ final_act_form.note.id_for_label }}" class="form-label fw-semibold">Примечание</label>
+                        {{ final_act_form.note }}
+                    </div>
+                </div>
+                {% if object and object.final_act and object.final_act.checked_at %}
+                    <small class="text-muted">
+                        <i class="bi bi-clock-history me-1"></i>
+                        Отмечено: {{ object.final_act.checked_at|date:"d.m.Y H:i" }}
+                        {% if object.final_act.checked_by %}от {{ object.final_act.checked_by }}{% endif %}
+                    </small>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
 
-                    <!-- Пустой шаблон для новых актов -->
-                    <template id="empty-interim-act-form">
+        <!-- Промежуточные акты (всегда доступны) -->
+        {% if interim_act_formset %}
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
+                <h6 class="mb-0"><i class="bi bi-files me-2"></i>Промежуточные акты</h6>
+                <button type="button" class="btn btn-light btn-sm" onclick="addInterimAct()">
+                    <i class="bi bi-plus-lg me-1"></i>Добавить акт
+                </button>
+            </div>
+            <div class="card-body">
+                {{ interim_act_formset.management_form }}
+                <div id="interim-acts-container">
+                    {% for form in interim_act_formset %}
                         <div class="interim-act-form border rounded p-3 mb-3 bg-light">
+                            {{ form.id }}
                             <div class="row align-items-end">
                                 <div class="col-md-4 mb-2">
-                                    <label class="form-label">Название</label>
-                                    <input type="text" name="interim_acts-__prefix__-title" class="form-control" value="Этап Акт">
+                                    {{ form.title.label_tag }}
+                                    {{ form.title }}
                                 </div>
                                 <div class="col-md-3 mb-2">
-                                    <label class="form-label">Дата</label>
-                                    <input type="date" name="interim_acts-__prefix__-date" class="form-control">
+                                    {{ form.date.label_tag }}
+                                    {{ form.date }}
                                 </div>
                                 <div class="col-md-4 mb-2">
-                                    <label class="form-label">Файл</label>
-                                    <input type="file" name="interim_acts-__prefix__-file" class="form-control">
+                                    {{ form.file.label_tag }}
+                                    {{ form.file }}
+                                    {% if form.instance and form.instance.file %}
+                                        <a href="{{ form.instance.file.url }}" target="_blank" class="btn btn-sm btn-outline-secondary mt-1">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                    {% endif %}
                                 </div>
                                 <div class="col-md-1 mb-2 text-end">
-                                    <button type="button" class="btn btn-outline-danger btn-sm" onclick="this.closest('.interim-act-form').remove()">
-                                        <i class="bi bi-x-lg"></i>
-                                    </button>
+                                    {% if form.instance.pk %}
+                                        <div class="form-check">
+                                            {{ form.DELETE }}
+                                            <label class="form-check-label text-danger" title="Удалить">
+                                                <i class="bi bi-trash"></i>
+                                            </label>
+                                        </div>
+                                    {% else %}
+                                        <button type="button" class="btn btn-outline-danger btn-sm" onclick="this.closest('.interim-act-form').remove()">
+                                            <i class="bi bi-x-lg"></i>
+                                        </button>
+                                    {% endif %}
                                 </div>
                             </div>
                         </div>
-                    </template>
+                    {% endfor %}
                 </div>
+
+                <!-- Пустой шаблон для новых актов -->
+                <template id="empty-interim-act-form">
+                    <div class="interim-act-form border rounded p-3 mb-3 bg-light">
+                        <div class="row align-items-end">
+                            <div class="col-md-4 mb-2">
+                                <label class="form-label">Название</label>
+                                <input type="text" name="interim_acts-__prefix__-title" class="form-control" value="Этап Акт">
+                            </div>
+                            <div class="col-md-3 mb-2">
+                                <label class="form-label">Дата</label>
+                                <input type="date" name="interim_acts-__prefix__-date" class="form-control">
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <label class="form-label">Файл</label>
+                                <input type="file" name="interim_acts-__prefix__-file" class="form-control">
+                            </div>
+                            <div class="col-md-1 mb-2 text-end">
+                                <button type="button" class="btn btn-outline-danger btn-sm" onclick="this.closest('.interim-act-form').remove()">
+                                    <i class="bi bi-x-lg"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </template>
             </div>
+        </div>
         {% endif %}
 
-        <!-- Объекты защиты -->
+        <!-- Объекты защиты (всегда доступны) -->
         <div class="card shadow-sm mb-4">
             <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
                 <h6 class="mb-0"><i class="bi bi-building me-2"></i>Объекты защиты</h6>
@@ -479,60 +563,106 @@ document.body.addEventListener('htmx:configRequest', function(evt) {
     evt.detail.headers['X-CSRFToken'] = '{{ csrf_token }}';
 });
 
-// Обработка результатов поиска заказчика
-document.addEventListener('htmx:afterSwap', function(evt) {
-    if (evt.detail.target.id === 'customer-search-results') {
-        const results = document.getElementById('customer-search-results');
+// ========== Работа с выбором заказчика ==========
+document.addEventListener('DOMContentLoaded', function() {
 
-        // Показываем контейнер если есть результаты
-        if (results.innerHTML.trim()) {
-            results.style.display = 'block';
-        } else {
-            results.style.display = 'none';
-        }
+    const customerInput = document.getElementById('id_customer');
+    const searchInput = document.getElementById('customer-search-input');
+    const searchResults = document.getElementById('customer-search-results');
+    const selectedBlock = document.getElementById('selected-customer-block');
+    const searchBlock = document.getElementById('customer-search-block');
+    const selectedName = document.getElementById('selected-customer-name');
+    const selectedInn = document.getElementById('selected-customer-inn');
+    const clearBtn = document.getElementById('clear-customer-btn');
 
-        // Навешиваем обработчики клика на результаты
-        document.querySelectorAll('.customer-result').forEach(function(el) {
-            el.addEventListener('click', function() {
-                const id = this.dataset.id;
-                const name = this.dataset.name;
-                document.getElementById('{{ form.customer.id_for_label }}').value = id;
-                document.getElementById('{{ form.customer_search.id_for_label }}').value = name;
-                results.innerHTML = '';
-                results.style.display = 'none';
-            });
-        });
+    if (!customerInput || !searchInput) {
+        console.error('Customer selector elements not found');
+        return;
     }
-});
 
-    // Поиск АК
-    if (evt.detail.target.id && evt.detail.target.id.startsWith('ak-search-results-')) {
-        document.querySelectorAll('.ak-result').forEach(function(el) {
-            el.addEventListener('click', function() {
-                const akId = this.dataset.id;
-                const objectId = this.closest('[id^="ak-search-results-"]').id.replace('ak-search-results-', '');
-                const url = '{% url "contract_core:add_ak_to_object" 0 0 0 %}'
-                    .replace('/0/0/0/', '/' + {{ object.pk|default:0 }} + '/' + objectId + '/' + akId + '/');
+    console.log('Customer selector initialized. Value:', customerInput.value);
 
-                htmx.ajax('POST', url, {
-                    target: '#attached-aks-' + objectId,
-                    swap: 'innerHTML'
+    // Обработка результатов поиска (HTMX)
+    document.addEventListener('htmx:afterSwap', function(evt) {
+        if (evt.detail.target.id === 'customer-search-results') {
+            console.log('Search results received');
+
+            if (searchResults.innerHTML.trim()) {
+                searchResults.style.display = 'block';
+            } else {
+                searchResults.style.display = 'none';
+            }
+
+            // Обработчики на результаты
+            document.querySelectorAll('.customer-result').forEach(function(el) {
+                el.addEventListener('click', function() {
+                    const id = this.dataset.id;
+                    const name = this.dataset.name;
+                    const inn = this.dataset.inn;
+
+                    customerInput.value = id;
+                    selectedName.textContent = name;
+                    selectedInn.textContent = 'ИНН: ' + inn;
+
+                    selectedBlock.classList.remove('d-none');
+                    searchBlock.classList.add('d-none');
+
+                    searchResults.style.display = 'none';
+                    searchInput.value = '';
                 });
             });
+        }
+
+        // Поиск АК (для объектов защиты)
+        if (evt.detail.target.id && evt.detail.target.id.startsWith('ak-search-results-')) {
+            document.querySelectorAll('.ak-result').forEach(function(el) {
+                el.addEventListener('click', function() {
+                    const akId = this.dataset.id;
+                    const objectId = this.closest('[id^="ak-search-results-"]').id.replace('ak-search-results-', '');
+                    const contractPk = {{ object.pk|default:"null" }};
+
+                    if (!contractPk) return;
+
+                    const url = '{% url "contract_core:add_ak_to_object" 0 0 0 %}'
+                        .replace('/0/0/0/', '/' + contractPk + '/' + objectId + '/' + akId + '/');
+
+                    htmx.ajax('POST', url, {
+                        target: '#attached-aks-' + objectId,
+                        swap: 'innerHTML'
+                    });
+                });
+            });
+        }
+    });
+
+    // Очистка выбора заказчика
+    if (clearBtn) {
+        clearBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            customerInput.value = '';
+            searchInput.value = '';
+            selectedBlock.classList.add('d-none');
+            searchBlock.classList.remove('d-none');
+            searchInput.focus();
         });
     }
-});
 
-// Скрытие результатов поиска при клике вне
-document.addEventListener('click', function(evt) {
-    const customerContainer = document.querySelector('.customer-search-container');
-    if (customerContainer && !customerContainer.contains(evt.target)) {
-        const results = document.getElementById('customer-search-results');
-        if (results) {
-            results.innerHTML = '';
-            results.style.display = 'none';
+    // Скрытие результатов при клике вне
+    document.addEventListener('click', function(evt) {
+        const container = document.getElementById('customer-selector');
+        if (container && !container.contains(evt.target)) {
+            if (searchResults) searchResults.style.display = 'none';
         }
-    }
+    });
+
+    // Скрытие результатов при очистке поля
+    searchInput.addEventListener('input', function(e) {
+        if (this.value === '') {
+            if (searchResults) searchResults.style.display = 'none';
+        }
+    });
 });
 
 // Добавление промежуточного акта
@@ -557,24 +687,18 @@ document.getElementById('add-protection-object-btn').addEventListener('click', f
     const totalForms = document.getElementById('id_protection_objects-TOTAL_FORMS');
     const currentCount = parseInt(totalForms.value);
 
-    // Клонируем шаблон
     let newFormHtml = template.innerHTML;
-
-    // Заменяем префикс
     newFormHtml = newFormHtml.replace(/__prefix__/g, currentCount);
 
-    // Создаем временный контейнер для парсинга
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = newFormHtml;
 
-    // Обновляем ID и name атрибуты
     const newForm = tempDiv.firstElementChild;
     newForm.querySelectorAll('[id*="__prefix__"], [name*="__prefix__"]').forEach(function(el) {
         el.id = el.id.replace('__prefix__', currentCount);
         el.name = el.name.replace('__prefix__', currentCount);
     });
 
-    // Обновляем hx-target для region select
     const regionSelect = newForm.querySelector('.region-select');
     if (regionSelect) {
         regionSelect.setAttribute('hx-get', '{% url "contract_core:filter_districts_by_region" %}');
@@ -582,8 +706,6 @@ document.getElementById('add-protection-object-btn').addEventListener('click', f
 
     container.appendChild(newForm);
     totalForms.value = currentCount + 1;
-
-    // Инициализируем HTMX на новых элементах
     htmx.process(newForm);
 });
 </script>

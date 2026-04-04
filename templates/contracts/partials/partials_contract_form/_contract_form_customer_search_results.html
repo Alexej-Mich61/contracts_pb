@@ -1,23 +1,38 @@
 <!-- templates/contracts/partials/partials_contract_form/_contract_form_customer_search_results.html -->
+
+<!-- DEBUG: Удалите после проверки -->
+<div style="display:none;">
+    Debug: query='{{ query|default:"EMPTY" }}',
+    customers count={{ customers|length }}
+</div>
+
 {% if customers %}
     <div class="list-group list-group-flush">
         {% for customer in customers %}
             <button type="button"
                     class="list-group-item list-group-item-action customer-result py-2 px-3"
                     data-id="{{ customer.id }}"
-                    data-name="{{ customer.name }}">
+                    data-name="{{ customer.name }}"
+                    data-inn="{{ customer.inn }}">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <div class="fw-semibold">{{ customer.name }}</div>
                         <small class="text-muted">ИНН: {{ customer.inn }}</small>
                     </div>
-                    <span class="badge bg-primary bg-opacity-10 text-primary">Выбрать</span>
+                    <span class="badge bg-primary">Выбрать</span>
                 </div>
             </button>
         {% endfor %}
     </div>
-{% elif query and query|length >= 2 %}
+{% elif query %}
+    <div class="p-3 text-muted text-center border-top">
+        <i class="bi bi-search me-2"></i>По запросу "<strong>{{ query }}</strong>" ничего не найдено
+        <div class="mt-2 small text-danger">
+            Debug: получен запрос '{{ query }}', найдено записей: {{ customers|length }}
+        </div>
+    </div>
+{% else %}
     <div class="p-3 text-muted text-center">
-        <i class="bi bi-search me-2"></i>Ничего не найдено
+        <i class="bi bi-info-circle me-2"></i>Введите минимум 2 символа
     </div>
 {% endif %}

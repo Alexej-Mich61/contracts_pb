@@ -22,6 +22,7 @@ from .validators import file_validator
 
 # ========== СПРАВОЧНИКИ ==========
 # Формы для управления справочными данными (АК, Компании)
+
 # форма АК
 class AkForm(forms.ModelForm):
     class Meta:
@@ -40,21 +41,11 @@ class AkForm(forms.ModelForm):
         self.fields['district'].label_from_instance = lambda obj: f"{obj.region.name} – {obj.name}"
 
 
-
-# ========== ДОГОВОР (ОСНОВНОЕ) ==========
-
-
-# Основная форма договора и связанные с ней
 # форма КОМПАНИИ
 class CompanyForm(forms.ModelForm):
     """
-       Форма договора с динамической фильтрацией через HTMX.
-
-       Используется в:
-           - views.ContractCreateView
-           - views.ContractUpdateView
-           - templates/contracts/contract_form.html
-       """
+    Форма компании
+    """
 
     class Meta:
         model = Company
@@ -95,7 +86,12 @@ class CompanyForm(forms.ModelForm):
         return cleaned_data
 
 
-# форма контракта
+
+# ========== ДОГОВОР (ОСНОВНОЕ) ==========
+
+
+# Основная форма договора и связанные с ней
+# форма ДОГОВОРА (контракта)
 class ContractForm(forms.ModelForm):
     """
     Форма договора.
@@ -226,7 +222,9 @@ class ContractForm(forms.ModelForm):
         cleaned_data = super().clean()
         customer = cleaned_data.get('customer')
 
+        # Проверка заказчика
         if not customer:
+            # Добавляем ошибку к полю customer (не к customer_search, так как это вспомогательное)
             self.add_error('customer_search', 'Необходимо выбрать заказчика из списка найденных')
 
         # Валидация дат

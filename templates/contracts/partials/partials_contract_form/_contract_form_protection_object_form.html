@@ -55,8 +55,9 @@
         </div>
     </div>
 
-    <!-- АК объекта защиты (только при редактировании договора) -->
+    <!-- АК объекта защиты -->
     {% if object and form.instance.pk %}
+        <!-- Объект уже сохранен в БД - показываем функционал АК -->
         <div class="row border-top pt-3 mt-2">
             <div class="col-12">
                 <label class="form-label fw-semibold text-muted">
@@ -88,6 +89,22 @@
                          class="position-absolute w-100 bg-white border rounded shadow-sm mt-1"
                          style="z-index:1050; max-height:200px; overflow-y:auto; display:none;">
                     </div>
+                </div>
+            </div>
+        </div>
+    {% else %}
+        <!-- Объект еще не сохранен (новый в formset при создании договора) -->
+        <div class="row border-top pt-3 mt-2">
+            <div class="col-12">
+                <div class="alert alert-light border mb-0 d-flex align-items-center text-muted">
+                    <i class="bi bi-info-circle me-2"></i>
+                    <small>
+                        {% if object %}
+                            Сохраните договор, чтобы добавить АК к этому объекту защиты.
+                        {% else %}
+                            АК будут доступны после сохранения договора и объектов защиты.
+                        {% endif %}
+                    </small>
                 </div>
             </div>
         </div>

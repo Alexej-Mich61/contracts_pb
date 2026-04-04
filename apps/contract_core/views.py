@@ -239,49 +239,46 @@ class ContractCreateUpdateMixin:
                 self.request.POST,
                 instance=self.object.signing_stage if self.object and hasattr(self.object, 'signing_stage') else None
             )
-            if self.object:
-                context['interim_act_formset'] = InterimActFormSet(
-                    self.request.POST, self.request.FILES, instance=self.object
-                )
-                context['final_act_form'] = FinalActForm(
-                    self.request.POST, self.request.FILES,
-                    instance=self.object.final_act if hasattr(self.object, 'final_act') else None
-                )
-        else:
-            context['protection_object_formset'] = ProtectionObjectFormSet(
-                instance=self.object
-            )
 
-            # Стадия подписания - и при создании, и при редактировании
+            # ВСЕГДА инициализируем формы актов (и при создании, и при редактировании)
+            context['interim_act_formset'] = InterimActFormSet(
+                self.request.POST, self.request.FILES, instance=self.object
+            )
+            context['final_act_form'] = FinalActForm(
+                self.request.POST, self.request.FILES,
+                instance=self.object.final_act if self.object and hasattr(self.object, 'final_act') else None
+            )
+        else:
+            context['protection_object_formset'] = ProtectionObjectFormSet(instance=self.object)
+
+            # Стадия подписания
             if self.object and hasattr(self.object, 'signing_stage'):
-                context['signing_stage_form'] = ContractSigningStageForm(
-                    instance=self.object.signing_stage
-                )
+                context['signing_stage_form'] = ContractSigningStageForm(instance=self.object.signing_stage)
             else:
-                # При создании - начальная стадия (первая в справочнике)
                 initial_stage = SigningStage.objects.order_by('order').first()
                 context['signing_stage_form'] = ContractSigningStageForm(
                     initial={'stage': initial_stage.id if initial_stage else None}
                 )
 
+            # ВСЕГДА инициализируем формы актов (даже при создании договора)
+            context['interim_act_formset'] = InterimActFormSet(instance=self.object)
+            context['final_act_form'] = FinalActForm(
+                instance=self.object.final_act if self.object and hasattr(self.object, 'final_act') else None
+            )
+
+            # Отметки по системам: при редактировании — реальные данные, при создании — пустой список
             if self.object:
-                context['interim_act_formset'] = InterimActFormSet(instance=self.object)
-
-                try:
-                    context['final_act_form'] = FinalActForm(instance=self.object.final_act)
-                except FinalAct.DoesNotExist:
-                    context['final_act_form'] = FinalActForm()
-
-                # Отметки по системам
                 context['system_checks'] = self.get_system_checks()
             else:
-                context['interim_act_formset'] = InterimActFormSet()
-                context['final_act_form'] = FinalActForm()
+                context['system_checks'] = []
 
         return context
 
     def get_system_checks(self):
         """Получить или создать отметки по системам для договора"""
+        if not self.object:
+            return []
+
         systems = SystemType.objects.filter(is_active=True)
         checks = []
         for system in systems:
@@ -297,27 +294,24 @@ class ContractCreateUpdateMixin:
         context = self.get_context_data()
         protection_formset = context['protection_object_formset']
         signing_form = context['signing_stage_form']
+        interim_formset = context['interim_act_formset']
+        final_act_form = context['final_act_form']
 
         is_valid = True
 
         if not protection_formset.is_valid():
             is_valid = False
-
         if not signing_form.is_valid():
             is_valid = False
-
-        if self.object:
-            interim_formset = context.get('interim_act_formset')
-            final_act_form = context.get('final_act_form')
-
-            if interim_formset and not interim_formset.is_valid():
-                is_valid = False
-            if final_act_form and not final_act_form.is_valid():
-                is_valid = False
+        if not interim_formset.is_valid():
+            is_valid = False
+        if not final_act_form.is_valid():
+            is_valid = False
 
         if not is_valid:
             return self.render_to_response(self.get_context_data(form=form))
 
+        # Сохраняем основной договор
         self.object = form.save()
 
         # Сохраняем formset объектов защиты
@@ -329,18 +323,17 @@ class ContractCreateUpdateMixin:
         signing_stage.contract = self.object
         signing_stage.save()
 
-        # Сохраняем акты (только при редактировании)
-        if self.object and self.object.pk:
-            if interim_formset:
-                interim_formset.instance = self.object
-                interim_formset.save()
-            if final_act_form:
-                final_act = final_act_form.save(commit=False)
-                final_act.contract = self.object
-                if final_act_form.cleaned_data.get('present') and not final_act.checked_by:
-                    final_act.checked_by = self.request.user
-                    final_act.checked_at = timezone.now()
-                final_act.save()
+        # Сохраняем итоговый акт (даже при создании договора)
+        final_act = final_act_form.save(commit=False)
+        final_act.contract = self.object
+        if final_act_form.cleaned_data.get('present') and not final_act.checked_by:
+            final_act.checked_by = self.request.user
+            final_act.checked_at = timezone.now()
+        final_act.save()
+
+        # Сохраняем промежуточные акты (даже при создании договора)
+        interim_formset.instance = self.object
+        interim_formset.save()
 
         return redirect(self.get_success_url())
 
@@ -476,23 +469,41 @@ class DynamicFieldsView(LoginRequiredMixin, View):
 
 
 class CustomerSearchView(LoginRequiredMixin, View):
-    """HTMX: поиск заказчика по названию или ИНН"""
-
     def get(self, request):
         query = request.GET.get('q', '').strip()
+
+        # Отладка
+        print(f"=" * 50)
+        print(f"Query received: '{query}'")
+        print(f"Query length: {len(query)}")
+
         customers = []
 
         if len(query) >= 2:
+            # Проверим, есть ли вообще компании с is_customer=True
+            total_customers = Company.objects.filter(is_customer=True).count()
+            print(f"Total customers in DB: {total_customers}")
+
             customers = Company.objects.filter(
                 is_customer=True
             ).filter(
                 Q(name__icontains=query) | Q(inn__icontains=query)
-            )[:10]
+            ).order_by('name')[:10]
 
-        return render(request, 'contracts/partials/partials_contract_form/_contract_form_customer_search_results.html', {
+            print(f"Found customers: {customers.count()}")
+            for c in customers:
+                print(f"  - {c.name} (ИНН: {c.inn})")
+
+        context = {
             'customers': customers,
             'query': query,
-        })
+        }
+
+        print(f"Context: {context}")
+        print(f"=" * 50)
+
+        return render(request, 'contracts/partials/partials_contract_form/_contract_form_customer_search_results.html',
+                      context)
 
 
 class ContractFormFilterDistrictsByRegionView(LoginRequiredMixin, View):
@@ -600,9 +611,6 @@ class MarkSystemCheckView(LoginRequiredMixin, View):
         return redirect('contract_core:contract_update', pk=contract_pk)
 
 
-
-
-
 # ========== ВСПОМОГАТЕЛЬНЫЕ ВЬЮХИ ДЛЯ ФИЛЬТРА СПИСКА ДОГОВОРОВ ==========
 # Эти вьюхи используются в contract_filter.html для динамической загрузки
 # зависимых полей (работы по типу договора, районы по региону)
@@ -637,186 +645,186 @@ class FilterDistrictsView(LoginRequiredMixin, View):
         })
 
 
-# ========== ВСПОМОГАТЕЛЬНЫЕ ВЬЮХИ ДЛЯ ФОРМЫ ДОГОВОРА ==========
-# Эти вьюхи используются в contract_form.html для динамической загрузки полей
-
-class ContractFormFilterExecutorsView(LoginRequiredMixin, View):
-    """HTMX: получить исполнителей по типу договора (для формы договора)"""
-
-    def get(self, request):
-        contract_type = request.GET.get('type')
-        user = request.user
-
-        user_companies = Company.objects.filter(
-            employees__user=user,
-            employees__is_active=True
-        ).values_list('id', flat=True)
-
-        type_filter = Q()
-        if contract_type in ['oneoff_licensee', 'longterm_to_licensee']:
-            type_filter |= Q(is_licensee=True)
-        if contract_type == 'oneoff_lab':
-            type_filter |= Q(is_laboratory=True)
-
-        executors = Company.objects.filter(
-            (Q(id__in=user_companies) | type_filter) &
-            (Q(is_licensee=True) | Q(is_laboratory=True))
-        ).distinct().order_by('name')
-
-        selected = request.GET.get('executor', '')
-
-        return render(request, 'contracts/partials/partials_contract_form/_contract_form_executor_select.html', {
-            'executors': executors,
-            'selected': selected,
-        })
-
-
-class ContractFormFilterWorksView(LoginRequiredMixin, View):
-    """HTMX: получить работы по типу договора (для формы договора)"""
-
-    def get(self, request):
-        contract_type = request.GET.get('type')
-
-        work_type_map = {
-            'oneoff_licensee': 'work_oneoff_licensee',
-            'longterm_to_licensee': 'work_longterm_to_licensee',
-            'oneoff_lab': 'work_oneoff_lab',
-        }
-
-        works = Work.objects.none()
-        if contract_type in work_type_map:
-            works = Work.objects.filter(
-                work_type=work_type_map[contract_type],
-                is_active=True
-            )
-
-        selected = request.GET.get('work', '')
-
-        return render(request, 'contracts/partials/partials_contract_form/_contract_form_work_select.html', {
-            'works': works,
-            'selected': selected,
-        })
-
-
-
-class CustomerSearchView(LoginRequiredMixin, View):
-    """HTMX: поиск заказчика по названию или ИНН (для формы договора)"""
-
-    def get(self, request):
-        query = request.GET.get('q', '').strip()
-        customers = []
-
-        if len(query) >= 2:
-            customers = Company.objects.filter(
-                is_customer=True
-            ).filter(
-                Q(name__icontains=query) | Q(inn__icontains=query)
-            )[:10]
-
-        return render(request, 'contracts/partials/partials_contract_form/_contract_form_customer_search_results.html', {
-            'customers': customers,
-            'query': query,
-        })
-
-
-class ContractFormFilterDistrictsByRegionView(LoginRequiredMixin, View):
-    """HTMX: получить районы по выбранному региону (для формы договора)"""
-
-    def get(self, request):
-        region_id = request.GET.get('region')
-        districts = District.objects.none()
-
-        if region_id:
-            districts = District.objects.filter(region_id=region_id).order_by('name')
-
-        selected = request.GET.get('district', '')
-
-        return render(request, 'contracts/partials/partials_contract_form/_contract_form_district_field.html', {
-            'districts': districts,
-            'selected': selected,
-        })
-
-
-class AkSearchView(LoginRequiredMixin, View):
-    """HTMX: поиск АК по ID, номеру или названию (для формы договора)"""
-
-    def get(self, request):
-        query = request.GET.get('q', '').strip()
-        protection_object_id = request.GET.get('protection_object')
-
-        aks = []
-        if len(query) >= 2:
-            q_filter = Q(name__icontains=query)
-            if query.isdigit():
-                q_filter |= Q(number=query) | Q(id=query)
-
-            aks = Ak.objects.filter(q_filter)[:10]
-
-        attached_aks = []
-        if protection_object_id and protection_object_id != 'new':
-            attached_aks = Ak.objects.filter(
-                protection_objects__id=protection_object_id
-            ).values_list('id', flat=True)
-
-        return render(request, 'contracts/partials/partials_contract_form/_contract_form_ak_search_results.html', {
-            'aks': aks,
-            'attached_ids': list(attached_aks),
-        })
-
-
-class DynamicFieldsView(LoginRequiredMixin, View):
-    """HTMX: обновление всех динамических полей при смене типа договора"""
-
-    def get(self, request):
-        # Проверяем, что это HTMX-запрос
-        if not request.headers.get('HX-Request'):
-            return HttpResponse("Требуется HTMX", status=400)
-
-        contract_type = request.GET.get('type')
-        user = request.user
-
-        # Получаем исполнителей
-        user_companies = Company.objects.filter(
-            employees__user=user,
-            employees__is_active=True
-        ).values_list('id', flat=True)
-
-        type_filter = Q()
-        if contract_type in ['oneoff_licensee', 'longterm_to_licensee']:
-            type_filter |= Q(is_licensee=True)
-        if contract_type == 'oneoff_lab':
-            type_filter |= Q(is_laboratory=True)
-
-        executors = Company.objects.filter(
-            (Q(id__in=user_companies) | type_filter) &
-            (Q(is_licensee=True) | Q(is_laboratory=True))
-        ).distinct().order_by('name')
-
-        # Получаем работы
-        work_type_map = {
-            'oneoff_licensee': 'work_oneoff_licensee',
-            'longterm_to_licensee': 'work_longterm_to_licensee',
-            'oneoff_lab': 'work_oneoff_lab',
-        }
-
-        works = Work.objects.none()
-        if contract_type in work_type_map:
-            works = Work.objects.filter(
-                work_type=work_type_map[contract_type],
-                is_active=True
-            )
-
-        # Получаем выбранные значения (если есть)
-        selected_executor = request.GET.get('executor', '')
-        selected_work = request.GET.get('work', '')
-
-        return render(request, 'contracts/partials/partials_contract_form/_contract_form_dynamic_fields.html', {
-            'executors': executors,
-            'works': works,
-            'contract_type': contract_type,
-            'selected_executor': selected_executor,
-            'selected_work': selected_work,
-        })
+# # ========== ВСПОМОГАТЕЛЬНЫЕ ВЬЮХИ ДЛЯ ФОРМЫ ДОГОВОРА ==========
+# # Эти вьюхи используются в contract_form.html для динамической загрузки полей
+#
+# class ContractFormFilterExecutorsView(LoginRequiredMixin, View):
+#     """HTMX: получить исполнителей по типу договора (для формы договора)"""
+#
+#     def get(self, request):
+#         contract_type = request.GET.get('type')
+#         user = request.user
+#
+#         user_companies = Company.objects.filter(
+#             employees__user=user,
+#             employees__is_active=True
+#         ).values_list('id', flat=True)
+#
+#         type_filter = Q()
+#         if contract_type in ['oneoff_licensee', 'longterm_to_licensee']:
+#             type_filter |= Q(is_licensee=True)
+#         if contract_type == 'oneoff_lab':
+#             type_filter |= Q(is_laboratory=True)
+#
+#         executors = Company.objects.filter(
+#             (Q(id__in=user_companies) | type_filter) &
+#             (Q(is_licensee=True) | Q(is_laboratory=True))
+#         ).distinct().order_by('name')
+#
+#         selected = request.GET.get('executor', '')
+#
+#         return render(request, 'contracts/partials/partials_contract_form/_contract_form_executor_select.html', {
+#             'executors': executors,
+#             'selected': selected,
+#         })
+#
+#
+# class ContractFormFilterWorksView(LoginRequiredMixin, View):
+#     """HTMX: получить работы по типу договора (для формы договора)"""
+#
+#     def get(self, request):
+#         contract_type = request.GET.get('type')
+#
+#         work_type_map = {
+#             'oneoff_licensee': 'work_oneoff_licensee',
+#             'longterm_to_licensee': 'work_longterm_to_licensee',
+#             'oneoff_lab': 'work_oneoff_lab',
+#         }
+#
+#         works = Work.objects.none()
+#         if contract_type in work_type_map:
+#             works = Work.objects.filter(
+#                 work_type=work_type_map[contract_type],
+#                 is_active=True
+#             )
+#
+#         selected = request.GET.get('work', '')
+#
+#         return render(request, 'contracts/partials/partials_contract_form/_contract_form_work_select.html', {
+#             'works': works,
+#             'selected': selected,
+#         })
+#
+#
+#
+# class CustomerSearchView(LoginRequiredMixin, View):
+#     """HTMX: поиск заказчика по названию или ИНН (для формы договора)"""
+#
+#     def get(self, request):
+#         query = request.GET.get('q', '').strip()
+#         customers = []
+#
+#         if len(query) >= 2:
+#             customers = Company.objects.filter(
+#                 is_customer=True
+#             ).filter(
+#                 Q(name__icontains=query) | Q(inn__icontains=query)
+#             )[:10]
+#
+#         return render(request, 'contracts/partials/partials_contract_form/_contract_form_customer_search_results.html', {
+#             'customers': customers,
+#             'query': query,
+#         })
+#
+#
+# class ContractFormFilterDistrictsByRegionView(LoginRequiredMixin, View):
+#     """HTMX: получить районы по выбранному региону (для формы договора)"""
+#
+#     def get(self, request):
+#         region_id = request.GET.get('region')
+#         districts = District.objects.none()
+#
+#         if region_id:
+#             districts = District.objects.filter(region_id=region_id).order_by('name')
+#
+#         selected = request.GET.get('district', '')
+#
+#         return render(request, 'contracts/partials/partials_contract_form/_contract_form_district_field.html', {
+#             'districts': districts,
+#             'selected': selected,
+#         })
+#
+#
+# class AkSearchView(LoginRequiredMixin, View):
+#     """HTMX: поиск АК по ID, номеру или названию (для формы договора)"""
+#
+#     def get(self, request):
+#         query = request.GET.get('q', '').strip()
+#         protection_object_id = request.GET.get('protection_object')
+#
+#         aks = []
+#         if len(query) >= 2:
+#             q_filter = Q(name__icontains=query)
+#             if query.isdigit():
+#                 q_filter |= Q(number=query) | Q(id=query)
+#
+#             aks = Ak.objects.filter(q_filter)[:10]
+#
+#         attached_aks = []
+#         if protection_object_id and protection_object_id != 'new':
+#             attached_aks = Ak.objects.filter(
+#                 protection_objects__id=protection_object_id
+#             ).values_list('id', flat=True)
+#
+#         return render(request, 'contracts/partials/partials_contract_form/_contract_form_ak_search_results.html', {
+#             'aks': aks,
+#             'attached_ids': list(attached_aks),
+#         })
+#
+#
+# class DynamicFieldsView(LoginRequiredMixin, View):
+#     """HTMX: обновление всех динамических полей при смене типа договора"""
+#
+#     def get(self, request):
+#         # Проверяем, что это HTMX-запрос
+#         if not request.headers.get('HX-Request'):
+#             return HttpResponse("Требуется HTMX", status=400)
+#
+#         contract_type = request.GET.get('type')
+#         user = request.user
+#
+#         # Получаем исполнителей
+#         user_companies = Company.objects.filter(
+#             employees__user=user,
+#             employees__is_active=True
+#         ).values_list('id', flat=True)
+#
+#         type_filter = Q()
+#         if contract_type in ['oneoff_licensee', 'longterm_to_licensee']:
+#             type_filter |= Q(is_licensee=True)
+#         if contract_type == 'oneoff_lab':
+#             type_filter |= Q(is_laboratory=True)
+#
+#         executors = Company.objects.filter(
+#             (Q(id__in=user_companies) | type_filter) &
+#             (Q(is_licensee=True) | Q(is_laboratory=True))
+#         ).distinct().order_by('name')
+#
+#         # Получаем работы
+#         work_type_map = {
+#             'oneoff_licensee': 'work_oneoff_licensee',
+#             'longterm_to_licensee': 'work_longterm_to_licensee',
+#             'oneoff_lab': 'work_oneoff_lab',
+#         }
+#
+#         works = Work.objects.none()
+#         if contract_type in work_type_map:
+#             works = Work.objects.filter(
+#                 work_type=work_type_map[contract_type],
+#                 is_active=True
+#             )
+#
+#         # Получаем выбранные значения (если есть)
+#         selected_executor = request.GET.get('executor', '')
+#         selected_work = request.GET.get('work', '')
+#
+#         return render(request, 'contracts/partials/partials_contract_form/_contract_form_dynamic_fields.html', {
+#             'executors': executors,
+#             'works': works,
+#             'contract_type': contract_type,
+#             'selected_executor': selected_executor,
+#             'selected_work': selected_work,
+#         })
 
 
 # ========== КОРЗИНА ==========
