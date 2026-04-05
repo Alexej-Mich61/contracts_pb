@@ -325,69 +325,73 @@ document.body.addEventListener('htmx:configRequest', function(evt) {
     evt.detail.headers['X-CSRFToken'] = '{{ csrf_token }}';
 });
 
-// Удаление формы из formset (для новых, еще не сохраненных записей)
-function removeFormsetForm(btn, prefix) {
-    const formDiv = btn.closest('.' + prefix.replace('_', '-') + '-form');
-    if (!formDiv) return;
+// === Делегирование событий для кнопок удаления (работает с динамически добавленными элементами) ===
+document.addEventListener('click', function(e) {
+    // Ищем ближайшую кнопку с классом remove-formset-btn
+    const btn = e.target.closest('.remove-formset-btn');
+    if (!btn) return;
 
-    // Удаляем DOM элемент
+    const prefix = btn.getAttribute('data-prefix');
+    if (!prefix) return;
+
+    e.preventDefault();
+    removeFormsetForm(btn, prefix);
+});
+
+// === Удаление формы ===
+function removeFormsetForm(btn, prefix) {
+    const cssClass = prefix.replace(/_/g, '-');
+    const formDiv = btn.closest('.' + cssClass + '-form');
+
+    if (!formDiv) {
+        console.error('Не найден родительский .' + cssClass + '-form');
+        return;
+    }
+
+    // Удаляем элемент
     formDiv.remove();
 
-    // Пересчитываем индексы и TOTAL_FORMS
+    // Пересчитываем индексы
     recalculateFormsetIndices(prefix);
 }
 
-// Пересчет индексов в formset после удаления
+// === Пересчет индексов ===
 function recalculateFormsetIndices(prefix) {
-    const container = document.getElementById(prefix.replace('_', '-') + 's-container');
-    if (!container) return;
+    const cssClass = prefix.replace(/_/g, '-');
+    const container = document.getElementById(prefix + 's-container'); // protection_objects-container или interim_acts-container
 
-    const forms = container.querySelectorAll('.' + prefix.replace('_', '-') + '-form');
+    if (!container) {
+        console.error('Контейнер не найден:', prefix + 's-container');
+        return;
+    }
+
+    const forms = container.querySelectorAll('.' + cssClass + '-form');
     const totalFormsInput = document.getElementById('id_' + prefix + '-TOTAL_FORMS');
 
-    // Обновляем индексы для каждой формы
+    console.log('Форм найдено:', forms.length); // Отладка
+
+    if (totalFormsInput) {
+        totalFormsInput.value = forms.length;
+    }
+
+    // Переименовываем индексы в name/id (опционально, но полезно)
     forms.forEach((form, index) => {
         form.setAttribute('data-index', index);
 
-        // Обновляем все name и id атрибуты
-        form.querySelectorAll('input, select, textarea, label').forEach(el => {
+        form.querySelectorAll('input, select, textarea').forEach(el => {
             if (el.name) {
                 el.name = el.name.replace(new RegExp(prefix + '-\\d+-'), prefix + '-' + index + '-');
             }
             if (el.id && el.id.includes(prefix)) {
                 el.id = el.id.replace(new RegExp(prefix + '-\\d+-'), prefix + '-' + index + '-');
             }
-            if (el.htmlFor) {
-                el.htmlFor = el.htmlFor.replace(new RegExp(prefix + '-\\d+-'), prefix + '-' + index + '-');
-            }
         });
-
-        // Обновляем hx-vals для region-select (если есть)
-        const regionSelect = form.querySelector('.region-select');
-        if (regionSelect && regionSelect.getAttribute('hx-vals')) {
-            regionSelect.setAttribute('hx-vals', JSON.stringify({
-                field_name: prefix + '-' + index + '-district'
-            }));
-        }
-
-        // Обновляем ID district-wrapper
-        const districtWrapper = form.querySelector('[id^="district-wrapper-"]');
-        if (districtWrapper) {
-            districtWrapper.id = 'district-wrapper-' + index;
-        }
-
-        // Обновляем hx-target для region-select
-        if (regionSelect && regionSelect.getAttribute('hx-target')) {
-            regionSelect.setAttribute('hx-target', '#district-wrapper-' + index);
-        }
     });
-
-    // Обновляем TOTAL_FORMS
-    if (totalFormsInput) {
-        totalFormsInput.value = forms.length;
-    }
 }
 
+
+
+// === Остальные обработчики ===
 // Обработка результатов поиска АК
 document.body.addEventListener('htmx:afterSwap', function(evt) {
     // Показываем результаты поиска АК после загрузки

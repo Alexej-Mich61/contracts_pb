@@ -54,7 +54,7 @@ INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'debug_toolbar.middleware.DebugToolbarMiddleware',  # ← новая
+    'debug_toolbar.middleware.DebugToolbarMiddleware',  # ← Дебаг тулбар
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -128,6 +128,7 @@ AUTH_USER_MODEL = "identity.User"
 # Static / Media
 STATIC_URL = "/static/"
 STATICFILES_DIRS = [ROOT_DIR / "static"]
+STATIC_ROOT = BASE_DIR / "staticfiles"   # Для продакшена
 MEDIA_URL = "/media/"
 MEDIA_ROOT = ROOT_DIR / "media"
 

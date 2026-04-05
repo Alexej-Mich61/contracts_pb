@@ -52,7 +52,7 @@ from .forms import (
     ContractSigningStageForm,
     ProtectionObjectFormSet,
     InterimActFormSet,
-    FinalActForm, ProtectionObjectForm,
+    FinalActForm, ProtectionObjectForm, InterimActForm,
 )
 from .services.history_service import ContractHistoryService
 from apps.contract_core.services.signing_stage_report_service import (

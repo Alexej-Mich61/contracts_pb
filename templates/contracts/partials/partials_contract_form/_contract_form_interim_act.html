@@ -1,5 +1,5 @@
 <!-- templates/contracts/partials/partials_contract_form/_contract_form_interim_act.html -->
-<div class="interim-act-form border rounded p-3 mb-3 bg-light {% if not form.instance.pk %}border-primary border-2{% endif %}"
+<div class="interim-acts-form border rounded p-3 mb-3 bg-light {% if not form.instance.pk %}border-primary border-2{% endif %}"
      data-index="{{ index }}">
 
     {{ form.id }}
@@ -14,10 +14,12 @@
                 </label>
             </div>
         {% else %}
-            <span class="badge bg-primary">Новый акт</span>
-            <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeFormsetForm(this, 'interim_acts')">
-                <i class="bi bi-x-lg"></i> Удалить
-            </button>
+        <span class="badge bg-primary">Новый акт</span>
+        <button type="button"
+                class="btn btn-outline-danger btn-sm remove-formset-btn"
+                data-prefix="interim_acts">
+            <i class="bi bi-x-lg"></i> Удалить
+        </button>
         {% endif %}
     </div>
 
