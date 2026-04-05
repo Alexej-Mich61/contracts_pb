@@ -1,0 +1,44 @@
+<!-- templates/contracts/partials/partials_contract_form/_contract_form_final_act.html -->
+<div class="card shadow-sm mb-4 border-success">
+    <div class="card-header bg-success text-white">
+        <h6 class="mb-0"><i class="bi bi-file-earmark-check me-2"></i>Итоговый акт</h6>
+    </div>
+    <div class="card-body">
+        <div class="row align-items-end">
+            <div class="col-md-2 mb-3">
+                <div class="form-check form-switch">
+                    {{ final_act_form.present }}
+                    <label class="form-check-label fw-semibold" for="{{ final_act_form.present.id_for_label }}">
+                        Акт сформирован
+                    </label>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <label for="{{ final_act_form.date.id_for_label }}" class="form-label fw-semibold">Дата акта</label>
+                {{ final_act_form.date }}
+            </div>
+            <div class="col-md-4 mb-3">
+                <label for="{{ final_act_form.file.id_for_label }}" class="form-label fw-semibold">Файл акта</label>
+                {{ final_act_form.file }}
+                {% if object and object.final_act and object.final_act.file %}
+                    <div class="mt-1">
+                        <a href="{{ object.final_act.file.url }}" target="_blank" class="btn btn-sm btn-outline-success">
+                            <i class="bi bi-eye me-1"></i>Текущий файл
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+            <div class="col-md-3 mb-3">
+                <label for="{{ final_act_form.note.id_for_label }}" class="form-label fw-semibold">Примечание</label>
+                {{ final_act_form.note }}
+            </div>
+        </div>
+        {% if object and object.final_act and object.final_act.checked_at %}
+            <small class="text-muted">
+                <i class="bi bi-clock-history me-1"></i>
+                Отмечено: {{ object.final_act.checked_at|date:"d.m.Y H:i" }}
+                {% if object.final_act.checked_by %}от {{ object.final_act.checked_by }}{% endif %}
+            </small>
+        {% endif %}
+    </div>
+</div>

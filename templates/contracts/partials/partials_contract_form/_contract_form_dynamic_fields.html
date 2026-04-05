@@ -1,27 +1,24 @@
-<!-- templates/contracts/partials/partials_contract_form/_contract_form_dynamic_fields.html -->
-<div class="row">
-    <div class="col-md-6 mb-3">
-        <label for="id_executor" class="form-label fw-semibold">
-            Исполнитель
-            <span class="text-danger">*</span>
-        </label>
-        {% include "contracts/partials/partials_contract_form/_contract_form_executor_select.html" with executors=executors selected=selected_executor %}
-        {% if not contract_type %}
-            <div class="form-text text-muted">
-                <i class="bi bi-info-circle me-1"></i>Выберите тип договора для активации поля
-            </div>
+<!-- templates/contracts/partials/partials_contract_form/_contract_form_district_field.html -->
+<div id="district-field-wrapper">
+    <label for="id_{{ field_name }}" class="form-label fw-semibold">
+        Район
+    </label>
+    <select name="{{ field_name }}"
+            id="id_{{ field_name }}"
+            class="form-select district-select"
+            {% if not districts %}disabled{% endif %}>
+        {% if not districts %}
+            <option>— Сначала выберите регион —</option>
+        {% else %}
+            <option value="">— Выберите район —</option>
+            {% for district in districts %}
+                <option value="{{ district.id }}" {% if selected and district.id|stringformat:"s" == selected %}selected{% endif %}>
+                    {{ district.name }}
+                </option>
+            {% endfor %}
         {% endif %}
-    </div>
-    <div class="col-md-6 mb-3">
-        <label for="id_work" class="form-label fw-semibold">
-            Вид работы
-            <span class="text-danger">*</span>
-        </label>
-        {% include "contracts/partials/partials_contract_form/_contract_form_work_select.html" with works=works selected=selected_work %}
-        {% if not contract_type %}
-            <div class="form-text text-muted">
-                <i class="bi bi-info-circle me-1"></i>Выберите тип договора для активации поля
-            </div>
-        {% endif %}
-    </div>
+    </select>
+    {% if field and field.errors %}
+        <div class="text-danger small">{{ field.errors.0 }}</div>
+    {% endif %}
 </div>

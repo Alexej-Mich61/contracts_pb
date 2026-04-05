@@ -310,7 +310,7 @@ InterimActFormSet = forms.inlineformset_factory(
     Contract,
     InterimAct,
     form=InterimActForm,
-    extra=1,
+    extra=0,  # <-- Изменить с 1 на 0 (HTMX будет добавлять формы динамически)
     can_delete=True,
     min_num=0,
     max_num=20,
@@ -335,14 +335,29 @@ class ProtectionObjectForm(forms.ModelForm):
         required=False,
         empty_label="— Выберите регион —",
         widget=forms.Select(attrs={
-            'class': 'form-select',
-            'hx-get': '',  # URL для загрузки районов
-            'hx-target': 'closest .district-wrapper',
-            'hx-trigger': 'change',
-            'hx-swap': 'innerHTML',
-            'hx-select': '#district-field-wrapper',
+            'class': 'form-select region-select',  # <-- Добавлен класс region-select для удобства
+            # 'hx-get': '',  # <-- Удалить или закомментировать (URL задается в шаблоне)
+            # 'hx-target': 'closest .district-wrapper',
+            # 'hx-trigger': 'change',
+            # 'hx-swap': 'innerHTML',
+            # 'hx-select': '#district-field-wrapper',
         })
     )
+
+    # region = forms.ModelChoiceField(
+    #     queryset=Region.objects.all(),
+    #     required=False,
+    #     empty_label="— Выберите регион —",
+    #     widget=forms.Select(attrs={
+    #         'class': 'form-select',
+    #         'hx-get': '',  # URL для загрузки районов
+    #         'hx-target': 'closest .district-wrapper',
+    #         'hx-trigger': 'change',
+    #         'hx-swap': 'innerHTML',
+    #         'hx-select': '#district-field-wrapper',
+    #     })
+    # )
+
 
     class Meta:
         model = ProtectionObject
@@ -409,7 +424,7 @@ ProtectionObjectFormSet = forms.inlineformset_factory(
     Contract,
     ProtectionObject,
     form=ProtectionObjectForm,
-    extra=1,
+    extra=0,  # <-- Изменить с 1 на 0 (HTMX будет добавлять формы динамически)
     can_delete=True,
     min_num=0,
     max_num=50,

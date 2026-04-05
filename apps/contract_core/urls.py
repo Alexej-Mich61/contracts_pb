@@ -50,14 +50,31 @@ urlpatterns = [
         views.ContractFormFilterWorksView.as_view(),
         name="contract_form_works"
     ),
-    # Поиск заказчика
 
+    # Поиск заказчика
     path(
         "contracts/form/customers/filter/",
         views.ContractFormFilterCustomersView.as_view(),
         name="filter_customers"
     ),  # новый урл для заказчика
 
+    # HTMX-эндпоинты для динамического добавления форм в formset'ы - новое
+    # Объекты защиты
+    path(
+    "contracts/form/empty-protection-object/",
+    views.EmptyProtectionObjectFormView.as_view(),
+    name="empty_protection_object_form"
+    ),
+
+    # Промежуточные этапные акты
+    path(
+        "contracts/form/empty-interim-act/",
+        views.EmptyInterimActFormView.as_view(),
+        name="empty_interim_act_form"
+    ),
+
+
+    # старые
     # Каскадный выбор района
     path(
         "contracts/form/districts-by-region/",

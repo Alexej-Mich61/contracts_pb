@@ -1,0 +1,52 @@
+<!-- templates/contracts/partials/partials_contract_form/_contract_form_interim_act.html -->
+<div class="interim-act-form border rounded p-3 mb-3 bg-light {% if not form.instance.pk %}border-primary border-2{% endif %}"
+     data-index="{{ index }}">
+
+    {{ form.id }}
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        {% if form.instance.pk %}
+            <span class="badge bg-secondary">Акт #{{ form.instance.pk }}</span>
+            <div class="form-check">
+                {{ form.DELETE }}
+                <label class="form-check-label text-danger" title="Удалить">
+                    <i class="bi bi-trash"></i> Удалить акт
+                </label>
+            </div>
+        {% else %}
+            <span class="badge bg-primary">Новый акт</span>
+            <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeFormsetForm(this, 'interim_acts')">
+                <i class="bi bi-x-lg"></i> Удалить
+            </button>
+        {% endif %}
+    </div>
+
+    <div class="row align-items-end">
+        <div class="col-md-4 mb-2">
+            <label for="{{ form.title.id_for_label }}" class="form-label fw-semibold">Название</label>
+            {{ form.title }}
+            {% if form.title.errors %}
+                <div class="text-danger small">{{ form.title.errors.0 }}</div>
+            {% endif %}
+        </div>
+        <div class="col-md-3 mb-2">
+            <label for="{{ form.date.id_for_label }}" class="form-label fw-semibold">Дата</label>
+            {{ form.date }}
+            {% if form.date.errors %}
+                <div class="text-danger small">{{ form.date.errors.0 }}</div>
+            {% endif %}
+        </div>
+        <div class="col-md-4 mb-2">
+            <label for="{{ form.file.id_for_label }}" class="form-label fw-semibold">Файл</label>
+            {{ form.file }}
+            {% if form.instance and form.instance.file %}
+                <a href="{{ form.instance.file.url }}" target="_blank" class="btn btn-sm btn-outline-secondary mt-1">
+                    <i class="bi bi-eye"></i>
+                </a>
+            {% endif %}
+        </div>
+        <div class="col-md-1 mb-2 text-end">
+            {# Удаление обрабатывается в заголовке выше #}
+        </div>
+    </div>
+</div>

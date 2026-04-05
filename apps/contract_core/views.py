@@ -52,7 +52,7 @@ from .forms import (
     ContractSigningStageForm,
     ProtectionObjectFormSet,
     InterimActFormSet,
-    FinalActForm,
+    FinalActForm, ProtectionObjectForm,
 )
 from .services.history_service import ContractHistoryService
 from apps.contract_core.services.signing_stage_report_service import (
@@ -500,7 +500,25 @@ class DynamicFieldsView(LoginRequiredMixin, View):
             'selected_work': selected_work,
         })
 
+# вьюха фильтра районов по региону в объектах защиты
+class ContractFormFilterDistrictsByRegionView(LoginRequiredMixin, View):
+    """HTMX: получить районы по выбранному региону"""
 
+    def get(self, request):
+        region_id = request.GET.get('region')
+        districts = District.objects.none()
+
+        if region_id:
+            districts = District.objects.filter(region_id=region_id).order_by('name')
+
+        selected = request.GET.get('district', '')
+        field_name = request.GET.get('field_name', 'district')
+
+        return render(request, 'contracts/partials/partials_contract_form/_contract_form_district_field.html', {
+            'districts': districts,
+            'selected': selected,
+            'field_name': field_name,
+        })
 
 # новый
 class ContractFormFilterCustomersView(LoginRequiredMixin, View):
@@ -527,27 +545,49 @@ class ContractFormFilterCustomersView(LoginRequiredMixin, View):
         })
 
 
+# ========== УПРАВЛЕНИЕ FORMSET'АМИ ЧЕРЕЗ HTMX ==========
 
-class ContractFormFilterDistrictsByRegionView(LoginRequiredMixin, View):
-    """HTMX: получить районы по выбранному региону"""
+class EmptyProtectionObjectFormView(LoginRequiredMixin, View):
+    """
+    Возвращает HTML пустой формы объекта защиты с правильным индексом.
+    Используется при нажатии "Добавить объект" через HTMX.
+    """
 
     def get(self, request):
-        region_id = request.GET.get('region')
-        districts = District.objects.none()
+        prefix = ProtectionObjectFormSet().prefix
+        total_forms = int(request.GET.get('total_forms', 0))
 
-        if region_id:
-            districts = District.objects.filter(region_id=region_id).order_by('name')
+        form = ProtectionObjectForm(prefix=f"{prefix}-{total_forms}")
 
-        selected = request.GET.get('district', '')
-        field_name = request.GET.get('field_name', 'district')
-
-        return render(request, 'contracts/partials/partials_contract_form/_contract_form_district_field.html', {
-            'districts': districts,
-            'selected': selected,
-            'field_name': field_name,
+        return render(request, 'contracts/partials/partials_contract_form/_contract_form_protection_object.html', {
+            'form': form,
+            'object': None,
+            'index': total_forms,  # <-- добавьте это
         })
 
 
+class EmptyInterimActFormView(LoginRequiredMixin, View):
+    """
+    Возвращает HTML пустой формы промежуточного акта.
+    Используется при нажатии "Добавить акт" через HTMX.
+    """
+
+    def get(self, request):
+        prefix = InterimActFormSet().prefix
+        total_forms = int(request.GET.get('total_forms', 0))
+
+        # Создаем форму с правильным префиксом
+        form = InterimActForm(prefix=f"{prefix}-{total_forms}")
+
+        return render(request, 'contracts/partials/partials_contract_form/_contract_form_interim_act.html', {
+            'form': form,
+            'index': total_forms,
+        })
+
+
+
+
+# старые
 class AkSearchView(LoginRequiredMixin, View):
     """HTMX: поиск АК по ID, номеру или названию"""
 
@@ -631,6 +671,9 @@ class MarkSystemCheckView(LoginRequiredMixin, View):
 
         messages.success(request, f"Отмечено: {system_type.name}")
         return redirect('contract_core:contract_update', pk=contract_pk)
+
+
+
 
 
 

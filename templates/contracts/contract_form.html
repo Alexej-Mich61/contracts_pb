@@ -8,7 +8,7 @@
 
 {% block content %}
 <div class="container-fluid mt-4">
-    <form method="post" enctype="multipart/form-data" class="needs-validation" novalidate>
+    <form method="post" enctype="multipart/form-data" class="needs-validation" novalidate id="contract-form">
         {% csrf_token %}
 
         <!-- Основная информация -->
@@ -121,9 +121,9 @@
 
                             <!-- Поле поиска -->
                             <div class="input-group mb-2">
-        <span class="input-group-text bg-white">
-            <i class="bi bi-search text-muted"></i>
-        </span>
+                                <span class="input-group-text bg-white">
+                                    <i class="bi bi-search text-muted"></i>
+                                </span>
                                 <input type="text"
                                        name="q"
                                        id="customer-search-input"
@@ -139,8 +139,8 @@
                                         hx-indicator=".customer-search-indicator">
                                     <span class="normal-state">Найти</span>
                                     <span class="customer-search-indicator htmx-indicator">
-                <span class="spinner-border spinner-border-sm"></span>
-            </span>
+                                        <span class="spinner-border spinner-border-sm"></span>
+                                    </span>
                                 </button>
                             </div>
                             <div class="form-text text-muted mb-2">
@@ -240,163 +240,27 @@
         </div>
 
         <!-- Стадия подписания (всегда доступна) -->
-        {% if signing_stage_form %}
-        <div class="card shadow-sm mb-4 border-warning">
-            <div class="card-header bg-warning text-dark">
-                <h6 class="mb-0"><i class="bi bi-pen me-2"></i>Стадия подписания</h6>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-4">
-                        <label for="{{ signing_stage_form.stage.id_for_label }}" class="form-label fw-semibold">
-                            Текущая стадия
-                            <span class="text-danger">*</span>
-                        </label>
-                        {{ signing_stage_form.stage }}
-                        {% if signing_stage_form.stage.errors %}
-                            <div class="text-danger small">{{ signing_stage_form.stage.errors.0 }}</div>
-                        {% endif %}
-                    </div>
-                    <div class="col-md-8">
-                        <label for="{{ signing_stage_form.note.id_for_label }}" class="form-label fw-semibold">
-                            Примечание к стадии
-                        </label>
-                        {{ signing_stage_form.note }}
-                    </div>
-                </div>
-                {% if object and object.signing_stage and object.signing_stage.changed_at %}
-                    <small class="text-muted d-block mt-2">
-                        <i class="bi bi-clock-history me-1"></i>
-                        Последнее изменение: {{ object.signing_stage.changed_at|date:"d.m.Y H:i" }}
-                        {% if object.signing_stage.changed_by %}от {{ object.signing_stage.changed_by }}{% endif %}
-                    </small>
-                {% endif %}
-            </div>
-        </div>
-        {% endif %}
+        {% include "contracts/partials/partials_contract_form/_contract_form_signing_stage.html" %}
 
         <!-- Отметки по системам -->
-        {% if object and system_checks %}
-            <!-- Режим редактирования: показываем реальные отметки -->
-            <div class="card shadow-sm mb-4 border-info">
-                <div class="card-header bg-info text-white">
-                    <h6 class="mb-0"><i class="bi bi-check2-square me-2"></i>Отметки по системам</h6>
-                </div>
-                <div class="card-body">
-                    <div class="row g-3">
-                        {% for check in system_checks %}
-                            <div class="col-md-6 col-lg-4">
-                                <div class="border rounded p-3 {% if check.last_checked %}bg-success bg-opacity-10 border-success{% else %}bg-light{% endif %}">
-                                    <div class="d-flex justify-content-between align-items-start mb-2">
-                                        <span class="fw-semibold">{{ check.system_type.name }}</span>
-                                        {% if check.last_checked %}
-                                            <span class="badge bg-success"><i class="bi bi-check-lg"></i></span>
-                                        {% endif %}
-                                    </div>
+        {% include "contracts/partials/partials_contract_form/_contract_form_system_checks.html" %}
 
-                                    {% if check.last_checked %}
-                                        <small class="text-muted d-block mb-2">
-                                            <i class="bi bi-calendar-check me-1"></i>{{ check.last_checked|date:"d.m.Y" }}
-                                            {% if check.checked_by %}<br><i class="bi bi-person me-1"></i>{{ check.checked_by }}{% endif %}
-                                        </small>
-                                        {% if check.note %}
-                                            <small class="text-muted d-block mb-2"><i class="bi bi-chat-left-text me-1"></i>{{ check.note }}</small>
-                                        {% endif %}
-                                    {% else %}
-                                        <small class="text-muted d-block mb-2">Не отмечено</small>
-                                    {% endif %}
-
-                                    <!-- Форма для отметки системы -->
-                                    <div class="mt-2 pt-2 border-top">
-                                        <form method="post"
-                                              action="{% url 'contract_core:mark_system_check' object.pk check.system_type.pk %}"
-                                              class="d-inline">
-                                            {% csrf_token %}
-                                            <div class="input-group input-group-sm">
-                                                <input type="text" name="note" class="form-control" placeholder="Примечание..." maxlength="200" value="{{ check.note|default:'' }}">
-                                                <button type="submit" class="btn {% if check.last_checked %}btn-outline-success{% else %}btn-success{% endif %}">
-                                                    {% if check.last_checked %}<i class="bi bi-arrow-clockwise"></i> Обновить{% else %}<i class="bi bi-check-lg"></i> Отметить{% endif %}
-                                                </button>
-                                            </div>
-                                        </form>
-                                    </div>
-                                </div>
-                            </div>
-                        {% endfor %}
-                    </div>
-                </div>
-            </div>
-        {% else %}
-            <!-- Режим создания: информационный блок -->
-            <div class="card shadow-sm mb-4 border-info">
-                <div class="card-header bg-info text-white">
-                    <h6 class="mb-0"><i class="bi bi-check2-square me-2"></i>Отметки по системам</h6>
-                </div>
-                <div class="card-body">
-                    <div class="alert alert-info mb-0 d-flex align-items-center">
-                        <i class="bi bi-info-circle-fill me-3 fs-4"></i>
-                        <div>
-                            <strong>Информация:</strong> После сохранения договора здесь будут доступны отметки по системам.
-                            Для отметки требуется сохраненный договор.
-                        </div>
-                    </div>
-                </div>
-            </div>
-        {% endif %}
-
-        <!-- Итоговый акт (всегда доступен) -->
+        <!-- Итоговый акт (статический include) -->
         {% if final_act_form %}
-        <div class="card shadow-sm mb-4 border-success">
-            <div class="card-header bg-success text-white">
-                <h6 class="mb-0"><i class="bi bi-file-earmark-check me-2"></i>Итоговый акт</h6>
-            </div>
-            <div class="card-body">
-                <div class="row align-items-end">
-                    <div class="col-md-2 mb-3">
-                        <div class="form-check form-switch">
-                            {{ final_act_form.present }}
-                            <label class="form-check-label fw-semibold" for="{{ final_act_form.present.id_for_label }}">
-                                Акт сформирован
-                            </label>
-                        </div>
-                    </div>
-                    <div class="col-md-3 mb-3">
-                        <label for="{{ final_act_form.date.id_for_label }}" class="form-label fw-semibold">Дата акта</label>
-                        {{ final_act_form.date }}
-                    </div>
-                    <div class="col-md-4 mb-3">
-                        <label for="{{ final_act_form.file.id_for_label }}" class="form-label fw-semibold">Файл акта</label>
-                        {{ final_act_form.file }}
-                        {% if object and object.final_act and object.final_act.file %}
-                            <div class="mt-1">
-                                <a href="{{ object.final_act.file.url }}" target="_blank" class="btn btn-sm btn-outline-success">
-                                    <i class="bi bi-eye me-1"></i>Текущий файл
-                                </a>
-                            </div>
-                        {% endif %}
-                    </div>
-                    <div class="col-md-3 mb-3">
-                        <label for="{{ final_act_form.note.id_for_label }}" class="form-label fw-semibold">Примечание</label>
-                        {{ final_act_form.note }}
-                    </div>
-                </div>
-                {% if object and object.final_act and object.final_act.checked_at %}
-                    <small class="text-muted">
-                        <i class="bi bi-clock-history me-1"></i>
-                        Отмечено: {{ object.final_act.checked_at|date:"d.m.Y H:i" }}
-                        {% if object.final_act.checked_by %}от {{ object.final_act.checked_by }}{% endif %}
-                    </small>
-                {% endif %}
-            </div>
-        </div>
+        {% include "contracts/partials/partials_contract_form/_contract_form_final_act.html" %}
         {% endif %}
 
-        <!-- Промежуточные акты (всегда доступны) -->
+        <!-- Промежуточные акты (динамический formset) -->
         {% if interim_act_formset %}
         <div class="card shadow-sm mb-4">
             <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
                 <h6 class="mb-0"><i class="bi bi-files me-2"></i>Промежуточные акты</h6>
-                <button type="button" class="btn btn-light btn-sm" onclick="addInterimAct()">
+                <button type="button"
+                        class="btn btn-light btn-sm"
+                        hx-get="{% url 'contract_core:empty_interim_act_form' %}"
+                        hx-target="#interim-acts-container"
+                        hx-swap="beforeend"
+                        hx-vals="js:{total_forms: document.querySelectorAll('.interim-act-form').length}">
                     <i class="bi bi-plus-lg me-1"></i>Добавить акт
                 </button>
             </div>
@@ -404,78 +268,23 @@
                 {{ interim_act_formset.management_form }}
                 <div id="interim-acts-container">
                     {% for form in interim_act_formset %}
-                        <div class="interim-act-form border rounded p-3 mb-3 bg-light">
-                            {{ form.id }}
-                            <div class="row align-items-end">
-                                <div class="col-md-4 mb-2">
-                                    {{ form.title.label_tag }}
-                                    {{ form.title }}
-                                </div>
-                                <div class="col-md-3 mb-2">
-                                    {{ form.date.label_tag }}
-                                    {{ form.date }}
-                                </div>
-                                <div class="col-md-4 mb-2">
-                                    {{ form.file.label_tag }}
-                                    {{ form.file }}
-                                    {% if form.instance and form.instance.file %}
-                                        <a href="{{ form.instance.file.url }}" target="_blank" class="btn btn-sm btn-outline-secondary mt-1">
-                                            <i class="bi bi-eye"></i>
-                                        </a>
-                                    {% endif %}
-                                </div>
-                                <div class="col-md-1 mb-2 text-end">
-                                    {% if form.instance.pk %}
-                                        <div class="form-check">
-                                            {{ form.DELETE }}
-                                            <label class="form-check-label text-danger" title="Удалить">
-                                                <i class="bi bi-trash"></i>
-                                            </label>
-                                        </div>
-                                    {% else %}
-                                        <button type="button" class="btn btn-outline-danger btn-sm" onclick="this.closest('.interim-act-form').remove()">
-                                            <i class="bi bi-x-lg"></i>
-                                        </button>
-                                    {% endif %}
-                                </div>
-                            </div>
-                        </div>
+                    {% include "contracts/partials/partials_contract_form/_contract_form_interim_act.html" with index=forloop.counter0 %}
                     {% endfor %}
                 </div>
-
-                <!-- Пустой шаблон для новых актов -->
-                <template id="empty-interim-act-form">
-                    <div class="interim-act-form border rounded p-3 mb-3 bg-light">
-                        <div class="row align-items-end">
-                            <div class="col-md-4 mb-2">
-                                <label class="form-label">Название</label>
-                                <input type="text" name="interim_acts-__prefix__-title" class="form-control" value="Этап Акт">
-                            </div>
-                            <div class="col-md-3 mb-2">
-                                <label class="form-label">Дата</label>
-                                <input type="date" name="interim_acts-__prefix__-date" class="form-control">
-                            </div>
-                            <div class="col-md-4 mb-2">
-                                <label class="form-label">Файл</label>
-                                <input type="file" name="interim_acts-__prefix__-file" class="form-control">
-                            </div>
-                            <div class="col-md-1 mb-2 text-end">
-                                <button type="button" class="btn btn-outline-danger btn-sm" onclick="this.closest('.interim-act-form').remove()">
-                                    <i class="bi bi-x-lg"></i>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </template>
             </div>
         </div>
         {% endif %}
 
-        <!-- Объекты защиты (всегда доступны) -->
+        <!-- Объекты защиты (динамические через HTMX) -->
         <div class="card shadow-sm mb-4">
             <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
                 <h6 class="mb-0"><i class="bi bi-building me-2"></i>Объекты защиты</h6>
-                <button type="button" class="btn btn-light btn-sm" id="add-protection-object-btn">
+                <button type="button"
+                        class="btn btn-light btn-sm"
+                        hx-get="{% url 'contract_core:empty_protection_object_form' %}"
+                        hx-target="#protection-objects-list"
+                        hx-swap="beforeend"
+                        hx-vals="js:{total_forms: document.querySelectorAll('.protection-object-form').length}">
                     <i class="bi bi-plus-lg me-1"></i>Добавить объект
                 </button>
             </div>
@@ -483,16 +292,9 @@
                 {{ protection_object_formset.management_form }}
                 <div id="protection-objects-list">
                     {% for form in protection_object_formset %}
-                        {% include "contracts/partials/partials_contract_form/_contract_form_protection_object_form.html" with form=form index=forloop.counter0 object=object %}
+                    {% include "contracts/partials/partials_contract_form/_contract_form_protection_object.html" with index=forloop.counter0 object=object %}
                     {% endfor %}
                 </div>
-
-                <!-- Пустой шаблон для новых объектов -->
-                <template id="empty-protection-object-form">
-                    {% with form=protection_object_formset.empty_form index="__prefix__" %}
-                        {% include "contracts/partials/partials_contract_form/_contract_form_protection_object_form.html" %}
-                    {% endwith %}
-                </template>
             </div>
         </div>
 
@@ -523,72 +325,90 @@ document.body.addEventListener('htmx:configRequest', function(evt) {
     evt.detail.headers['X-CSRFToken'] = '{{ csrf_token }}';
 });
 
+// Удаление формы из formset (для новых, еще не сохраненных записей)
+function removeFormsetForm(btn, prefix) {
+    const formDiv = btn.closest('.' + prefix.replace('_', '-') + '-form');
+    if (!formDiv) return;
 
-    // Поиск АК (для объектов защиты)
-    if (evt.detail.target.id && evt.detail.target.id.startsWith('ak-search-results-')) {
-        document.querySelectorAll('.ak-result').forEach(function(el) {
-            el.addEventListener('click', function() {
-                const akId = this.dataset.id;
-                const objectId = this.closest('[id^="ak-search-results-"]').id.replace('ak-search-results-', '');
-                const contractPk = {{ object.pk|default:"null" }};
+    // Удаляем DOM элемент
+    formDiv.remove();
 
-                if (!contractPk) return;
+    // Пересчитываем индексы и TOTAL_FORMS
+    recalculateFormsetIndices(prefix);
+}
 
-                const url = '{% url "contract_core:add_ak_to_object" 0 0 0 %}'
-                    .replace('/0/0/0/', '/' + contractPk + '/' + objectId + '/' + akId + '/');
+// Пересчет индексов в formset после удаления
+function recalculateFormsetIndices(prefix) {
+    const container = document.getElementById(prefix.replace('_', '-') + 's-container');
+    if (!container) return;
 
-                htmx.ajax('POST', url, {
-                    target: '#attached-aks-' + objectId,
-                    swap: 'innerHTML'
-                });
-            });
+    const forms = container.querySelectorAll('.' + prefix.replace('_', '-') + '-form');
+    const totalFormsInput = document.getElementById('id_' + prefix + '-TOTAL_FORMS');
+
+    // Обновляем индексы для каждой формы
+    forms.forEach((form, index) => {
+        form.setAttribute('data-index', index);
+
+        // Обновляем все name и id атрибуты
+        form.querySelectorAll('input, select, textarea, label').forEach(el => {
+            if (el.name) {
+                el.name = el.name.replace(new RegExp(prefix + '-\\d+-'), prefix + '-' + index + '-');
+            }
+            if (el.id && el.id.includes(prefix)) {
+                el.id = el.id.replace(new RegExp(prefix + '-\\d+-'), prefix + '-' + index + '-');
+            }
+            if (el.htmlFor) {
+                el.htmlFor = el.htmlFor.replace(new RegExp(prefix + '-\\d+-'), prefix + '-' + index + '-');
+            }
         });
+
+        // Обновляем hx-vals для region-select (если есть)
+        const regionSelect = form.querySelector('.region-select');
+        if (regionSelect && regionSelect.getAttribute('hx-vals')) {
+            regionSelect.setAttribute('hx-vals', JSON.stringify({
+                field_name: prefix + '-' + index + '-district'
+            }));
+        }
+
+        // Обновляем ID district-wrapper
+        const districtWrapper = form.querySelector('[id^="district-wrapper-"]');
+        if (districtWrapper) {
+            districtWrapper.id = 'district-wrapper-' + index;
+        }
+
+        // Обновляем hx-target для region-select
+        if (regionSelect && regionSelect.getAttribute('hx-target')) {
+            regionSelect.setAttribute('hx-target', '#district-wrapper-' + index);
+        }
+    });
+
+    // Обновляем TOTAL_FORMS
+    if (totalFormsInput) {
+        totalFormsInput.value = forms.length;
+    }
+}
+
+// Обработка результатов поиска АК
+document.body.addEventListener('htmx:afterSwap', function(evt) {
+    // Показываем результаты поиска АК после загрузки
+    if (evt.detail.target.id && evt.detail.target.id.startsWith('ak-search-results-')) {
+        evt.detail.target.style.display = 'block';
+    }
+
+    // Обрабатываем добавление новой формы объекта защиты через HTMX
+    if (evt.detail.target.id === 'protection-objects-list' && evt.detail.xhr.responseURL.includes('empty-protection-object')) {
+        // Инициализируем HTMX для новых элементов (на случай, если внутри есть hx-атрибуты)
+        htmx.process(evt.detail.target.lastElementChild);
     }
 });
 
-
-// Добавление промежуточного акта
-function addInterimAct() {
-    const container = document.getElementById('interim-acts-container');
-    const template = document.getElementById('empty-interim-act-form');
-    const totalForms = document.getElementById('id_interim_acts-TOTAL_FORMS');
-    const currentCount = parseInt(totalForms.value);
-
-    const newForm = template.innerHTML.replace(/__prefix__/g, currentCount);
-    const div = document.createElement('div');
-    div.innerHTML = newForm;
-    container.appendChild(div.firstElementChild);
-
-    totalForms.value = currentCount + 1;
-}
-
-// Добавление объекта защиты
-document.getElementById('add-protection-object-btn').addEventListener('click', function() {
-    const container = document.getElementById('protection-objects-list');
-    const template = document.getElementById('empty-protection-object-form');
-    const totalForms = document.getElementById('id_protection_objects-TOTAL_FORMS');
-    const currentCount = parseInt(totalForms.value);
-
-    let newFormHtml = template.innerHTML;
-    newFormHtml = newFormHtml.replace(/__prefix__/g, currentCount);
-
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = newFormHtml;
-
-    const newForm = tempDiv.firstElementChild;
-    newForm.querySelectorAll('[id*="__prefix__"], [name*="__prefix__"]').forEach(function(el) {
-        el.id = el.id.replace('__prefix__', currentCount);
-        el.name = el.name.replace('__prefix__', currentCount);
-    });
-
-    const regionSelect = newForm.querySelector('.region-select');
-    if (regionSelect) {
-        regionSelect.setAttribute('hx-get', '{% url "contract_core:filter_districts_by_region" %}');
+// Скрытие результатов поиска АК при клике вне
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('.position-relative')) {
+        document.querySelectorAll('[id^="ak-search-results-"]').forEach(el => {
+            el.style.display = 'none';
+        });
     }
-
-    container.appendChild(newForm);
-    totalForms.value = currentCount + 1;
-    htmx.process(newForm);
 });
 </script>
 {% endblock %}
