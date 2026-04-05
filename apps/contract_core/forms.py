@@ -96,24 +96,8 @@ class ContractForm(forms.ModelForm):
     """
     Форма договора.
     Поля executor и work заполняются динамически через HTMX (DynamicFieldsView).
+    Поле customer заполняется через поиск (фильтрацию).
     """
-
-    # Кастомное поле для поиска заказчика (autocomplete)
-    customer_search = forms.CharField(
-        label="Поиск заказчика",
-        required=False,
-        max_length=255,
-        widget=forms.TextInput(attrs={
-            'class': 'form-control',
-            'placeholder': 'Введите название или ИНН...',
-            'hx-get': '',  # URL подставляется в шаблоне
-            'hx-trigger': 'keyup changed delay:300ms, search',
-            'hx-target': '#customer-search-results',
-            'hx-indicator': '.customer-search-indicator',
-            'autocomplete': 'off',
-        }),
-        help_text="Начните вводить название или ИНН компании-заказчика"
-    )
 
     class Meta:
         model = Contract
@@ -125,7 +109,7 @@ class ContractForm(forms.ModelForm):
         widgets = {
             'type': forms.Select(attrs={
                 'class': 'form-select',
-                'hx-get': '',  # URL для обновления работ и исполнителей
+                'hx-get': '',
                 'hx-target': '#dynamic-fields-container',
                 'hx-trigger': 'change',
                 'hx-include': '[name="csrfmiddlewaretoken"]',
@@ -139,7 +123,10 @@ class ContractForm(forms.ModelForm):
                 'type': 'date',
                 'class': 'form-control',
             }),
-            'customer': forms.HiddenInput(),
+            'customer': forms.Select(attrs={
+                'class': 'form-select',
+                'id': 'id_customer',  # Важно для таргета HTMX
+            }),
             'date_start': forms.DateInput(attrs={
                 'type': 'date',
                 'class': 'form-control',
@@ -188,6 +175,7 @@ class ContractForm(forms.ModelForm):
             'monthly_sum': 'Ежемесячная сумма для долгосрочных договоров',
             'advance': 'Сумма авансового платежа',
             'file': 'PDF, DOC, DOCX, до 100 МБ',
+            'customer': 'Выберите заказчика из списка или воспользуйтесь поиском',
         }
 
     def __init__(self, *args, user=None, **kwargs):
@@ -199,9 +187,20 @@ class ContractForm(forms.ModelForm):
             today = timezone.now().date()
             self.fields['date_concluded'].initial = today
             self.fields['date_start'].initial = today
+            # При создании — пустой queryset для customer (ждём поиска)
+            self.fields['customer'].queryset = Company.objects.none()
+            self.fields['customer'].choices = [('', '— Введите название или ИНН и нажмите "Найти" —')]
+        else:
+            # При редактировании — показываем только текущего заказчика
+            # (или всех, если хотите)
+            if self.instance.customer:
+                self.fields['customer'].queryset = Company.objects.filter(pk=self.instance.customer.pk)
+                self.fields['customer'].initial = self.instance.customer_id
+            else:
+                self.fields['customer'].queryset = Company.objects.none()
+                self.fields['customer'].choices = [('', '— Выберите заказчика —')]
 
         # Поля executor и work оставляем пустыми для динамической загрузки через HTMX
-        # При редактировании — заполняем текущими значениями
         if self.instance.pk:
             self.fields['executor'].queryset = Company.objects.filter(
                 Q(is_licensee=True) | Q(is_laboratory=True)
@@ -210,13 +209,8 @@ class ContractForm(forms.ModelForm):
             self.fields['executor'].initial = self.instance.executor_id
             self.fields['work'].initial = self.instance.work_id
         else:
-            # При создании — пустые queryset, ждём выбора типа договора
             self.fields['executor'].queryset = Company.objects.none()
             self.fields['work'].queryset = Work.objects.none()
-
-        # Если есть выбранный заказчик — показываем его название в поиске
-        if self.instance.customer_id:
-            self.fields['customer_search'].initial = str(self.instance.customer)
 
     def clean(self):
         cleaned_data = super().clean()
@@ -224,8 +218,7 @@ class ContractForm(forms.ModelForm):
 
         # Проверка заказчика
         if not customer:
-            # Добавляем ошибку к полю customer (не к customer_search, так как это вспомогательное)
-            self.add_error('customer_search', 'Необходимо выбрать заказчика из списка найденных')
+            self.add_error('customer', 'Необходимо выбрать заказчика')
 
         # Валидация дат
         date_start = cleaned_data.get('date_start')

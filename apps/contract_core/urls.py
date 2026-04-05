@@ -51,11 +51,13 @@ urlpatterns = [
         name="contract_form_works"
     ),
     # Поиск заказчика
+
     path(
-        "contracts/form/customers/search/",
-        views.CustomerSearchView.as_view(),
-        name="search_customers"
-    ),
+        "contracts/form/customers/filter/",
+        views.ContractFormFilterCustomersView.as_view(),
+        name="filter_customers"
+    ),  # новый урл для заказчика
+
     # Каскадный выбор района
     path(
         "contracts/form/districts-by-region/",

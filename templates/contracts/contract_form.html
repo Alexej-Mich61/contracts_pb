@@ -113,85 +113,45 @@
                         </div>
 
                         <!-- Заказчик -->
-                        <div class="mb-3 position-relative customer-search-container" id="customer-selector">
-                            <label class="form-label fw-semibold">
+                        <div class="mb-3">
+                            <label for="id_customer" class="form-label fw-semibold">
                                 Заказчик
                                 <span class="text-danger">*</span>
                             </label>
 
-                            <!-- Скрытое поле для ID заказчика -->
-                            <input type="hidden"
-                                   name="customer"
-                                   id="id_customer"
-                                   value="{{ form.customer.value|default:'' }}">
-
-                            <!-- Блок отображения выбранного заказчика -->
-                            <div id="selected-customer-block" class="{% if not form.customer.value %}d-none{% endif %} mb-2">
-                                <div class="card bg-light border border-primary border-opacity-25">
-                                    <div class="card-body py-2 px-3">
-                                        <div class="d-flex justify-content-between align-items-start">
-                                            <div>
-                                                <div class="fw-semibold text-primary mb-1">
-                                                    <i class="bi bi-building me-1"></i>
-                                                    <span id="selected-customer-name">
-                                {% if object and object.customer %}{{ object.customer.name }}{% endif %}
-                            </span>
-                                                </div>
-                                                <div class="small text-muted" id="selected-customer-inn">
-                                                    {% if object and object.customer %}ИНН: {{ object.customer.inn }}{% endif %}
-                                                </div>
-                                            </div>
-                                            <button type="button"
-                                                    class="btn btn-sm btn-outline-danger ms-2"
-                                                    id="clear-customer-btn"
-                                                    title="Изменить заказчика">
-                                                <i class="bi bi-x-lg"></i>
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Поле поиска (скрыто если заказчик уже выбран) -->
-                            <div id="customer-search-block" class="{% if form.customer.value %}d-none{% endif %}">
-                                <div class="input-group">
-            <span class="input-group-text bg-white">
-                <i class="bi bi-search text-muted"></i>
+                            <!-- Поле поиска -->
+                            <div class="input-group mb-2">
+        <span class="input-group-text bg-white">
+            <i class="bi bi-search text-muted"></i>
+        </span>
+                                <input type="text"
+                                       name="q"
+                                       id="customer-search-input"
+                                       class="form-control"
+                                       placeholder="Введите название или ИНН..."
+                                       autocomplete="off">
+                                <button type="button"
+                                        id="search-customer-btn"
+                                        class="btn btn-outline-primary"
+                                        hx-get="{% url 'contract_core:filter_customers' %}"
+                                        hx-include="#customer-search-input"
+                                        hx-target="#customer-select-wrapper"
+                                        hx-indicator=".customer-search-indicator">
+                                    <span class="normal-state">Найти</span>
+                                    <span class="customer-search-indicator htmx-indicator">
+                <span class="spinner-border spinner-border-sm"></span>
             </span>
-                                    <!-- ВАЖНО: name="q" обязательно должен быть здесь -->
-                                    <input type="text"
-                                           name="q"
-                                           id="customer-search-input"
-                                           class="form-control"
-                                           placeholder="Введите название компании или ИНН..."
-                                           hx-get="{% url 'contract_core:search_customers' %}"
-                                           hx-trigger="keyup[key=='Enter'], click from:#search-customer-btn"
-                                           hx-target="#customer-search-results"
-                                           hx-indicator=".customer-search-indicator"
-                                           autocomplete="off">
-
-                                    <!-- Кнопка поиска -->
-                                    <button type="button"
-                                            id="search-customer-btn"
-                                            class="btn btn-outline-primary">
-                                        <span class="normal-state">Найти</span>
-                                        <span class="customer-search-indicator htmx-indicator">
-                    <span class="spinner-border spinner-border-sm"></span>
-                </span>
-                                    </button>
-                                </div>
-                                <div class="form-text text-muted">
-                                    <i class="bi bi-info-circle me-1"></i>Введите название или ИНН и нажмите "Найти" или Enter
-                                </div>
+                                </button>
+                            </div>
+                            <div class="form-text text-muted mb-2">
+                                <i class="bi bi-info-circle me-1"></i>Введите название или ИНН и нажмите "Найти"
                             </div>
 
-                            <!-- Результаты поиска (выпадающий список) -->
-                            <div id="customer-search-results"
-                                 class="position-absolute w-100 bg-white border rounded shadow-sm mt-1"
-                                 style="z-index:1050; max-height:300px; overflow-y:auto; display:none; left: 0; right: 0;">
+                            <!-- Выпадающий список заказчиков -->
+                            <div id="customer-select-wrapper">
+                                {% include "contracts/partials/partials_contract_form/_contract_form_customer_select.html" with customers=form.fields.customer.queryset selected=form.customer.value query='' %}
                             </div>
 
-                            <!-- Ошибки валидации -->
                             {% if form.customer.errors %}
                             <div class="text-danger small mt-1">
                                 <i class="bi bi-exclamation-circle me-1"></i>{{ form.customer.errors.0 }}
@@ -563,107 +523,29 @@ document.body.addEventListener('htmx:configRequest', function(evt) {
     evt.detail.headers['X-CSRFToken'] = '{{ csrf_token }}';
 });
 
-// ========== Работа с выбором заказчика ==========
-document.addEventListener('DOMContentLoaded', function() {
 
-    const customerInput = document.getElementById('id_customer');
-    const searchInput = document.getElementById('customer-search-input');
-    const searchResults = document.getElementById('customer-search-results');
-    const selectedBlock = document.getElementById('selected-customer-block');
-    const searchBlock = document.getElementById('customer-search-block');
-    const selectedName = document.getElementById('selected-customer-name');
-    const selectedInn = document.getElementById('selected-customer-inn');
-    const clearBtn = document.getElementById('clear-customer-btn');
+    // Поиск АК (для объектов защиты)
+    if (evt.detail.target.id && evt.detail.target.id.startsWith('ak-search-results-')) {
+        document.querySelectorAll('.ak-result').forEach(function(el) {
+            el.addEventListener('click', function() {
+                const akId = this.dataset.id;
+                const objectId = this.closest('[id^="ak-search-results-"]').id.replace('ak-search-results-', '');
+                const contractPk = {{ object.pk|default:"null" }};
 
-    if (!customerInput || !searchInput) {
-        console.error('Customer selector elements not found');
-        return;
-    }
+                if (!contractPk) return;
 
-    console.log('Customer selector initialized. Value:', customerInput.value);
+                const url = '{% url "contract_core:add_ak_to_object" 0 0 0 %}'
+                    .replace('/0/0/0/', '/' + contractPk + '/' + objectId + '/' + akId + '/');
 
-    // Обработка результатов поиска (HTMX)
-    document.addEventListener('htmx:afterSwap', function(evt) {
-        if (evt.detail.target.id === 'customer-search-results') {
-            console.log('Search results received');
-
-            if (searchResults.innerHTML.trim()) {
-                searchResults.style.display = 'block';
-            } else {
-                searchResults.style.display = 'none';
-            }
-
-            // Обработчики на результаты
-            document.querySelectorAll('.customer-result').forEach(function(el) {
-                el.addEventListener('click', function() {
-                    const id = this.dataset.id;
-                    const name = this.dataset.name;
-                    const inn = this.dataset.inn;
-
-                    customerInput.value = id;
-                    selectedName.textContent = name;
-                    selectedInn.textContent = 'ИНН: ' + inn;
-
-                    selectedBlock.classList.remove('d-none');
-                    searchBlock.classList.add('d-none');
-
-                    searchResults.style.display = 'none';
-                    searchInput.value = '';
+                htmx.ajax('POST', url, {
+                    target: '#attached-aks-' + objectId,
+                    swap: 'innerHTML'
                 });
             });
-        }
-
-        // Поиск АК (для объектов защиты)
-        if (evt.detail.target.id && evt.detail.target.id.startsWith('ak-search-results-')) {
-            document.querySelectorAll('.ak-result').forEach(function(el) {
-                el.addEventListener('click', function() {
-                    const akId = this.dataset.id;
-                    const objectId = this.closest('[id^="ak-search-results-"]').id.replace('ak-search-results-', '');
-                    const contractPk = {{ object.pk|default:"null" }};
-
-                    if (!contractPk) return;
-
-                    const url = '{% url "contract_core:add_ak_to_object" 0 0 0 %}'
-                        .replace('/0/0/0/', '/' + contractPk + '/' + objectId + '/' + akId + '/');
-
-                    htmx.ajax('POST', url, {
-                        target: '#attached-aks-' + objectId,
-                        swap: 'innerHTML'
-                    });
-                });
-            });
-        }
-    });
-
-    // Очистка выбора заказчика
-    if (clearBtn) {
-        clearBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-
-            customerInput.value = '';
-            searchInput.value = '';
-            selectedBlock.classList.add('d-none');
-            searchBlock.classList.remove('d-none');
-            searchInput.focus();
         });
     }
-
-    // Скрытие результатов при клике вне
-    document.addEventListener('click', function(evt) {
-        const container = document.getElementById('customer-selector');
-        if (container && !container.contains(evt.target)) {
-            if (searchResults) searchResults.style.display = 'none';
-        }
-    });
-
-    // Скрытие результатов при очистке поля
-    searchInput.addEventListener('input', function(e) {
-        if (this.value === '') {
-            if (searchResults) searchResults.style.display = 'none';
-        }
-    });
 });
+
 
 // Добавление промежуточного акта
 function addInterimAct() {
