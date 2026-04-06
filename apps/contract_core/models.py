@@ -606,7 +606,7 @@ class FinalAct(models.Model):
         related_name="final_acts_checked",
         editable=False,
     )
-    checked_at = models.DateTimeField("Дата отметки", auto_now_add=True, blank=True)
+    checked_at = models.DateTimeField("Дата отметки", null=True, blank=True)
     note = models.TextField(
         "Примечание к акту",
         blank=True,
@@ -628,7 +628,8 @@ class FinalAct(models.Model):
         except:
             return f"Акт {self.pk}"
 
-    def mark_as_present(self, user: 'identity.User') -> None:
+    def mark_as_present(self, user):
+        """Отметить акт сформированным текущим пользователем"""
         if not user or not user.is_authenticated:
             raise ValueError("Нельзя отметить акт без пользователя")
         self.present = True

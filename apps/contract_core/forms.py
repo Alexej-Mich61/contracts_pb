@@ -187,12 +187,23 @@ class ContractForm(forms.ModelForm):
             today = timezone.now().date()
             self.fields['date_concluded'].initial = today
             self.fields['date_start'].initial = today
-            # При создании — пустой queryset для customer (ждём поиска)
-            self.fields['customer'].queryset = Company.objects.none()
-            self.fields['customer'].choices = [('', '— Введите название или ИНН и нажмите "Найти" —')]
+
+            # При создании — пустой queryset для customer ТОЛЬКО если GET запрос (первая загрузка)
+            # При POST запросе нужен полный queryset для валидации
+            if not self.data:
+                self.fields['customer'].queryset = Company.objects.none()
+                self.fields['customer'].choices = [('', '— Введите название или ИНН и нажмите "Найти" —')]
+                self.fields['executor'].queryset = Company.objects.none()
+                self.fields['work'].queryset = Work.objects.none()
+            else:
+                # POST запрос — даем полный queryset для валидации
+                self.fields['customer'].queryset = Company.objects.filter(is_customer=True)
+                self.fields['executor'].queryset = Company.objects.filter(
+                    Q(is_licensee=True) | Q(is_laboratory=True)
+                )
+                self.fields['work'].queryset = Work.objects.filter(is_active=True)
         else:
-            # При редактировании — показываем только текущего заказчика
-            # (или всех, если хотите)
+            # При редактировании — показываем только текущего заказчика (как у вас было)
             if self.instance.customer:
                 self.fields['customer'].queryset = Company.objects.filter(pk=self.instance.customer.pk)
                 self.fields['customer'].initial = self.instance.customer_id
@@ -200,17 +211,13 @@ class ContractForm(forms.ModelForm):
                 self.fields['customer'].queryset = Company.objects.none()
                 self.fields['customer'].choices = [('', '— Выберите заказчика —')]
 
-        # Поля executor и work оставляем пустыми для динамической загрузки через HTMX
-        if self.instance.pk:
+            # Исполнитель и работа
             self.fields['executor'].queryset = Company.objects.filter(
                 Q(is_licensee=True) | Q(is_laboratory=True)
             ).distinct().order_by('name')
             self.fields['work'].queryset = Work.objects.filter(is_active=True)
             self.fields['executor'].initial = self.instance.executor_id
             self.fields['work'].initial = self.instance.work_id
-        else:
-            self.fields['executor'].queryset = Company.objects.none()
-            self.fields['work'].queryset = Work.objects.none()
 
     def clean(self):
         cleaned_data = super().clean()

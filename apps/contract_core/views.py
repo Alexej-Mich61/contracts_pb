@@ -324,13 +324,35 @@ class ContractCreateUpdateMixin:
         signing_stage.contract = self.object
         signing_stage.save()
 
-        # Сохраняем итоговый акт (даже при создании договора)
+        # Сохраняем итоговый акт через update_or_create
         final_act = final_act_form.save(commit=False)
         final_act.contract = self.object
-        if final_act_form.cleaned_data.get('present') and not final_act.checked_by:
-            final_act.checked_by = self.request.user
-            final_act.checked_at = timezone.now()
-        final_act.save()
+
+        # Подготавливаем defaults
+        defaults = {
+            'present': final_act.present,
+            'date': final_act.date,
+            'file': final_act.file,
+            'note': final_act.note,
+        }
+
+        # Если акт отмечен как сформированный и еще не было отметки — ставим текущую дату
+        if final_act_form.cleaned_data.get('present'):
+            if not final_act.checked_by:
+                final_act.checked_by = self.request.user
+                final_act.checked_at = timezone.now()
+            # Если уже был отмечен ранее — оставляем старые значения (или обновляем при желании)
+            defaults['checked_by'] = final_act.checked_by
+            defaults['checked_at'] = final_act.checked_at
+        else:
+            # Если акт не отмечен — сбрасываем отметку
+            defaults['checked_by'] = None
+            defaults['checked_at'] = None
+
+        FinalAct.objects.update_or_create(
+            contract=self.object,
+            defaults=defaults
+        )
 
         # Сохраняем промежуточные акты (даже при создании договора)
         interim_formset.instance = self.object
