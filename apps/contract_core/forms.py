@@ -322,13 +322,8 @@ InterimActFormSet = forms.inlineformset_factory(
 class ProtectionObjectForm(forms.ModelForm):
     """
     Форма объекта защиты с каскадным выбором региона→района.
-
-    Используется в:
-        - views.ContractCreateUpdateMixin (inline formset)
-        - templates/contracts/contract_form.html
-        - HTMX эндпоинт: views.ContractFormFilterDistrictsByRegionView
-          (для обновления поля district при смене региона)
     """
+
 
     region = forms.ModelChoiceField(
         queryset=Region.objects.all(),

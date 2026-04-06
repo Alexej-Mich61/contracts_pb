@@ -39,52 +39,40 @@
             </label>
             {{ form.name }}
             {% if form.name.errors %}
-                <div class="text-danger small">{{ form.name.errors.0 }}</div>
+            <div class="text-danger small">{{ form.name.errors.0 }}</div>
             {% endif %}
         </div>
 
-        {# Регион — ручной рендеринг для поддержки HTMX в обоих случаях #}
+        {# Регион #}
         <div class="col-md-3 mb-3">
             <label class="form-label fw-semibold">Регион</label>
             <select name="{{ form.region.html_name }}"
                     id="{{ form.region.id_for_label }}"
                     class="form-select region-select"
                     hx-get="{% url 'contract_core:filter_districts_by_region' %}"
-                    hx-target="closest .district-wrapper"
-                    hx-trigger="change"
+                    hx-target="#district-wrapper-{{ index }}"
+                    hx-swap="innerHTML"
                     hx-vals='{"field_name": "protection_objects-{{ index }}-district"}'>
                 <option value="">— Выберите регион —</option>
                 {% for region in form.fields.region.queryset %}
-                    <option value="{{ region.pk }}"
-                            {% if form.region.value|stringformat:"s" == region.pk|stringformat:"s" %}selected{% endif %}>
-                        {{ region.name }}
-                    </option>
+                <option value="{{ region.pk }}"
+                        {% if form.region.value|stringformat:"s" == region.pk|stringformat:"s" %}selected{% endif %}>
+                {{ region.name }}
+                </option>
                 {% endfor %}
             </select>
         </div>
 
-        {# Район — оборачиваем в district-wrapper для HTMX #}
-        <div class="col-md-3 mb-3 district-wrapper">  <!-- <-- Класс district-wrapper -->
+        {# Район — обертка с уникальным ID #}
+        <div class="col-md-3 mb-3" id="district-wrapper-{{ index }}">
             <label class="form-label fw-semibold">Район</label>
             <select name="protection_objects-{{ index }}-district" class="form-select" disabled>
                 <option value="">— Сначала выберите регион —</option>
             </select>
         </div>
-    </div>
 
-    <div class="row">
-        <div class="col-md-6 mb-3">
-            <label for="{{ form.address.id_for_label }}" class="form-label fw-semibold">Адрес</label>
-            {{ form.address }}
-        </div>
-        <div class="col-md-6 mb-3">
-            <label for="{{ form.contacts.id_for_label }}" class="form-label fw-semibold">Контакты</label>
-            {{ form.contacts }}
-        </div>
-    </div>
-
-    <!-- Субподрядчик -->
-    <div class="row border-top pt-3 mt-2">
+        <!-- Субподрядчик -->
+        <div class="row border-top pt-3 mt-2">
         <div class="col-md-6 mb-3">
             <label for="{{ form.subcontractor.id_for_label }}" class="form-label fw-semibold text-muted">
                 <i class="bi bi-building-down me-1"></i>Субподрядчик

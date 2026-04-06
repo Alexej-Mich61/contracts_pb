@@ -1,24 +1,22 @@
 <!-- templates/contracts/partials/partials_contract_form/_contract_form_district_field.html -->
-<div id="district-field-wrapper">
-    <label for="id_{{ field_name }}" class="form-label fw-semibold">
-        Район
-    </label>
-    <select name="{{ field_name }}"
-            id="id_{{ field_name }}"
-            class="form-select district-select"
-            {% if not districts %}disabled{% endif %}>
-        {% if not districts %}
-            <option>— Сначала выберите регион —</option>
-        {% else %}
-            <option value="">— Выберите район —</option>
-            {% for district in districts %}
-                <option value="{{ district.id }}" {% if selected and district.id|stringformat:"s" == selected %}selected{% endif %}>
-                    {{ district.name }}
-                </option>
-            {% endfor %}
-        {% endif %}
-    </select>
-    {% if field and field.errors %}
-        <div class="text-danger small">{{ field.errors.0 }}</div>
+<label for="id_{{ field_name }}" class="form-label fw-semibold">
+    Район
+</label>
+<select name="{{ field_name }}"
+        id="id_{{ field_name }}"
+        class="form-select district-select"
+        {% if not districts %}disabled{% endif %}>
+    {% if not districts %}
+        <option>— Сначала выберите регион —</option>
+    {% else %}
+        <option value="">— Выберите район —</option>
+        {% for district in districts %}
+            <option value="{{ district.id }}" {% if selected and district.id|stringformat:"s" == selected %}selected{% endif %}>
+                {{ district.name }}
+            </option>
+        {% endfor %}
     {% endif %}
-</div>
+</select>
+{% if field and field.errors %}
+    <div class="text-danger small">{{ field.errors.0 }}</div>
+{% endif %}

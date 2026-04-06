@@ -74,13 +74,14 @@ urlpatterns = [
     ),
 
 
-    # старые
     # Каскадный выбор района
     path(
         "contracts/form/districts-by-region/",
         views.ContractFormFilterDistrictsByRegionView.as_view(),
         name="filter_districts_by_region"
     ),
+
+    # старые
     # Поиск АК
     path(
         "contracts/form/ak/search/",

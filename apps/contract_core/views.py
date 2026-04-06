@@ -505,9 +505,17 @@ class ContractFormFilterDistrictsByRegionView(LoginRequiredMixin, View):
     """HTMX: получить районы по выбранному региону"""
 
     def get(self, request):
+        # Ищем region_id - может быть в 'region' или в поле формы типа 'protection_objects-0-region'
         region_id = request.GET.get('region')
-        districts = District.objects.none()
 
+        # Если не найдено в 'region', ищем ключ, заканчивающийся на '-region'
+        if not region_id:
+            for key, value in request.GET.items():
+                if key.endswith('-region'):
+                    region_id = value
+                    break
+
+        districts = District.objects.none()
         if region_id:
             districts = District.objects.filter(region_id=region_id).order_by('name')
 
@@ -520,7 +528,7 @@ class ContractFormFilterDistrictsByRegionView(LoginRequiredMixin, View):
             'field_name': field_name,
         })
 
-# новый
+# Вьюха фильтра Заказчик
 class ContractFormFilterCustomersView(LoginRequiredMixin, View):
     """HTMX: поиск заказчиков по названию или ИНН для формы договора"""
 
@@ -550,7 +558,6 @@ class ContractFormFilterCustomersView(LoginRequiredMixin, View):
 class EmptyProtectionObjectFormView(LoginRequiredMixin, View):
     """
     Возвращает HTML пустой формы объекта защиты с правильным индексом.
-    Используется при нажатии "Добавить объект" через HTMX.
     """
 
     def get(self, request):
@@ -559,10 +566,16 @@ class EmptyProtectionObjectFormView(LoginRequiredMixin, View):
 
         form = ProtectionObjectForm(prefix=f"{prefix}-{total_forms}")
 
+        # Важно: добавляем queryset для регионов в поле формы
+        form.fields['region'].queryset = Region.objects.all().order_by('name')
+        form.fields['subcontractor'].queryset = Company.objects.filter(
+            is_subcontractor=True
+        ).order_by('name')
+
         return render(request, 'contracts/partials/partials_contract_form/_contract_form_protection_object.html', {
             'form': form,
             'object': None,
-            'index': total_forms,  # <-- добавьте это
+            'index': total_forms,
         })
 
 
