@@ -119,35 +119,7 @@
                                 <span class="text-danger">*</span>
                             </label>
 
-                            <!-- Поле поиска -->
-                            <div class="input-group mb-2">
-                                <span class="input-group-text bg-white">
-                                    <i class="bi bi-search text-muted"></i>
-                                </span>
-                                <input type="text"
-                                       name="q"
-                                       id="customer-search-input"
-                                       class="form-control"
-                                       placeholder="Введите название или ИНН..."
-                                       autocomplete="off">
-                                <button type="button"
-                                        id="search-customer-btn"
-                                        class="btn btn-outline-primary"
-                                        hx-get="{% url 'contract_core:filter_customers' %}"
-                                        hx-include="#customer-search-input"
-                                        hx-target="#customer-select-wrapper"
-                                        hx-indicator=".customer-search-indicator">
-                                    <span class="normal-state">Найти</span>
-                                    <span class="customer-search-indicator htmx-indicator">
-                                        <span class="spinner-border spinner-border-sm"></span>
-                                    </span>
-                                </button>
-                            </div>
-                            <div class="form-text text-muted mb-2">
-                                <i class="bi bi-info-circle me-1"></i>Введите название или ИНН и нажмите "Найти"
-                            </div>
-
-                            <!-- Выпадающий список заказчиков -->
+                            <!-- Выпадающий список заказчиков + поиск -->
                             <div id="customer-select-wrapper">
                                 {% include "contracts/partials/partials_contract_form/_contract_form_customer_select.html" with customers=form.fields.customer.queryset selected=form.customer.value query='' %}
                             </div>

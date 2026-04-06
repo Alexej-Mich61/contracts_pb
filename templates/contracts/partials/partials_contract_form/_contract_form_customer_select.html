@@ -1,15 +1,55 @@
 <!-- templates/contracts/partials/partials_contract_form/_contract_form_customer_select.html -->
-<select name="customer" id="id_customer" class="form-select">
-    <option value="">— Выберите заказчика —</option>
-    {% for customer in customers %}
-        <option value="{{ customer.id }}" {% if customer.id|stringformat:"s" == selected %}selected{% endif %}>
-            {{ customer.name }} (ИНН: {{ customer.inn }})
-        </option>
-    {% empty %}
-        {% if query %}
-            <option value="" disabled>Ничего не найдено по запросу "{{ query }}"</option>
+<div id="customer-select-container">
+    <select name="customer" id="id_customer" class="form-select">
+        {% if customers %}
+            {% for customer in customers %}
+                <option value="{{ customer.id }}" {% if customer.id|stringformat:"s" == selected %}selected{% endif %}>
+                    {{ customer.name }} (ИНН: {{ customer.inn }})
+                </option>
+            {% endfor %}
         {% else %}
-            <option value="" disabled>Введите минимум 2 символа для поиска</option>
+            <option value="">— Выберите заказчика —</option>
         {% endif %}
-    {% endfor %}
-</select>
+    </select>
+
+    {# Кнопка поиска для замены заказчика (показываем только если заказчик уже выбран) #}
+    {% if selected and customers|length == 1 %}
+    <div class="mt-2">
+        <button type="button"
+                class="btn btn-sm btn-outline-secondary"
+                onclick="document.getElementById('customer-search-panel').style.display='block'; this.style.display='none';">
+            <i class="bi bi-search me-1"></i>Изменить заказчика
+        </button>
+    </div>
+    {% endif %}
+</div>
+
+{# Панель поиска для смены заказчика #}
+<div id="customer-search-panel" style="display: {% if selected and customers|length == 1 %}none{% else %}block{% endif %};">
+    <div class="input-group mt-2">
+        <span class="input-group-text bg-white">
+            <i class="bi bi-search text-muted"></i>
+        </span>
+        <input type="text"
+               name="q"
+               id="customer-search-input"
+               class="form-control"
+               placeholder="Введите название или ИНН для поиска..."
+               autocomplete="off">
+        <button type="button"
+                id="search-customer-btn"
+                class="btn btn-outline-primary"
+                hx-get="{% url 'contract_core:filter_customers' %}"
+                hx-include="#customer-search-input"
+                hx-target="#customer-select-wrapper"
+                hx-indicator=".customer-search-indicator">
+            <span class="normal-state">Найти</span>
+            <span class="customer-search-indicator htmx-indicator">
+                <span class="spinner-border spinner-border-sm"></span>
+            </span>
+        </button>
+    </div>
+    <div class="form-text text-muted">
+        <i class="bi bi-info-circle me-1"></i>Введите минимум 2 символа и нажмите "Найти"
+    </div>
+</div>

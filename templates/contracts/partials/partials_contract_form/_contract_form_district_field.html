@@ -7,11 +7,12 @@
         class="form-select district-select"
         {% if not districts %}disabled{% endif %}>
     {% if not districts %}
-        <option>— Сначала выберите регион —</option>
+        <option value="">— Сначала выберите регион —</option>
     {% else %}
         <option value="">— Выберите район —</option>
         {% for district in districts %}
-            <option value="{{ district.id }}" {% if selected and district.id|stringformat:"s" == selected %}selected{% endif %}>
+            <option value="{{ district.id }}"
+                    {% if selected|stringformat:"s" == district.id|stringformat:"s" %}selected{% endif %}>
                 {{ district.name }}
             </option>
         {% endfor %}

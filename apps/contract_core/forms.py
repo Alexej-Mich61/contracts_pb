@@ -86,7 +86,6 @@ class CompanyForm(forms.ModelForm):
         return cleaned_data
 
 
-
 # ========== ДОГОВОР (ОСНОВНОЕ) ==========
 
 
@@ -119,21 +118,21 @@ class ContractForm(forms.ModelForm):
                 'class': 'form-control',
                 'placeholder': 'Например: 45/2024',
             }),
-            'date_concluded': forms.DateInput(attrs={
-                'type': 'date',
-                'class': 'form-control',
-            }),
+            'date_concluded': forms.DateInput(
+                attrs={'type': 'date', 'class': 'form-control'},
+                format='%Y-%m-%d'
+            ),
+            'date_start': forms.DateInput(
+                attrs={'type': 'date', 'class': 'form-control'},
+                format='%Y-%m-%d'
+            ),
+            'date_end': forms.DateInput(
+                attrs={'type': 'date', 'class': 'form-control'},
+                format='%Y-%m-%d'
+            ),
             'customer': forms.Select(attrs={
                 'class': 'form-select',
-                'id': 'id_customer',  # Важно для таргета HTMX
-            }),
-            'date_start': forms.DateInput(attrs={
-                'type': 'date',
-                'class': 'form-control',
-            }),
-            'date_end': forms.DateInput(attrs={
-                'type': 'date',
-                'class': 'form-control',
+                'id': 'id_customer',
             }),
             'executor': forms.Select(attrs={
                 'class': 'form-select',
@@ -182,41 +181,60 @@ class ContractForm(forms.ModelForm):
         self.user = user
         super().__init__(*args, **kwargs)
 
-        # Устанавливаем дефолтные значения для новых договоров
+        # Устанавливаем дефолтные значения только для НОВЫХ договоров
         if not self.instance.pk:
             today = timezone.now().date()
             self.fields['date_concluded'].initial = today
             self.fields['date_start'].initial = today
 
-            # При создании — пустой queryset для customer ТОЛЬКО если GET запрос (первая загрузка)
-            # При POST запросе нужен полный queryset для валидации
+            # При создании — пустой queryset для customer, executor, work
             if not self.data:
                 self.fields['customer'].queryset = Company.objects.none()
                 self.fields['customer'].choices = [('', '— Введите название или ИНН и нажмите "Найти" —')]
                 self.fields['executor'].queryset = Company.objects.none()
                 self.fields['work'].queryset = Work.objects.none()
             else:
-                # POST запрос — даем полный queryset для валидации
+                # POST запрос при создании — даем полный queryset для валидации
                 self.fields['customer'].queryset = Company.objects.filter(is_customer=True)
                 self.fields['executor'].queryset = Company.objects.filter(
                     Q(is_licensee=True) | Q(is_laboratory=True)
                 )
                 self.fields['work'].queryset = Work.objects.filter(is_active=True)
         else:
-            # При редактировании — показываем только текущего заказчика (как у вас было)
+            # ===== РЕЖИМ РЕДАКТИРОВАНИЯ =====
+
+            # 1. Заказчик — показываем ТОЛЬКО текущего
             if self.instance.customer:
                 self.fields['customer'].queryset = Company.objects.filter(pk=self.instance.customer.pk)
                 self.fields['customer'].initial = self.instance.customer_id
-            else:
-                self.fields['customer'].queryset = Company.objects.none()
-                self.fields['customer'].choices = [('', '— Выберите заказчика —')]
 
-            # Исполнитель и работа
+            # 2. Исполнитель — показываем подходящих по типу договора
+            contract_type = self.instance.type
+            executor_filter = Q()
+            if contract_type in ['oneoff_licensee', 'longterm_to_licensee']:
+                executor_filter |= Q(is_licensee=True)
+            if contract_type == 'oneoff_lab':
+                executor_filter |= Q(is_laboratory=True)
+
             self.fields['executor'].queryset = Company.objects.filter(
-                Q(is_licensee=True) | Q(is_laboratory=True)
+                executor_filter & (Q(is_licensee=True) | Q(is_laboratory=True))
             ).distinct().order_by('name')
-            self.fields['work'].queryset = Work.objects.filter(is_active=True)
             self.fields['executor'].initial = self.instance.executor_id
+
+            # 3. Вид работы — фильтруем по типу договора
+            work_type_map = {
+                'oneoff_licensee': 'work_oneoff_licensee',
+                'longterm_to_licensee': 'work_longterm_to_licensee',
+                'oneoff_lab': 'work_oneoff_lab',
+            }
+            work_type = work_type_map.get(contract_type)
+            if work_type:
+                self.fields['work'].queryset = Work.objects.filter(
+                    work_type=work_type,
+                    is_active=True
+                ).order_by('name')
+            else:
+                self.fields['work'].queryset = Work.objects.filter(is_active=True)
             self.fields['work'].initial = self.instance.work_id
 
     def clean(self):
@@ -331,7 +349,6 @@ class ProtectionObjectForm(forms.ModelForm):
     Форма объекта защиты с каскадным выбором региона→района.
     """
 
-
     region = forms.ModelChoiceField(
         queryset=Region.objects.all(),
         required=False,
@@ -359,7 +376,6 @@ class ProtectionObjectForm(forms.ModelForm):
     #         'hx-select': '#district-field-wrapper',
     #     })
     # )
-
 
     class Meta:
         model = ProtectionObject
@@ -411,14 +427,31 @@ class ProtectionObjectForm(forms.ModelForm):
             is_subcontractor=True
         ).order_by('name')
 
+        # Инициализация региона и района
         if self.instance.pk and self.instance.district:
-            self.fields['region'].initial = self.instance.district.region
+            # Для существующего объекта — устанавливаем регион и список районов
+            self.fields['region'].initial = self.instance.district.region_id
             self.fields['district'].queryset = District.objects.filter(
                 region=self.instance.district.region
-            )
-            self.fields['district'].widget.attrs.pop('disabled', None)
+            ).order_by('name')
+            self.fields['district'].initial = self.instance.district_id
+        elif self.data and 'region' in self.data:
+            # Для POST-запроса с выбранным регионом
+            region_id = self.data.get('region')
+            if region_id:
+                try:
+                    region = Region.objects.get(pk=region_id)
+                    self.fields['district'].queryset = District.objects.filter(
+                        region=region
+                    ).order_by('name')
+                except Region.DoesNotExist:
+                    self.fields['district'].queryset = District.objects.none()
+            else:
+                self.fields['district'].queryset = District.objects.none()
         else:
+            # Для нового объекта — пустой список районов
             self.fields['district'].queryset = District.objects.none()
+            self.fields['district'].empty_label = "— Сначала выберите регион —"
 
 
 # Formset для объектов защиты
