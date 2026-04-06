@@ -18,7 +18,7 @@
         <span class="badge bg-primary">Новый объект</span>
         <button type="button"
                 class="btn btn-outline-danger btn-sm remove-formset-btn"
-                data-prefix="protection_objects">
+                data-prefix="contract_objects">
             <i class="bi bi-x-lg"></i> Удалить
         </button>
         {% endif %}
@@ -45,7 +45,7 @@
                     hx-get="{% url 'contract_core:filter_districts_by_region' %}"
                     hx-target="#district-wrapper-{{ index }}"
                     hx-swap="innerHTML"
-                    hx-vals='{"field_name": "protection_objects-{{ index }}-district"}'>
+                    hx-vals='{"field_name": "contract_objects-{{ index }}-district"}'>
                 <option value="">— Выберите регион —</option>
                 {% for region in form.fields.region.queryset %}
                 <option value="{{ region.pk }}"
@@ -56,14 +56,31 @@
             </select>
         </div>
 
-        {# Район — обертка с уникальным ID #}
+        {# Район #}
         <div class="col-md-3 mb-3 district-wrapper" id="district-wrapper-{{ index }}">
-            {% include "contracts/partials/partials_contract_form/_contract_form_district_field.html" with
-                field_name=form.district.html_name
-                districts=form.fields.district.queryset
-                selected=form.district.value
-                field=form.district
-            %}
+            {% if form.fields.district.queryset and form.fields.district.queryset|length > 0 %}
+                {# Районы загружены (редактирование или после выбора региона) #}
+                <label for="id_{{ form.district.html_name }}" class="form-label fw-semibold">
+                    Район
+                </label>
+                <select name="{{ form.district.html_name }}"
+                        id="id_{{ form.district.html_name }}"
+                        class="form-select district-select">
+                    <option value="">— Выберите район —</option>
+                    {% for district in form.fields.district.queryset %}
+                        <option value="{{ district.id }}"
+                                {% if form.district.value == district.id|stringformat:"s" %}selected{% endif %}>
+                            {{ district.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+                {% if form.district.errors %}
+                    <div class="text-danger small">{{ form.district.errors.0 }}</div>
+                {% endif %}
+            {% else %}
+                {# Пустое состояние (создание, до выбора региона) #}
+                {% include "contracts/partials/partials_contract_form/_contract_form_district_empty.html" with field_name=form.district.html_name %}
+            {% endif %}
         </div>
     </div>
 
@@ -74,8 +91,15 @@
                 Адрес <span class="text-danger">*</span>
             </label>
             {{ form.address }}
+            {% if form.address.help_text %}
+            <div class="form-text">{{ form.address.help_text }}</div>
+            {% endif %}
             {% if form.address.errors %}
-            <div class="text-danger small">{{ form.address.errors.0 }}</div>
+            <div class="text-danger small mt-1">
+                {% for error in form.address.errors %}
+                <div><i class="bi bi-exclamation-circle me-1"></i>{{ error }}</div>
+                {% endfor %}
+            </div>
             {% endif %}
         </div>
     </div>

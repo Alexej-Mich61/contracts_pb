@@ -402,25 +402,29 @@ class DynamicFieldsView(LoginRequiredMixin, View):
 
 # вьюха фильтра районов по региону в объектах защиты
 class ContractFormFilterDistrictsByRegionView(LoginRequiredMixin, View):
-    """HTMX: получить районы по выбранному региону"""
+    """HTMX: получить районы по выбранному региону (или пустой шаблон)"""
 
     def get(self, request):
-        # Ищем region_id - может быть в 'region' или в поле формы типа 'protection_objects-0-region'
+        # Ищем region_id - может быть в 'region' или в поле формы типа 'contract_objects-0-region'
         region_id = request.GET.get('region')
 
-        # Если не найдено в 'region', ищем ключ, заканчивающийся на '-region'
         if not region_id:
             for key, value in request.GET.items():
                 if key.endswith('-region'):
                     region_id = value
                     break
 
-        districts = District.objects.none()
-        if region_id:
-            districts = District.objects.filter(region_id=region_id).order_by('name')
-
-        selected = request.GET.get('district', '')
         field_name = request.GET.get('field_name', 'district')
+
+        # Если регион не выбран - возвращаем пустой шаблон
+        if not region_id:
+            return render(request, 'contracts/partials/partials_contract_form/_contract_form_district_empty.html', {
+                'field_name': field_name,
+            })
+
+        # Если регион выбран - получаем районы и возвращаем заполненный select
+        districts = District.objects.filter(region_id=region_id).order_by('name')
+        selected = request.GET.get('district', '')
 
         return render(request, 'contracts/partials/partials_contract_form/_contract_form_district_field.html', {
             'districts': districts,

@@ -125,10 +125,27 @@ class ContractCreateUpdateMixin:
         interim_formset = context['interim_act_formset']
         final_act_form = context['final_act_form']
 
+        # Отладка: проверяем данные POST
+        print("=== POST DATA ===")
+        print(self.request.POST)
+        print("=== FILES ===")
+        print(self.request.FILES)
+
+        print("=== ProtectionObjectFormSet data ===")
+        print(protection_formset.data if hasattr(protection_formset, 'data') else 'no data')
+        print("TOTAL FORMS:", self.request.POST.get('protection_objects-TOTAL_FORMS', 'NOT FOUND'))
+
         is_valid = True
 
         if not protection_formset.is_valid():
             is_valid = False
+            print("=== ProtectionObjectFormSet ERRORS ===")
+            print(protection_formset.errors)
+            print("Non-form errors:", protection_formset.non_form_errors())
+        else:
+            print("=== ProtectionObjectFormSet is VALID ===")
+            print("Cleaned data:", protection_formset.cleaned_data)
+
         if not signing_form.is_valid():
             is_valid = False
         if not interim_formset.is_valid():
@@ -137,14 +154,18 @@ class ContractCreateUpdateMixin:
             is_valid = False
 
         if not is_valid:
+            print("=== FORM NOT VALID, returning errors ===")
             return self.render_to_response(self.get_context_data(form=form))
 
         # Сохраняем основной договор
         self.object = form.save()
+        print(f"=== Contract saved: {self.object.pk} ===")
 
         # Сохраняем formset объектов защиты
         protection_formset.instance = self.object
-        protection_formset.save()
+        saved_objects = protection_formset.save()
+        print(f"=== Saved {len(saved_objects)} protection objects ===")
+        print("Saved objects:", saved_objects)
 
         # Сохраняем стадию подписания
         signing_stage = signing_form.save(commit=False)

@@ -1,6 +1,7 @@
 <!-- templates/contracts/contract_form.html -->
 {% extends "base.html" %}
 {% load static %}
+{% load custom_filters %}
 
 {% block title %}
     {% if object %}Редактировать договор №{{ object.number|default:object.pk }}{% else %}Добавить договор{% endif %}
@@ -29,20 +30,31 @@
                         <h6 class="alert-heading"><i class="bi bi-exclamation-triangle me-2"></i>Ошибки заполнения:</h6>
                         <ul class="mb-0">
                             {% for field, errors in form.errors.items %}
-                                {% for error in errors %}
-                                    <li>{{ form.fields.field.label|default:field }}: {{ error }}</li>
-                                {% endfor %}
+                            {% for error in errors %}
+                            <li>{{ form.fields.field.label|default:field }}: {{ error }}</li>
                             {% endfor %}
+                            {% endfor %}
+
                             {% if protection_object_formset.non_form_errors %}
-                                <li>Объекты защиты: {{ protection_object_formset.non_form_errors }}</li>
+                            <li><strong>Объекты защиты:</strong> {{ protection_object_formset.non_form_errors }}</li>
                             {% endif %}
                             {% for err_form in protection_object_formset %}
-                                {% for field, errors in err_form.errors.items %}
-                                    <li>Объект защиты {{ forloop.parentloop.counter }} - {{ err_form.fields.field.label|default:field }}: {{ error }}</li>
-                                {% endfor %}
+                            {% if err_form.errors %}
+                            <li><strong>Объект защиты #{{ forloop.counter }}:</strong>
+                                <ul>
+                                    {% for field, errors in err_form.errors.items %}
+                                    {% for error in errors %}
+                                    <li>{{ err_form.fields|get_field_label:field|default:field }}: {{ error }}</li>
+                                    {% endfor %}
+                                    {% endfor %}
+                                </ul>
+                            </li>
+                            {% endif %}
                             {% endfor %}
+
+
                             {% if interim_act_formset.non_form_errors %}
-                                <li>Промежуточные акты: {{ interim_act_formset.non_form_errors }}</li>
+                            <li>Промежуточные акты: {{ interim_act_formset.non_form_errors }}</li>
                             {% endif %}
                             {% for err_form in interim_act_formset %}
                                 {% for field, errors in err_form.errors.items %}
@@ -311,7 +323,7 @@ function removeFormsetForm(btn, prefix) {
 // === Пересчет индексов ===
 function recalculateFormsetIndices(prefix) {
     const cssClass = prefix.replace(/_/g, '-');
-    const container = document.getElementById(prefix + 's-container'); // protection_objects-container или interim_acts-container
+    const container = document.getElementById(prefix + 's-container'); // contract_objects-container или interim_acts-container
 
     if (!container) {
         console.error('Контейнер не найден:', prefix + 's-container');
@@ -342,7 +354,34 @@ function recalculateFormsetIndices(prefix) {
     });
 }
 
+// При добавлении новой формы через HTMX обновляем TOTAL_FORMS
+document.body.addEventListener('htmx:afterSwap', function(evt) {
+    // Для объектов защиты (contract_objects)
+    if (evt.detail.target.id === 'protection-objects-list') {
+        const prefix = 'contract_objects';  // <-- ИСПРАВЛЕНО
+        const container = document.getElementById('protection-objects-list');
+        const forms = container.querySelectorAll('.protection-objects-form');
+        const totalFormsInput = document.getElementById('id_' + prefix + '-TOTAL_FORMS');
 
+        if (totalFormsInput) {
+            totalFormsInput.value = forms.length;
+            console.log('Updated TOTAL_FORMS for contract_objects to:', forms.length);
+        }
+    }
+
+    // Для промежуточных актов (interim_acts)
+    if (evt.detail.target.id === 'interim-acts-container') {
+        const prefix = 'interim_acts';
+        const container = document.getElementById('interim-acts-container');
+        const forms = container.querySelectorAll('.interim-acts-form');
+        const totalFormsInput = document.getElementById('id_' + prefix + '-TOTAL_FORMS');
+
+        if (totalFormsInput) {
+            totalFormsInput.value = forms.length;
+            console.log('Updated TOTAL_FORMS for interim_acts to:', forms.length);
+        }
+    }
+});
 
 // === Остальные обработчики ===
 // Обработка результатов поиска АК

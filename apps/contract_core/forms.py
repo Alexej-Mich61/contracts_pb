@@ -331,27 +331,9 @@ class ProtectionObjectForm(forms.ModelForm):
         empty_label="— Выберите регион —",
         widget=forms.Select(attrs={
             'class': 'form-select region-select',  # <-- Добавлен класс region-select для удобства
-            # 'hx-get': '',  # <-- Удалить или закомментировать (URL задается в шаблоне)
-            # 'hx-target': 'closest .district-wrapper',
-            # 'hx-trigger': 'change',
-            # 'hx-swap': 'innerHTML',
-            # 'hx-select': '#district-field-wrapper',
         })
     )
 
-    # region = forms.ModelChoiceField(
-    #     queryset=Region.objects.all(),
-    #     required=False,
-    #     empty_label="— Выберите регион —",
-    #     widget=forms.Select(attrs={
-    #         'class': 'form-select',
-    #         'hx-get': '',  # URL для загрузки районов
-    #         'hx-target': 'closest .district-wrapper',
-    #         'hx-trigger': 'change',
-    #         'hx-swap': 'innerHTML',
-    #         'hx-select': '#district-field-wrapper',
-    #     })
-    # )
 
     class Meta:
         model = ProtectionObject
@@ -411,23 +393,25 @@ class ProtectionObjectForm(forms.ModelForm):
                 region=self.instance.district.region
             ).order_by('name')
             self.fields['district'].initial = self.instance.district_id
-        elif self.data and 'region' in self.data:
-            # Для POST-запроса с выбранным регионом
-            region_id = self.data.get('region')
+        elif self.data:
+            # Для POST-запроса (создание/редактирование) — определяем регион из данных
+            # и подгружаем соответствующие районы для валидации
+            region_id = self.data.get(self.add_prefix('region'))
             if region_id:
                 try:
                     region = Region.objects.get(pk=region_id)
                     self.fields['district'].queryset = District.objects.filter(
                         region=region
                     ).order_by('name')
+                    # Устанавливаем initial для региона чтобы он отобразился в форме при ошибке
+                    self.fields['region'].initial = region_id
                 except Region.DoesNotExist:
                     self.fields['district'].queryset = District.objects.none()
             else:
                 self.fields['district'].queryset = District.objects.none()
         else:
-            # Для нового объекта — пустой список районов
+            # Для нового объекта (GET запрос) — пустой список районов
             self.fields['district'].queryset = District.objects.none()
-            self.fields['district'].empty_label = "— Сначала выберите регион —"
 
 
 # Formset для объектов защиты
