@@ -343,24 +343,37 @@ class DynamicFieldsView(LoginRequiredMixin, View):
         contract_type = request.GET.get('type')
         user = request.user
 
-        # Получаем исполнителей
-        user_companies = Company.objects.filter(
-            employees__user=user,
-            employees__is_active=True
-        ).values_list('id', flat=True)
+        # Если тип не выбран — возвращаем пустые списки
+        if not contract_type:
+            return render(request, 'contracts/partials/partials_contract_form/_contract_form_dynamic_fields_edit.html', {
+                'executors': [],
+                'works': [],
+                'contract_type': '',
+                'selected_executor': '',
+                'selected_work': '',
+            })
 
+        # Определяем фильтр по типу договора
         type_filter = Q()
         if contract_type in ['oneoff_licensee', 'longterm_to_licensee']:
-            type_filter |= Q(is_licensee=True)
-        if contract_type == 'oneoff_lab':
-            type_filter |= Q(is_laboratory=True)
+            type_filter = Q(is_licensee=True)
+        elif contract_type == 'oneoff_lab':
+            type_filter = Q(is_laboratory=True)
 
-        executors = Company.objects.filter(
-            (Q(id__in=user_companies) | type_filter) &
-            (Q(is_licensee=True) | Q(is_laboratory=True))
-        ).distinct().order_by('name')
+        if user.is_superuser:
+            # Для суперюзера показываем все компании, соответствующие типу договора
+            executors = Company.objects.filter(
+                type_filter
+            ).distinct().order_by('name')
+        else:
+            # Для обычных пользователей: компания должна соответствовать типу
+            # И пользователь должен быть активным сотрудником
+            executors = Company.objects.filter(
+                type_filter &
+                Q(employees__user=user, employees__is_active=True)
+            ).distinct().order_by('name')
 
-        # Получаем работы
+        # Получаем работы (логика без изменений)
         work_type_map = {
             'oneoff_licensee': 'work_oneoff_licensee',
             'longterm_to_licensee': 'work_longterm_to_licensee',
@@ -378,13 +391,14 @@ class DynamicFieldsView(LoginRequiredMixin, View):
         selected_executor = request.GET.get('executor', '')
         selected_work = request.GET.get('work', '')
 
-        return render(request, 'contracts/partials/partials_contract_form/_contract_form_dynamic_fields.html', {
+        return render(request, 'contracts/partials/partials_contract_form/_contract_form_dynamic_fields_edit.html', {
             'executors': executors,
             'works': works,
             'contract_type': contract_type,
             'selected_executor': selected_executor,
             'selected_work': selected_work,
         })
+
 
 # вьюха фильтра районов по региону в объектах защиты
 class ContractFormFilterDistrictsByRegionView(LoginRequiredMixin, View):

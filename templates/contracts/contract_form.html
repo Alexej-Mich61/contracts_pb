@@ -64,35 +64,16 @@
                     <div class="col-lg-6">
                         <h6 class="text-primary border-bottom pb-2 mb-3">Основные сведения</h6>
 
-                        <!-- Тип договора -->
-                        <div class="mb-3">
-                            <label for="{{ form.type.id_for_label }}" class="form-label fw-semibold">
-                                Тип договора
-                                {% if form.type.field.required %}<span class="text-danger">*</span>{% endif %}
-                            </label>
-                            <select name="type"
-                                    id="{{ form.type.id_for_label }}"
-                                    class="form-select"
-                                    hx-get="{% url 'contract_core:dynamic_fields' %}"
-                                    hx-trigger="change"
-                                    hx-target="#dynamic-fields-container"
-                                    hx-swap="innerHTML"
-                                    hx-include="[name='type'],[name='executor'],[name='work']">
-                                {% for value, label in form.fields.type.choices %}
-                                <option value="{{ value }}" {% if form.type.value == value %}selected{% endif %}>
-                                    {{ label }}
-                                </option>
-                                {% endfor %}
-                            </select>
-                        </div>
+                        <!-- Тип договора, Исполнитель, Вид работы -->
+                        {% if object %}
+                            <!-- Режим редактирования — readonly с кнопкой Изменить -->
+                            {% include "contracts/partials/partials_contract_form/_contract_form_type_executor_work_readonly.html" with contract=object %}
+                        {% else %}
+                            <!-- Режим создания — сразу динамические поля (все три в ряд), без preselected типа -->
+                            {% include "contracts/partials/partials_contract_form/_contract_form_dynamic_fields_edit.html" with contract_type=form.type.value %}
+                        {% endif %}
 
-                        <!-- Динамические поля (исполнитель + работы) -->
-                        <div id="dynamic-fields-wrapper">
-                            <div id="dynamic-fields-container">
-                                {% include "contracts/partials/partials_contract_form/_contract_form_dynamic_fields.html" %}
-                            </div>
-                        </div>
-
+                        <!-- Номер договора -->
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label for="{{ form.number.id_for_label }}" class="form-label fw-semibold">

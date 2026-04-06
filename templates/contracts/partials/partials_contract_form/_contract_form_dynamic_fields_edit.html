@@ -1,0 +1,78 @@
+<!--templates/contracts/partials/partials_contract_form/_contract_form_dynamic_fields_edit.html-->
+<!-- Динамические поля (тип + исполнитель + работы) — для создания и редактирования -->
+<div id="type-executor-work-container">
+    <div class="row">
+        <!-- Тип договора -->
+        <div class="col-md-4 mb-3">
+            <label for="id_type" class="form-label fw-semibold">
+                Тип договора
+                <span class="text-danger">*</span>
+            </label>
+            <select name="type"
+                    id="id_type"
+                    class="form-select"
+                    hx-get="{% url 'contract_core:dynamic_fields' %}"
+                    hx-trigger="change"
+                    hx-target="#type-executor-work-container"
+                    hx-swap="outerHTML"
+                    hx-include="#id_type, #id_executor, #id_work">
+                <option value="" {% if not contract_type %}selected{% endif %}>
+                    — Выберите тип договора —
+                </option>
+                <option value="oneoff_licensee" {% if contract_type == 'oneoff_licensee' %}selected{% endif %}>
+                    Разовый (лицензиат)
+                </option>
+                <option value="longterm_to_licensee" {% if contract_type == 'longterm_to_licensee' %}selected{% endif %}>
+                    Долгосрочный ТО (лицензиат)
+                </option>
+                <option value="oneoff_lab" {% if contract_type == 'oneoff_lab' %}selected{% endif %}>
+                    Разовый (лаборатория)
+                </option>
+            </select>
+        </div>
+
+        <!-- Исполнитель -->
+        <div class="col-md-4 mb-3">
+            <label for="id_executor" class="form-label fw-semibold">
+                Исполнитель
+                <span class="text-danger">*</span>
+            </label>
+            <select name="executor" id="id_executor" class="form-select" {% if not executors %}disabled{% endif %}>
+                {% if not executors %}
+                    <option value="">— Сначала выберите тип договора —</option>
+                {% else %}
+                    <option value="">— Выберите исполнителя —</option>
+                    {% for company in executors %}
+                        <option value="{{ company.id }}" {% if selected_executor == company.id|stringformat:"s" %}selected{% endif %}>
+                            {{ company.name }}
+                            {% if company.is_licensee and company.is_laboratory %}(Лицензиат + Лаборатория)
+                            {% elif company.is_licensee %}(Лицензиат)
+                            {% elif company.is_laboratory %}(Лаборатория)
+                            {% endif %}
+                        </option>
+                    {% endfor %}
+                {% endif %}
+            </select>
+        </div>
+
+        <!-- Вид работы -->
+        <div class="col-md-4 mb-3">
+            <label for="id_work" class="form-label fw-semibold">
+                Вид работы
+                <span class="text-danger">*</span>
+            </label>
+            <select name="work" id="id_work" class="form-select" {% if not works %}disabled{% endif %}>
+                {% if not works %}
+                    <option value="">— Сначала выберите тип договора —</option>
+                {% else %}
+                    <option value="">— Выберите вид работы —</option>
+                    {% for work in works %}
+                        <option value="{{ work.id }}" {% if selected_work == work.id|stringformat:"s" %}selected{% endif %}>
+                            {{ work.name }}
+                        </option>
+                    {% endfor %}
+                {% endif %}
+            </select>
+        </div>
+    </div>
+</div>

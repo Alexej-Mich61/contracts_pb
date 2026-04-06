@@ -108,11 +108,6 @@ class ContractForm(forms.ModelForm):
         widgets = {
             'type': forms.Select(attrs={
                 'class': 'form-select',
-                'hx-get': '',
-                'hx-target': '#dynamic-fields-container',
-                'hx-trigger': 'change',
-                'hx-include': '[name="csrfmiddlewaretoken"]',
-                'hx-swap': 'innerHTML',
             }),
             'number': forms.TextInput(attrs={
                 'class': 'form-control',
@@ -208,34 +203,15 @@ class ContractForm(forms.ModelForm):
                 self.fields['customer'].queryset = Company.objects.filter(pk=self.instance.customer.pk)
                 self.fields['customer'].initial = self.instance.customer_id
 
-            # 2. Исполнитель — показываем подходящих по типу договора
-            contract_type = self.instance.type
-            executor_filter = Q()
-            if contract_type in ['oneoff_licensee', 'longterm_to_licensee']:
-                executor_filter |= Q(is_licensee=True)
-            if contract_type == 'oneoff_lab':
-                executor_filter |= Q(is_laboratory=True)
+            # 2. Исполнитель — показываем ТОЛЬКО текущего (для readonly режима)
+            if self.instance.executor:
+                self.fields['executor'].queryset = Company.objects.filter(pk=self.instance.executor.pk)
+                self.fields['executor'].initial = self.instance.executor_id
 
-            self.fields['executor'].queryset = Company.objects.filter(
-                executor_filter & (Q(is_licensee=True) | Q(is_laboratory=True))
-            ).distinct().order_by('name')
-            self.fields['executor'].initial = self.instance.executor_id
-
-            # 3. Вид работы — фильтруем по типу договора
-            work_type_map = {
-                'oneoff_licensee': 'work_oneoff_licensee',
-                'longterm_to_licensee': 'work_longterm_to_licensee',
-                'oneoff_lab': 'work_oneoff_lab',
-            }
-            work_type = work_type_map.get(contract_type)
-            if work_type:
-                self.fields['work'].queryset = Work.objects.filter(
-                    work_type=work_type,
-                    is_active=True
-                ).order_by('name')
-            else:
-                self.fields['work'].queryset = Work.objects.filter(is_active=True)
-            self.fields['work'].initial = self.instance.work_id
+            # 3. Вид работы — показываем ТОЛЬКО текущий (для readonly режима)
+            if self.instance.work:
+                self.fields['work'].queryset = Work.objects.filter(pk=self.instance.work.pk)
+                self.fields['work'].initial = self.instance.work_id
 
     def clean(self):
         cleaned_data = super().clean()

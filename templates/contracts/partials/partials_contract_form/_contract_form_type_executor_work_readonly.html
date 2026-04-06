@@ -1,0 +1,50 @@
+<!--templates/contracts/partials/partials_contract_form/_contract_form_type_executor_work_readonly.html-->
+<!-- Только для режима редактирования — readonly отображение типа, исполнителя и работы с кнопкой Изменить -->
+<div id="type-executor-work-container">
+    <div class="row">
+        <!-- Тип договора (readonly) -->
+        <div class="col-md-4 mb-3">
+            <label class="form-label fw-semibold">
+                Тип договора
+                <span class="text-danger">*</span>
+            </label>
+            <input type="text" class="form-control" value="{{ contract.get_type_display }}" disabled readonly>
+            <input type="hidden" name="type" value="{{ contract.type }}">
+        </div>
+
+        <!-- Исполнитель (readonly) -->
+        <div class="col-md-4 mb-3">
+            <label class="form-label fw-semibold">
+                Исполнитель
+                <span class="text-danger">*</span>
+            </label>
+            <input type="text" class="form-control" value="{{ contract.executor.name }}" disabled readonly>
+            <input type="hidden" name="executor" value="{{ contract.executor.pk }}">
+        </div>
+
+        <!-- Вид работы (readonly) -->
+        <div class="col-md-4 mb-3">
+            <label class="form-label fw-semibold">
+                Вид работы
+                <span class="text-danger">*</span>
+            </label>
+            <input type="text" class="form-control" value="{{ contract.work.name }}" disabled readonly>
+            <input type="hidden" name="work" value="{{ contract.work.pk }}">
+        </div>
+    </div>
+
+    <!-- Кнопка Изменить -->
+    <div class="mb-3">
+        <button type="button"
+                class="btn btn-sm btn-outline-secondary"
+                hx-get="{% url 'contract_core:dynamic_fields' %}"
+                hx-target="#type-executor-work-container"
+                hx-swap="outerHTML"
+                hx-vals='{"type": "{{ contract.type }}", "executor": "{{ contract.executor.pk }}", "work": "{{ contract.work.pk }}"}'>
+            <i class="bi bi-pencil me-1"></i>Изменить тип, исполнителя или вид работы
+        </button>
+        <div class="form-text text-warning">
+            <i class="bi bi-exclamation-triangle me-1"></i>Внимание: изменение типа договора может повлиять на доступные поля
+        </div>
+    </div>
+</div>
