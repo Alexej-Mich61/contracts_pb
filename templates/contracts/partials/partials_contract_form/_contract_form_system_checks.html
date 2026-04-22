@@ -4,57 +4,89 @@
         <h6 class="mb-0"><i class="bi bi-check2-square me-2"></i>Отметки по системам</h6>
     </div>
     <div class="card-body">
-        {% if object and system_checks %}
-            <!-- Режим редактирования: показываем реальные отметки -->
-            <div class="row g-3">
-                {% for check in system_checks %}
-                    <div class="col-md-6 col-lg-4">
-                        <div class="border rounded p-3 {% if check.last_checked %}bg-success bg-opacity-10 border-success{% else %}bg-light{% endif %}">
-                            <div class="d-flex justify-content-between align-items-start mb-2">
-                                <span class="fw-semibold">{{ check.system_type.name }}</span>
-                                {% if check.last_checked %}
-                                    <span class="badge bg-success"><i class="bi bi-check-lg"></i></span>
-                                {% endif %}
-                            </div>
+        {{ system_check_formset.management_form }}
 
-                            {% if check.last_checked %}
-                                <small class="text-muted d-block mb-2">
-                                    <i class="bi bi-calendar-check me-1"></i>{{ check.last_checked|date:"d.m.Y" }}
-                                    {% if check.checked_by %}<br><i class="bi bi-person me-1"></i>{{ check.checked_by }}{% endif %}
-                                </small>
-                                {% if check.note %}
-                                    <small class="text-muted d-block mb-2"><i class="bi bi-chat-left-text me-1"></i>{{ check.note }}</small>
-                                {% endif %}
-                            {% else %}
-                                <small class="text-muted d-block mb-2">Не отмечено</small>
-                            {% endif %}
-
-                            <!-- Форма для отметки системы -->
-                            <div class="mt-2 pt-2 border-top">
-                                <form method="post"
-                                      action="{% url 'contract_core:mark_system_check' object.pk check.system_type.pk %}"
-                                      class="d-inline">
-                                    {% csrf_token %}
-                                    <div class="input-group input-group-sm">
-                                        <input type="text" name="note" class="form-control" placeholder="Примечание..." maxlength="200" value="{{ check.note|default:'' }}">
-                                        <button type="submit" class="btn {% if check.last_checked %}btn-outline-success{% else %}btn-success{% endif %}">
-                                            {% if check.last_checked %}<i class="bi bi-arrow-clockwise"></i> Обновить{% else %}<i class="bi bi-check-lg"></i> Отметить{% endif %}
-                                        </button>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-                {% endfor %}
-            </div>
-        {% else %}
-            <!-- Режим создания: информационный блок -->
-            <div class="alert alert-info mb-0 d-flex align-items-center">
-                <i class="bi bi-info-circle-fill me-3 fs-4"></i>
-                <div>
-                    <strong>Информация:</strong> После сохранения договора здесь будут доступны отметки по системам.
-                </div>
+        {% if system_check_formset.non_form_errors %}
+            <div class="alert alert-danger">
+                {{ system_check_formset.non_form_errors }}
             </div>
         {% endif %}
+
+        <div class="row g-3">
+            {% for form in system_check_formset %}
+            <div class="col-md-6 col-lg-4">
+                {{ form.id }}
+                {{ form.system_type }}
+
+                {% with system=form.instance.system_type %}
+                {% if system %}
+                <div class="border rounded p-3 {% if form.instance.last_checked %}bg-success bg-opacity-10 border-success{% else %}bg-light{% endif %}">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <span class="fw-semibold">{{ system.name }}</span>
+                        {% if form.instance.last_checked %}
+                            <span class="badge bg-success"><i class="bi bi-check-lg"></i></span>
+                        {% endif %}
+                    </div>
+
+                    {% if form.instance.last_checked %}
+                        <small class="text-muted d-block mb-2">
+                            <i class="bi bi-calendar-check me-1"></i>{{ form.instance.last_checked|date:"d.m.Y" }}
+                            {% if form.instance.checked_by %}
+                                <br><i class="bi bi-person me-1"></i>{{ form.instance.checked_by }}
+                            {% endif %}
+                        </small>
+                        {% if form.instance.note %}
+                            <small class="text-muted d-block mb-2">
+                                <i class="bi bi-chat-left-text me-1"></i>{{ form.instance.note }}
+                            </small>
+                        {% endif %}
+                    {% else %}
+                        <small class="text-muted d-block mb-2">Не отмечено</small>
+                    {% endif %}
+
+                    <div class="mt-2 pt-2 border-top">
+                        <div class="form-check mb-2">
+                            {{ form.mark_today }}
+                            <label class="form-check-label small" for="{{ form.mark_today.id_for_label }}">
+                                {% if form.instance.last_checked %}Обновить отметку{% else %}Отметить сегодня{% endif %}
+                            </label>
+                        </div>
+
+                        <div class="mb-2">
+                            <label class="form-label small text-muted mb-1">Дата отметки</label>
+                            {{ form.last_checked }}
+                            {% if form.last_checked.errors %}
+                                <div class="text-danger small">{{ form.last_checked.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div>
+                            <label class="form-label small text-muted mb-1">Примечание</label>
+                            {{ form.note }}
+                            {% if form.note.errors %}
+                                <div class="text-danger small">{{ form.note.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        {% if form.non_field_errors %}
+                            <div class="text-danger small mt-1">{{ form.non_field_errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+                {% endwith %}
+            </div>
+            {% empty %}
+            <div class="col-12">
+                <div class="alert alert-info mb-0 d-flex align-items-center">
+                    <i class="bi bi-info-circle-fill me-3 fs-4"></i>
+                    <div>
+                        <strong>Информация:</strong> В справочнике нет активных систем.
+                        Добавьте их в разделе «Справочники → Типы систем».
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
     </div>
 </div>

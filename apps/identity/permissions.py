@@ -1,2 +1,0 @@
-# apps/identity/permissions.py
-

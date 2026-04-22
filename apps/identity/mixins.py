@@ -7,9 +7,9 @@ from django.urls import reverse_lazy
 
 class PermissionRequiredMixin(AccessMixin):
     """
-    Удобный и гибкий миксин для проверки прав пользователя.
+    Миксин для проверки прав пользователя.
     Поддерживает как строковые имена методов, так и callable.
-    Хорошо работает с HTMX.
+    Работает с HTMX.
     """
     permission = None  # Например: 'can_add_contract', 'can_manage_aks' или lambda user: user.can_xxx()
 

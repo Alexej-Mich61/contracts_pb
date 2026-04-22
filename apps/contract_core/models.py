@@ -544,7 +544,7 @@ class Contract(models.Model):
         editable=False,
     )
 
-    objects = ContractManager()
+    objects = ContractManager()  # контракты, где пользователь-сотрудник Исполнителя (кроме суперюзера)
 
     class Meta:
         verbose_name = "Договор"
@@ -670,7 +670,7 @@ class InterimAct(models.Model):
 # ---------- ОБЪЕКТЫ ЗАЩИТЫ ----------
 class ProtectionObject(models.Model):
     """Объект защиты (много штук к одному договору)."""
-    contract = models.ForeignKey(Contract, on_delete=models.CASCADE, related_name="contract_objects") # было - objects
+    contract = models.ForeignKey(Contract, on_delete=models.CASCADE, related_name="contract_objects")
     name = models.CharField(
         "Наименование объекта защиты",
         max_length=255,

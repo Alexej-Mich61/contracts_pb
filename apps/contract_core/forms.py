@@ -23,7 +23,7 @@ from .validators import file_validator
 # ========== СПРАВОЧНИКИ ==========
 # Формы для управления справочными данными (АК, Компании)
 
-# форма АК
+# форма АК в справочнике
 class AkForm(forms.ModelForm):
     class Meta:
         model = Ak
@@ -317,6 +317,109 @@ InterimActFormSet = forms.inlineformset_factory(
     max_num=20,
 )
 
+# ========== ОТМЕТКИ ПО СИСТЕМАМ (inline formset) ==========
+
+class ContractSystemCheckForm(forms.ModelForm):
+    """
+    Форма одной отметки по системе.
+    Чекбокс mark_today — удобная альтернатива ручному вводу даты.
+    """
+    mark_today = forms.BooleanField(
+        required=False,
+        label="Отметить",
+        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'})
+    )
+
+    class Meta:
+        model = ContractSystemCheck
+        fields = ['system_type', 'last_checked', 'note', 'mark_today']
+        widgets = {
+            'system_type': forms.HiddenInput(),
+            'last_checked': forms.DateInput(
+                attrs={'type': 'date', 'class': 'form-control form-control-sm'},
+                format='%Y-%m-%d'
+            ),
+            'note': forms.TextInput(attrs={
+                'class': 'form-control form-control-sm',
+                'placeholder': 'Примечание...',
+                'maxlength': 200
+            }),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['last_checked'].required = False
+        self.fields['note'].required = False
+        self.fields['system_type'].required = False
+
+        # Если запись уже отмечена — включаем чекбокс
+        if self.instance and self.instance.pk and self.instance.last_checked:
+            self.fields['mark_today'].initial = True
+
+    def clean(self):
+        cleaned_data = super().clean()
+        mark_today = cleaned_data.get('mark_today')
+        last_checked = cleaned_data.get('last_checked')
+
+        # Чекбокс включён, а даты нет — ставим сегодня
+        if mark_today and not last_checked:
+            cleaned_data['last_checked'] = timezone.now().date()
+        # Чекбокс снят — сбрасываем дату (если форма не на удаление)
+        elif not mark_today and not cleaned_data.get('DELETE'):
+            cleaned_data['last_checked'] = None
+
+        return cleaned_data
+
+
+class BaseContractSystemCheckFormSet(forms.BaseInlineFormSet):
+    """
+    Подставляет system_type в extra-формы.
+    extra вычисляется ДО super().__init__(), иначе Django создаст 0 форм.
+    """
+
+    def __init__(self, *args, **kwargs):
+        self.available_systems = list(kwargs.pop('available_systems', []))
+        # ВАЖНО: до super(), чтобы BaseFormSet увидел правильное число форм
+        self.extra = len(self.available_systems)
+        super().__init__(*args, **kwargs)
+
+    def _construct_form(self, i, **kwargs):
+        if i >= self.initial_form_count():
+            extra_idx = i - self.initial_form_count()
+            if extra_idx < len(self.available_systems):
+                system = self.available_systems[extra_idx]
+                if 'instance' not in kwargs:
+                    kwargs['instance'] = self.model()
+                kwargs['instance'].system_type = system
+                if 'initial' not in kwargs:
+                    kwargs['initial'] = {}
+                kwargs['initial']['system_type'] = system.id
+        return super()._construct_form(i, **kwargs)
+
+    def clean(self):
+        super().clean()
+        seen = set()
+        for form in self.forms:
+            if form.cleaned_data and not form.cleaned_data.get('DELETE'):
+                sys_type = form.cleaned_data.get('system_type')
+                if sys_type:
+                    pk = sys_type.pk if hasattr(sys_type, 'pk') else sys_type
+                    if pk in seen:
+                        form.add_error('system_type', 'Система указана повторно')
+                    seen.add(pk)
+
+
+ContractSystemCheckFormSet = forms.inlineformset_factory(
+    Contract,
+    ContractSystemCheck,
+    form=ContractSystemCheckForm,
+    formset=BaseContractSystemCheckFormSet,
+    extra=0,
+    can_delete=True,
+    min_num=0,
+    max_num=200,
+)
+
 
 # ========== ОБЪЕКТЫ ЗАЩИТЫ ==========
 # Формы для работы с объектами защиты внутри договора
@@ -427,7 +530,7 @@ ProtectionObjectFormSet = forms.inlineformset_factory(
 
 
 # ========== ВСПОМОГАТЕЛЬНЫЕ ФОРМЫ ==========
-
+# Поиск АК
 class AkSearchForm(forms.Form):
     """Форма поиска АК для добавления к объекту защиты"""
 

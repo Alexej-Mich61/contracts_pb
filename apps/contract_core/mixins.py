@@ -9,6 +9,7 @@ from .forms import (
     InterimActFormSet,
     FinalActForm,
     ContractSigningStageForm,
+    ContractSystemCheckFormSet,
 )
 from .models import ContractSystemCheck, FinalAct, SystemType, SigningStage
 
@@ -59,6 +60,9 @@ class ContractCreateUpdateMixin:
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
+        # Активные системы понадобятся в обоих режимах
+        active_systems = list(SystemType.objects.filter(is_active=True).order_by('name'))
+
         if self.request.POST:
             context['protection_object_formset'] = ProtectionObjectFormSet(
                 self.request.POST, instance=self.object
@@ -67,14 +71,20 @@ class ContractCreateUpdateMixin:
                 self.request.POST,
                 instance=self.object.signing_stage if self.object and hasattr(self.object, 'signing_stage') else None
             )
-
-            # ВСЕГДА инициализируем формы актов (и при создании, и при редактировании)
             context['interim_act_formset'] = InterimActFormSet(
                 self.request.POST, self.request.FILES, instance=self.object
             )
             context['final_act_form'] = FinalActForm(
                 self.request.POST, self.request.FILES,
                 instance=self.object.final_act if self.object and hasattr(self.object, 'final_act') else None
+            )
+
+            # Formset отметок по системам (instance=None при создании допустимо для валидации)
+            context['system_check_formset'] = ContractSystemCheckFormSet(
+                self.request.POST,
+                instance=self.object,
+                available_systems=active_systems,
+                prefix='sys_checks'
             )
         else:
             context['protection_object_formset'] = ProtectionObjectFormSet(instance=self.object)
@@ -88,17 +98,36 @@ class ContractCreateUpdateMixin:
                     initial={'stage': initial_stage.id if initial_stage else None}
                 )
 
-            # ВСЕГДА инициализируем формы актов (даже при создании договора)
             context['interim_act_formset'] = InterimActFormSet(instance=self.object)
             context['final_act_form'] = FinalActForm(
                 instance=self.object.final_act if self.object and hasattr(self.object, 'final_act') else None
             )
 
-            # Отметки по системам: при редактировании — реальные данные, при создании — пустой список
+            # === ОТМЕТКИ ПО СИСТЕМАМ ===
             if self.object:
-                context['system_checks'] = self.get_system_checks()
+                # РЕДАКТИРОВАНИЕ: существующие отметки + новые системы из справочника
+                existing_qs = ContractSystemCheck.objects.filter(
+                    contract=self.object,
+                    system_type__is_active=True
+                ).select_related('system_type').order_by('system_type__name')
+
+                existing_ids = set(existing_qs.values_list('system_type_id', flat=True))
+                missing_systems = [s for s in active_systems if s.id not in existing_ids]
+
+                context['system_check_formset'] = ContractSystemCheckFormSet(
+                    instance=self.object,
+                    queryset=existing_qs,
+                    available_systems=missing_systems,
+                    prefix='sys_checks'
+                )
             else:
-                context['system_checks'] = []
+                # СОЗДАНИЕ: формы для всех активных систем
+                context['system_check_formset'] = ContractSystemCheckFormSet(
+                    instance=None,
+                    queryset=ContractSystemCheck.objects.none(),
+                    available_systems=active_systems,
+                    prefix='sys_checks'
+                )
 
         return context
 
@@ -124,86 +153,108 @@ class ContractCreateUpdateMixin:
         signing_form = context['signing_stage_form']
         interim_formset = context['interim_act_formset']
         final_act_form = context['final_act_form']
-
-        # Отладка: проверяем данные POST
-        print("=== POST DATA ===")
-        print(self.request.POST)
-        print("=== FILES ===")
-        print(self.request.FILES)
-
-        print("=== ProtectionObjectFormSet data ===")
-        print(protection_formset.data if hasattr(protection_formset, 'data') else 'no data')
-        print("TOTAL FORMS:", self.request.POST.get('protection_objects-TOTAL_FORMS', 'NOT FOUND'))
+        system_check_formset = context['system_check_formset']
 
         is_valid = True
 
         if not protection_formset.is_valid():
             is_valid = False
-            print("=== ProtectionObjectFormSet ERRORS ===")
-            print(protection_formset.errors)
-            print("Non-form errors:", protection_formset.non_form_errors())
-        else:
-            print("=== ProtectionObjectFormSet is VALID ===")
-            print("Cleaned data:", protection_formset.cleaned_data)
-
         if not signing_form.is_valid():
             is_valid = False
         if not interim_formset.is_valid():
             is_valid = False
         if not final_act_form.is_valid():
             is_valid = False
+        if not system_check_formset.is_valid():
+            is_valid = False
 
         if not is_valid:
-            print("=== FORM NOT VALID, returning errors ===")
             return self.render_to_response(self.get_context_data(form=form))
 
-        # Сохраняем основной договор
+        # Запоминаем, создаём ли новый договор
+        is_new_contract = not form.instance.pk
+
+        # 1. Сохраняем основной договор
         self.object = form.save()
-        print(f"=== Contract saved: {self.object.pk} ===")
 
-        # Сохраняем formset объектов защиты
+        # 2. Объекты защиты
         protection_formset.instance = self.object
-        saved_objects = protection_formset.save()
-        print(f"=== Saved {len(saved_objects)} protection objects ===")
-        print("Saved objects:", saved_objects)
+        protection_formset.save()
 
-        # Сохраняем стадию подписания
+        # 3. Стадия подписания
         signing_stage = signing_form.save(commit=False)
         signing_stage.contract = self.object
         signing_stage.save()
 
-        # Сохраняем итоговый акт через update_or_create
+        # 4. Итоговый акт
         final_act = final_act_form.save(commit=False)
         final_act.contract = self.object
-
-        # Подготавливаем defaults
         defaults = {
             'present': final_act.present,
             'date': final_act.date,
             'file': final_act.file,
             'note': final_act.note,
         }
-
-        # Если акт отмечен как сформированный и еще не было отметки — ставим текущую дату
         if final_act_form.cleaned_data.get('present'):
             if not final_act.checked_by:
                 final_act.checked_by = self.request.user
                 final_act.checked_at = timezone.now()
-            # Если уже был отмечен ранее — оставляем старые значения (или обновляем при желании)
             defaults['checked_by'] = final_act.checked_by
             defaults['checked_at'] = final_act.checked_at
         else:
-            # Если акт не отмечен — сбрасываем отметку
             defaults['checked_by'] = None
             defaults['checked_at'] = None
+        FinalAct.objects.update_or_create(contract=self.object, defaults=defaults)
 
-        FinalAct.objects.update_or_create(
-            contract=self.object,
-            defaults=defaults
-        )
-
-        # Сохраняем промежуточные акты (даже при создании договора)
+        # 5. Промежуточные акты
         interim_formset.instance = self.object
         interim_formset.save()
+
+        # 6. ОТМЕТКИ ПО СИСТЕМАМ
+        system_check_formset.instance = self.object
+
+        if is_new_contract:
+            # Ручная обработка при создании — защита от дублей и unique constraint
+            saved_system_ids = set()
+            for form in system_check_formset.forms:
+                if not hasattr(form, 'cleaned_data') or not form.cleaned_data:
+                    continue
+                if form.cleaned_data.get('DELETE'):
+                    continue  # при создании нечего удалять
+
+                system_type = form.cleaned_data.get('system_type')
+                if not system_type:
+                    continue
+
+                st_id = system_type.pk if hasattr(system_type, 'pk') else system_type
+                if st_id in saved_system_ids:
+                    continue  # пропускаем дубль внутри запроса
+                saved_system_ids.add(st_id)
+
+                last_checked = form.cleaned_data.get('last_checked')
+                note = form.cleaned_data.get('note', '')
+
+                ContractSystemCheck.objects.update_or_create(
+                    contract=self.object,
+                    system_type=system_type,
+                    defaults={
+                        'last_checked': last_checked,
+                        'note': note,
+                        'checked_by': self.request.user if last_checked else None,
+                    }
+                )
+        else:
+            # При редактировании стандартный save() работает корректно
+            saved_checks = system_check_formset.save()
+            for obj in saved_checks:
+                if obj.last_checked and not obj.checked_by:
+                    obj.checked_by = self.request.user
+                    obj.save(update_fields=['checked_by'])
+                elif not obj.last_checked and obj.checked_by:
+                    obj.checked_by = None
+                    obj.save(update_fields=['checked_by'])
+            # Удаление отмеченных форм
+            for obj in system_check_formset.deleted_objects:
+                obj.delete()
 
         return redirect(self.get_success_url())

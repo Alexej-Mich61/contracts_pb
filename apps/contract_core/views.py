@@ -571,7 +571,7 @@ class MarkSystemCheckView(LoginRequiredMixin, View):
     """Отметить проверку системы"""
 
     def post(self, request, contract_pk, system_type_pk):
-        from .models import SystemType, ContractSystemCheck
+        # from .models import SystemType, ContractSystemCheck
 
         contract = get_object_or_404(Contract, pk=contract_pk)
         system_type = get_object_or_404(SystemType, pk=system_type_pk)
