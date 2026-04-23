@@ -468,13 +468,18 @@ document.addEventListener('click', function(e) {
     syncAkHiddenField(hiddenInput);
 
     // Сброс панели
-    panel.style.display = 'none';
+panel.style.display = 'none';
     var resultsDiv = panel.querySelector('.ak-sel-results');
     if (resultsDiv) {
         resultsDiv.innerHTML = '<div class="text-muted text-center py-3 small"><i class="bi bi-geo-alt me-1"></i>Укажите регион и район, затем нажмите «Найти»</div>';
     }
+
+    var queryInput = panel.querySelector('.ak-sel-query');
     if (queryInput) queryInput.value = '';
+
+    var regionSelect = panel.querySelector('.ak-sel-region');
     if (regionSelect) regionSelect.value = '';
+
     var districtWrapper = panel.querySelector('.ak-sel-district-wrapper');
     if (districtWrapper) {
         districtWrapper.innerHTML = '<label class="form-label small text-muted mb-1">Район <span class="text-danger">*</span></label>' +
