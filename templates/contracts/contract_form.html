@@ -284,66 +284,49 @@
 {% endblock %}
 
 {% block extra_js %}
+<script>window.AK_SEARCH_URL = "{% url 'contract_core:search_ak' %}";</script>
 <script>
 // Настройка HTMX для CSRF
 document.body.addEventListener('htmx:configRequest', function(evt) {
     evt.detail.headers['X-CSRFToken'] = '{{ csrf_token }}';
 });
 
-// === Делегирование событий для кнопок удаления (работает с динамически добавленными элементами) ===
+// === Удаление форм (старый код без изменений) ===
 document.addEventListener('click', function(e) {
-    // Ищем ближайшую кнопку с классом remove-formset-btn
     const btn = e.target.closest('.remove-formset-btn');
     if (!btn) return;
-
     const prefix = btn.getAttribute('data-prefix');
     if (!prefix) return;
-
     e.preventDefault();
     removeFormsetForm(btn, prefix);
 });
 
-// === Удаление формы ===
 function removeFormsetForm(btn, prefix) {
     const cssClass = prefix.replace(/_/g, '-');
     const formDiv = btn.closest('.' + cssClass + '-form');
-
     if (!formDiv) {
         console.error('Не найден родительский .' + cssClass + '-form');
         return;
     }
-
-    // Удаляем элемент
     formDiv.remove();
-
-    // Пересчитываем индексы
     recalculateFormsetIndices(prefix);
 }
 
-// === Пересчет индексов ===
 function recalculateFormsetIndices(prefix) {
     const cssClass = prefix.replace(/_/g, '-');
-    const container = document.getElementById(prefix + 's-container'); // contract_objects-container или interim_acts-container
-
+    const container = document.getElementById(prefix + 's-container');
     if (!container) {
         console.error('Контейнер не найден:', prefix + 's-container');
         return;
     }
-
     const forms = container.querySelectorAll('.' + cssClass + '-form');
     const totalFormsInput = document.getElementById('id_' + prefix + '-TOTAL_FORMS');
-
-    console.log('Форм найдено:', forms.length); // Отладка
-
     if (totalFormsInput) {
         totalFormsInput.value = forms.length;
     }
-
-    // Переименовываем индексы в name/id (опционально, но полезно)
-    forms.forEach((form, index) => {
+    forms.forEach(function(form, index) {
         form.setAttribute('data-index', index);
-
-        form.querySelectorAll('input, select, textarea').forEach(el => {
+        form.querySelectorAll('input, select, textarea').forEach(function(el) {
             if (el.name) {
                 el.name = el.name.replace(new RegExp(prefix + '-\\d+-'), prefix + '-' + index + '-');
             }
@@ -354,57 +337,172 @@ function recalculateFormsetIndices(prefix) {
     });
 }
 
-// При добавлении новой формы через HTMX обновляем TOTAL_FORMS
 document.body.addEventListener('htmx:afterSwap', function(evt) {
-    // Для объектов защиты (contract_objects)
     if (evt.detail.target.id === 'protection-objects-list') {
-        const prefix = 'contract_objects';  // <-- ИСПРАВЛЕНО
+        const prefix = 'contract_objects';
         const container = document.getElementById('protection-objects-list');
         const forms = container.querySelectorAll('.protection-objects-form');
         const totalFormsInput = document.getElementById('id_' + prefix + '-TOTAL_FORMS');
-
         if (totalFormsInput) {
             totalFormsInput.value = forms.length;
-            console.log('Updated TOTAL_FORMS for contract_objects to:', forms.length);
+        }
+        // Инициализируем HTMX для новых элементов
+        if (typeof htmx !== 'undefined') {
+            htmx.process(evt.detail.target);
         }
     }
-
-    // Для промежуточных актов (interim_acts)
     if (evt.detail.target.id === 'interim-acts-container') {
         const prefix = 'interim_acts';
         const container = document.getElementById('interim-acts-container');
         const forms = container.querySelectorAll('.interim-acts-form');
         const totalFormsInput = document.getElementById('id_' + prefix + '-TOTAL_FORMS');
-
         if (totalFormsInput) {
             totalFormsInput.value = forms.length;
-            console.log('Updated TOTAL_FORMS for interim_acts to:', forms.length);
         }
     }
 });
 
-// === Остальные обработчики ===
-// Обработка результатов поиска АК
-document.body.addEventListener('htmx:afterSwap', function(evt) {
-    // Показываем результаты поиска АК после загрузки
-    if (evt.detail.target.id && evt.detail.target.id.startsWith('ak-search-results-')) {
-        evt.detail.target.style.display = 'block';
-    }
+// === Встроенная панель выбора АК ===
+// URL берём из data-атрибута, а не из Django-тега внутри скрипта
+var AK_SEARCH_URL = window.AK_SEARCH_URL || '';
+console.log('AK_SEARCH_URL:', AK_SEARCH_URL);
 
-    // Обрабатываем добавление новой формы объекта защиты через HTMX
-    if (evt.detail.target.id === 'protection-objects-list' && evt.detail.xhr.responseURL.includes('empty-protection-object')) {
-        // Инициализируем HTMX для новых элементов (на случай, если внутри есть hx-атрибуты)
-        htmx.process(evt.detail.target.lastElementChild);
-    }
-});
-
-// Скрытие результатов поиска АК при клике вне
+// Показ/скрытие панели выбора АК
 document.addEventListener('click', function(e) {
-    if (!e.target.closest('.position-relative')) {
-        document.querySelectorAll('[id^="ak-search-results-"]').forEach(el => {
-            el.style.display = 'none';
-        });
+    var btn = e.target.closest('.toggle-ak-panel-btn');
+    if (!btn) {
+        console.log('toggle-ak-panel-btn not found');
+        return;
     }
+    var poForm = btn.closest('.protection-objects-form');
+    var panel = poForm.querySelector('.ak-selector-panel');
+    console.log('toggle panel:', panel ? 'found' : 'NOT FOUND');
+    if (!panel) return;
+
+    document.querySelectorAll('.ak-selector-panel').forEach(function(p) {
+        if (p !== panel) p.style.display = 'none';
+    });
+    panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
 });
+
+// Поиск АК по кнопке "Найти"
+document.addEventListener('click', function(e) {
+    var btn = e.target.closest('.ak-sel-search-btn');
+    if (!btn) return;
+
+    var panel = btn.closest('.ak-selector-panel');
+    var regionSelect = panel.querySelector('.ak-sel-region');
+    var districtSelect = panel.querySelector('.ak-sel-district');
+    var queryInput = panel.querySelector('.ak-sel-query');
+    var resultsDiv = panel.querySelector('.ak-sel-results');
+
+    var regionId = regionSelect ? regionSelect.value : '';
+    var districtId = districtSelect ? districtSelect.value : '';
+    var query = queryInput ? queryInput.value.trim() : '';
+
+    console.log('search:', regionId, districtId, query);
+
+    if (!regionId || !districtId) {
+        resultsDiv.innerHTML = '<div class="alert alert-warning m-2 py-2 small">Выберите регион и район</div>';
+        return;
+    }
+
+    resultsDiv.innerHTML = '<div class="text-center py-3"><span class="spinner-border spinner-border-sm"></span> Поиск...</div>';
+
+    var url = new URL(AK_SEARCH_URL, window.location.origin);
+    url.searchParams.set('region', regionId);
+    url.searchParams.set('district', districtId);
+    url.searchParams.set('q', query);
+
+    fetch(url)
+        .then(function(r) { return r.text(); })
+        .then(function(html) {
+            resultsDiv.innerHTML = html;
+            updateAkSelCount(panel);
+        })
+        .catch(function(err) {
+            console.error('fetch error:', err);
+            resultsDiv.innerHTML = '<div class="alert alert-danger m-2 py-2 small">Ошибка загрузки</div>';
+        });
+});
+
+// Обновление счётчика выбранных АК
+document.addEventListener('change', function(e) {
+    if (!e.target.classList.contains('ak-result-checkbox')) return;
+    var panel = e.target.closest('.ak-selector-panel');
+    updateAkSelCount(panel);
+});
+
+function updateAkSelCount(panel) {
+    var checked = panel.querySelectorAll('.ak-result-checkbox:checked');
+    var btn = panel.querySelector('.ak-sel-add-btn');
+    var countSpan = panel.querySelector('.ak-sel-count');
+    if (btn) btn.disabled = checked.length === 0;
+    if (countSpan) countSpan.textContent = checked.length;
+}
+
+// Добавление выбранных АК в объект защиты
+document.addEventListener('click', function(e) {
+    var btn = e.target.closest('.ak-sel-add-btn');
+    if (!btn) return;
+
+    var panel = btn.closest('.ak-selector-panel');
+    var poForm = btn.closest('.protection-objects-form');
+    var container = poForm.querySelector('.attached-aks-container');
+    var hiddenInput = poForm.querySelector('.ak-ids-hidden');
+
+    console.log('add-btn clicked, hiddenInput:', hiddenInput ? 'found' : 'NOT FOUND');
+
+    panel.querySelectorAll('.ak-result-checkbox:checked').forEach(function(cb) {
+        var akId = cb.value;
+        if (container.querySelector('[data-ak-id="' + akId + '"]')) return;
+
+        var badge = document.createElement('span');
+        badge.className = 'badge bg-primary d-inline-flex align-items-center gap-2';
+        badge.dataset.akId = akId;
+        badge.innerHTML = 'АК №' + cb.dataset.akNumber + ' – ' + cb.dataset.akName +
+            '<button type="button" class="btn-close btn-close-white" style="font-size:0.5rem;" onclick="removeAkFromObject(this)"></button>';
+        container.appendChild(badge);
+    });
+
+    syncAkHiddenField(hiddenInput);
+
+    // Сброс панели
+    panel.style.display = 'none';
+    var resultsDiv = panel.querySelector('.ak-sel-results');
+    if (resultsDiv) {
+        resultsDiv.innerHTML = '<div class="text-muted text-center py-3 small"><i class="bi bi-geo-alt me-1"></i>Укажите регион и район, затем нажмите «Найти»</div>';
+    }
+    if (queryInput) queryInput.value = '';
+    if (regionSelect) regionSelect.value = '';
+    var districtWrapper = panel.querySelector('.ak-sel-district-wrapper');
+    if (districtWrapper) {
+        districtWrapper.innerHTML = '<label class="form-label small text-muted mb-1">Район <span class="text-danger">*</span></label>' +
+            '<select class="form-select form-select-sm ak-sel-district" disabled>' +
+            '<option value="">— Сначала регион —</option></select>';
+    }
+    updateAkSelCount(panel);
+});
+
+// Удаление АК из объекта защиты
+window.removeAkFromObject = function(btn) {
+    var badge = btn.closest('.badge');
+    var poForm = btn.closest('.protection-objects-form');
+    var hiddenInput = poForm.querySelector('.ak-ids-hidden');
+    badge.remove();
+    syncAkHiddenField(hiddenInput);
+};
+
+function syncAkHiddenField(hiddenInput) {
+    if (!hiddenInput) {
+        console.error('syncAkHiddenField: hiddenInput not found');
+        return;
+    }
+    var poForm = hiddenInput.closest('.protection-objects-form');
+    var ids = Array.from(poForm.querySelectorAll('.attached-aks-container .badge'))
+                   .map(function(b) { return b.dataset.akId; }).join(',');
+    hiddenInput.value = ids;
+    console.log('synced ak_ids:', ids);
+}
 </script>
 {% endblock %}

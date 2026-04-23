@@ -430,6 +430,7 @@ class ContractFormFilterDistrictsByRegionView(LoginRequiredMixin, View):
             'districts': districts,
             'selected': selected,
             'field_name': field_name,
+            'extra_class': request.GET.get('extra_class', ''),  # <-- добавили
         })
 
 # Вьюха фильтра Заказчик
@@ -480,6 +481,7 @@ class EmptyProtectionObjectFormView(LoginRequiredMixin, View):
             'form': form,
             'object': None,
             'index': total_forms,
+            'all_regions': Region.objects.all().order_by('name'),  # <-- добавили
         })
 
 
@@ -506,18 +508,44 @@ class EmptyInterimActFormView(LoginRequiredMixin, View):
 
 # старые
 class AkSearchView(LoginRequiredMixin, View):
-    """HTMX: поиск АК по ID, номеру или названию"""
+    """HTMX: поиск АК по ID, номеру или названию с опциональным фильтром по району"""
 
     def get(self, request):
         query = request.GET.get('q', '').strip()
-        protection_object_id = request.GET.get('protection_object')
+        protection_object_id = request.GET.get('protection_object', '')
 
+        # === НОВЫЙ РЕЖИМ: фильтр по региону и району (для панели выбора в объекте защиты) ===
+        region_id = request.GET.get('region', '').strip()
+        district_id = request.GET.get('district', '').strip()
+
+        if region_id or district_id:
+            if not region_id or not district_id:
+                return render(request,
+                    'contracts/partials/partials_contract_form/_contract_form_ak_selector_results.html',
+                    {'error': 'Выберите регион и район', 'aks': []}
+                )
+
+            aks = Ak.objects.filter(district_id=district_id)
+
+            if query:
+                q_filter = Q(name__icontains=query)
+                if query.isdigit():
+                    q_filter |= Q(number=query) | Q(id=query)
+                aks = aks.filter(q_filter)
+
+            aks = aks.select_related('district__region').order_by('number')[:100]
+
+            return render(request,
+                'contracts/partials/partials_contract_form/_contract_form_ak_selector_results.html',
+                {'aks': aks, 'query': query}
+            )
+
+        # === СТАРЫЙ РЕЖИМ: быстрый поиск для уже сохранённых объектов (inline) ===
         aks = []
         if len(query) >= 2:
             q_filter = Q(name__icontains=query)
             if query.isdigit():
                 q_filter |= Q(number=query) | Q(id=query)
-
             aks = Ak.objects.filter(q_filter)[:10]
 
         attached_ids = []
@@ -529,10 +557,10 @@ class AkSearchView(LoginRequiredMixin, View):
             except (ValueError, ProtectionObject.DoesNotExist):
                 pass
 
-        return render(request, 'contracts/partials/partials_contract_form/_contract_form_ak_search_results.html', {
-            'aks': aks,
-            'attached_ids': attached_ids,
-        })
+        return render(request,
+            'contracts/partials/partials_contract_form/_contract_form_ak_search_results.html',
+            {'aks': aks, 'attached_ids': attached_ids, 'query': query}
+        )
 
 
 class AddAkToObjectView(LoginRequiredMixin, View):

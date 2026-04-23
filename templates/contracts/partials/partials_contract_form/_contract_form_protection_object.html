@@ -7,13 +7,13 @@
 
     <div class="d-flex justify-content-between align-items-center mb-3">
         {% if form.instance.pk %}
-            <span class="badge bg-secondary">Объект #{{ form.instance.pk }}</span>
-            <div class="form-check">
-                {{ form.DELETE }}
-                <label class="form-check-label text-danger" title="Удалить">
-                    <i class="bi bi-trash"></i> Удалить объект
-                </label>
-            </div>
+        <span class="badge bg-secondary">Объект #{{ form.instance.pk }}</span>
+        <div class="form-check">
+            {{ form.DELETE }}
+            <label class="form-check-label text-danger" title="Удалить">
+                <i class="bi bi-trash"></i> Удалить объект
+            </label>
+        </div>
         {% else %}
         <span class="badge bg-primary">Новый объект</span>
         <button type="button"
@@ -59,27 +59,27 @@
         {# Район #}
         <div class="col-md-3 mb-3 district-wrapper" id="district-wrapper-{{ index }}">
             {% if form.fields.district.queryset and form.fields.district.queryset|length > 0 %}
-                {# Районы загружены (редактирование или после выбора региона) #}
-                <label for="id_{{ form.district.html_name }}" class="form-label fw-semibold">
-                    Район
-                </label>
-                <select name="{{ form.district.html_name }}"
-                        id="id_{{ form.district.html_name }}"
-                        class="form-select district-select">
-                    <option value="">— Выберите район —</option>
-                    {% for district in form.fields.district.queryset %}
-                        <option value="{{ district.id }}"
-                                {% if form.district.value == district.id|stringformat:"s" %}selected{% endif %}>
-                            {{ district.name }}
-                        </option>
-                    {% endfor %}
-                </select>
-                {% if form.district.errors %}
-                    <div class="text-danger small">{{ form.district.errors.0 }}</div>
-                {% endif %}
+            {# Районы загружены (редактирование или после выбора региона) #}
+            <label for="id_{{ form.district.html_name }}" class="form-label fw-semibold">
+                Район
+            </label>
+            <select name="{{ form.district.html_name }}"
+                    id="id_{{ form.district.html_name }}"
+                    class="form-select district-select">
+                <option value="">— Выберите район —</option>
+                {% for district in form.fields.district.queryset %}
+                <option value="{{ district.id }}"
+                        {% if form.district.value == district.id|stringformat:"s" %}selected{% endif %}>
+                    {{ district.name }}
+                </option>
+                {% endfor %}
+            </select>
+            {% if form.district.errors %}
+            <div class="text-danger small">{{ form.district.errors.0 }}</div>
+            {% endif %}
             {% else %}
-                {# Пустое состояние (создание, до выбора региона) #}
-                {% include "contracts/partials/partials_contract_form/_contract_form_district_empty.html" with field_name=form.district.html_name %}
+            {# Пустое состояние (создание, до выбора региона) #}
+            {% include "contracts/partials/partials_contract_form/_contract_form_district_empty.html" with field_name=form.district.html_name %}
             {% endif %}
         </div>
     </div>
@@ -125,7 +125,7 @@
             </label>
             {{ form.subcontractor }}
             {% if form.subcontractor.help_text %}
-                <div class="form-text">{{ form.subcontractor.help_text }}</div>
+            <div class="form-text">{{ form.subcontractor.help_text }}</div>
             {% endif %}
         </div>
         <div class="col-md-3 mb-3">
@@ -142,55 +142,81 @@
         </div>
     </div>
 
-    <!-- АК — только для сохраненных объектов -->
-    {% if form.instance.pk and object %}
-        <div class="row border-top pt-3 mt-2">
-            <div class="col-12">
-                <label class="form-label fw-semibold text-muted">
-                    <i class="bi bi-broadcast me-1"></i>Абонентские комплекты (АК)
-                </label>
+    <!-- АК -->
+    <div class="row border-top pt-3 mt-2">
+        <div class="col-12">
+            <label class="form-label fw-semibold text-muted">
+                <i class="bi bi-broadcast me-1"></i>Абонентские комплекты (АК)
+            </label>
 
-                <div id="attached-aks-{{ form.instance.pk }}" class="mb-2">
-                    {% include "contracts/partials/partials_contract_form/_contract_form_attached_aks.html" with object=form.instance contract=object %}
+            {# Скрытое поле-аккумулятор ID АК #}
+            {{ form.ak_ids }}
+
+            {# Контейнер выбранных АК (бейджи) #}
+            <div class="attached-aks-container mb-2 d-flex flex-wrap gap-2">
+                {% if form.instance.pk %}
+                {% for ak in form.instance.aks.all %}
+                <span class="badge bg-primary d-inline-flex align-items-center gap-2" data-ak-id="{{ ak.id }}">
+                    АК №{{ ak.number }} – {{ ak.name }}
+                    <button type="button" class="btn-close btn-close-white" style="font-size:0.5rem;" onclick="removeAkFromObject(this)"></button>
+                </span>
+                {% endfor %}
+                {% endif %}
+            </div>
+
+            {# Кнопка разворачивания панели выбора #}
+            <button type="button" class="btn btn-sm btn-outline-primary toggle-ak-panel-btn mb-2">
+                <i class="bi bi-plus-lg"></i> Добавить АК
+            </button>
+
+            {# === Встроенная панель выбора АК === #}
+            <div class="ak-selector-panel border rounded p-3 bg-white" style="display:none;">
+                <div class="row g-2 mb-3">
+                    <div class="col-md-3">
+                        <label class="form-label small text-muted mb-1">Регион <span class="text-danger">*</span></label>
+                        <select class="form-select form-select-sm ak-sel-region"
+                                name="region"
+                                hx-get="{% url 'contract_core:filter_districts_by_region' %}"
+                                hx-target="#ak-district-wrapper-{{ index }}"
+                                hx-swap="innerHTML"
+                                hx-vals='{"field_name": "district", "extra_class": "ak-sel-district"}'>
+                            <option value="">— Выберите —</option>
+                            {% for region in all_regions %}
+                            <option value="{{ region.pk }}">{{ region.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3 ak-sel-district-wrapper" id="ak-district-wrapper-{{ index }}">
+                        <label class="form-label small text-muted mb-1">Район <span class="text-danger">*</span></label>
+                        <select class="form-select form-select-sm ak-sel-district" disabled>
+                            <option value="">— Сначала регион —</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small text-muted mb-1">Поиск АК</label>
+                        <input type="text" class="form-control form-control-sm ak-sel-query"
+                               placeholder="ID, номер или название" autocomplete="off">
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button type="button" class="btn btn-primary btn-sm w-100 ak-sel-search-btn">
+                            <i class="bi bi-search"></i> Найти
+                        </button>
+                    </div>
                 </div>
 
-                <div class="position-relative">
-                    <div class="input-group">
-                        <input type="text"
-                               class="form-control form-control-sm ak-search-input"
-                               placeholder="Поиск АК по ID, номеру или названию..."
-                               hx-get="{% url 'contract_core:search_ak' %}"
-                               hx-trigger="keyup changed delay:400ms"
-                               hx-target="#ak-search-results-{{ form.instance.pk }}"
-                               hx-vals='{"protection_object": "{{ form.instance.pk }}"}'
-                               hx-indicator=".ak-search-indicator-{{ form.instance.pk }}"
-                               name="ak_search"
-                               autocomplete="off">
-                        <span class="input-group-text ak-search-indicator-{{ form.instance.pk }} htmx-indicator">
-                            <span class="spinner-border spinner-border-sm"></span>
-                        </span>
+                <div class="ak-sel-results border rounded mb-3" style="min-height:80px; max-height:200px; overflow-y:auto;">
+                    <div class="text-muted text-center py-3 small">
+                        <i class="bi bi-geo-alt me-1"></i>Укажите регион и район, затем нажмите «Найти»
                     </div>
-                    <div id="ak-search-results-{{ form.instance.pk }}"
-                         class="position-absolute w-100 bg-white border rounded shadow-sm mt-1"
-                         style="z-index:1050; max-height:200px; overflow-y:auto; display:none;">
-                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center">
+                    <small class="text-muted">Выберите один или несколько АК (с зажатым Ctrl)</small>
+                    <button type="button" class="btn btn-success btn-sm ak-sel-add-btn" disabled>
+                        <i class="bi bi-plus-lg me-1"></i>Добавить выбранные (<span class="ak-sel-count">0</span>)
+                    </button>
                 </div>
             </div>
         </div>
-    {% else %}
-        <div class="row border-top pt-3 mt-2">
-            <div class="col-12">
-                <div class="alert alert-light border mb-0 d-flex align-items-center text-muted">
-                    <i class="bi bi-info-circle me-2"></i>
-                    <small>
-                        {% if object %}
-                            Сохраните договор, чтобы добавить АК к этому объекту защиты.
-                        {% else %}
-                            АК будут доступны после сохранения договора и объектов защиты.
-                        {% endif %}
-                    </small>
-                </div>
-            </div>
-        </div>
-    {% endif %}
+    </div>
 </div>

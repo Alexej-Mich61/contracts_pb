@@ -11,8 +11,7 @@ from .forms import (
     ContractSigningStageForm,
     ContractSystemCheckFormSet,
 )
-from .models import ContractSystemCheck, FinalAct, SystemType, SigningStage
-
+from .models import ContractSystemCheck, FinalAct, SystemType, SigningStage, Region
 
 
 # Миксин для вьюх (проверка допусков)
@@ -62,6 +61,7 @@ class ContractCreateUpdateMixin:
 
         # Активные системы понадобятся в обоих режимах
         active_systems = list(SystemType.objects.filter(is_active=True).order_by('name'))
+        context['all_regions'] = Region.objects.all().order_by('name')
 
         if self.request.POST:
             context['protection_object_formset'] = ProtectionObjectFormSet(
@@ -148,6 +148,12 @@ class ContractCreateUpdateMixin:
         return checks
 
     def form_valid(self, form):
+        # ВРЕМЕННАЯ ОТЛАДКА
+        print("=== POST DATA ===")
+        for k, v in self.request.POST.items():
+            if 'ak_ids' in k or 'contract_objects' in k:
+                print(f"{k}: {v}")
+
         context = self.get_context_data()
         protection_formset = context['protection_object_formset']
         signing_form = context['signing_stage_form']
@@ -180,6 +186,15 @@ class ContractCreateUpdateMixin:
         # 2. Объекты защиты
         protection_formset.instance = self.object
         protection_formset.save()
+
+        # Привязка АК ко всем сохранённым объектам защиты
+        for po_form in protection_formset.forms:
+            print(f"Form {po_form.prefix}: ak_ids = {po_form.cleaned_data.get('ak_ids')}")
+            if po_form in protection_formset.deleted_forms:
+                continue
+            ak_ids = po_form.cleaned_data.get('ak_ids', [])
+            if ak_ids is not None:
+                po_form.instance.aks.set(ak_ids)
 
         # 3. Стадия подписания
         signing_stage = signing_form.save(commit=False)

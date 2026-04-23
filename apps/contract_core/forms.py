@@ -437,11 +437,17 @@ class ProtectionObjectForm(forms.ModelForm):
         })
     )
 
+    # Оставляем как атрибут класса, НО НЕ включаем в Meta.fields
+    ak_ids = forms.CharField(
+        required=False,
+        widget=forms.HiddenInput(attrs={'class': 'ak-ids-hidden'})
+    )
 
     class Meta:
         model = ProtectionObject
         fields = ['name', 'region', 'district', 'address', 'contacts',
-                  'subcontractor', 'total_sum_subcontract', 'monthly_sum_subcontract']
+                  'subcontractor', 'total_sum_subcontract', 'monthly_sum_subcontract',
+                  ]
         widgets = {
             'name': forms.TextInput(attrs={
                 'class': 'form-control',
@@ -496,6 +502,11 @@ class ProtectionObjectForm(forms.ModelForm):
                 region=self.instance.district.region
             ).order_by('name')
             self.fields['district'].initial = self.instance.district_id
+            self.fields['district'].widget.attrs.pop('disabled', None)
+
+            current_ak_ids = list(self.instance.aks.values_list('id', flat=True))
+            self.fields['ak_ids'].initial = ','.join(map(str, current_ak_ids))
+
         elif self.data:
             # Для POST-запроса (создание/редактирование) — определяем регион из данных
             # и подгружаем соответствующие районы для валидации
@@ -508,14 +519,35 @@ class ProtectionObjectForm(forms.ModelForm):
                     ).order_by('name')
                     # Устанавливаем initial для региона чтобы он отобразился в форме при ошибке
                     self.fields['region'].initial = region_id
+                    self.fields['district'].widget.attrs.pop('disabled', None)
                 except Region.DoesNotExist:
                     self.fields['district'].queryset = District.objects.none()
             else:
                 self.fields['district'].queryset = District.objects.none()
+            raw_ak_ids = self.data.get(self.add_prefix('ak_ids'), '')
+            if raw_ak_ids:
+                self.fields['ak_ids'].initial = raw_ak_ids
         else:
             # Для нового объекта (GET запрос) — пустой список районов
             self.fields['district'].queryset = District.objects.none()
 
+    def clean_ak_ids(self):
+        raw = self.cleaned_data.get('ak_ids', '')
+        if not raw:
+            return []
+        try:
+            ids = [int(x) for x in raw.split(',') if x.strip()]
+            if not ids:
+                return []
+            existing = set(
+                Ak.objects.filter(id__in=ids).values_list('id', flat=True)
+            )
+            if not existing.issuperset(set(ids)):
+                missing = set(ids) - existing
+                raise forms.ValidationError(f"АК с ID {missing} не найдены")
+            return list(existing)
+        except ValueError:
+            raise forms.ValidationError("Некорректный формат ID АК")
 
 # Formset для объектов защиты
 ProtectionObjectFormSet = forms.inlineformset_factory(
