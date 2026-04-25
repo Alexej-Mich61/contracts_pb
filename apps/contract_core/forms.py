@@ -263,10 +263,13 @@ class FinalActForm(forms.ModelForm):
                 'class': 'form-check-input',
                 'role': 'switch',
             }),
-            'date': forms.DateInput(attrs={
-                'type': 'date',
-                'class': 'form-control',
-            }),
+            'date': forms.DateInput(
+                attrs={
+                    'type': 'date',
+                    'class': 'form-control',
+                },
+                format='%Y-%m-%d'  # <-- добавить для отображении даты при редактировании
+            ),
             'file': forms.ClearableFileInput(attrs={
                 'class': 'form-control',
             }),
@@ -296,10 +299,13 @@ class InterimActForm(forms.ModelForm):
                 'class': 'form-control',
                 'placeholder': 'Например: Акт этапа 1',
             }),
-            'date': forms.DateInput(attrs={
-                'type': 'date',
-                'class': 'form-control',
-            }),
+            'date': forms.DateInput(
+                attrs={
+                    'type': 'date',
+                    'class': 'form-control',
+                },
+                format='%Y-%m-%d'  # <-- добавить
+            ),
             'file': forms.ClearableFileInput(attrs={
                 'class': 'form-control',
             }),
