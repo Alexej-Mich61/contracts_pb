@@ -235,9 +235,20 @@ class ContractCreateView(LoginRequiredMixin, ContractCreateUpdateMixin, CreateVi
         kwargs['user'] = self.request.user
         return kwargs
 
+    def form_valid(self, form):
+        self._save_action = self.request.POST.get('action', 'create_and_list')
+        return super().form_valid(form)
+
     def get_success_url(self):
+        action = getattr(self, '_save_action', 'create_and_list')
+
+        if action == 'create_and_new':
+            messages.success(self.request, "Договор успешно создан")
+            return reverse_lazy('contract_core:contract_create')
+
+        # По умолчанию — в список
         messages.success(self.request, "Договор успешно создан")
-        return reverse_lazy('contract_core:contract_update', kwargs={'pk': self.object.pk})
+        return reverse_lazy('contract_core:contract_list')
 
 
 class ContractUpdateView(LoginRequiredMixin, ContractAccessMixin, ContractCreateUpdateMixin, UpdateView):
