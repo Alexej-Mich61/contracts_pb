@@ -58,7 +58,7 @@
 
         {# Район #}
         <div class="col-md-3 mb-3 district-wrapper" id="district-wrapper-{{ index }}">
-            {% if form.fields.district.queryset and form.fields.district.queryset|length > 0 %}
+            {% if form.fields.district.queryset %}
             {# Районы загружены (редактирование или после выбора региона) #}
             <label for="id_{{ form.district.html_name }}" class="form-label fw-semibold">
                 Район
@@ -69,7 +69,7 @@
                 <option value="">— Выберите район —</option>
                 {% for district in form.fields.district.queryset %}
                 <option value="{{ district.id }}"
-                        {% if form.district.value == district.id|stringformat:"s" %}selected{% endif %}>
+                        {% if form.district.value|stringformat:"s" == district.id|stringformat:"s" %}selected{% endif %}>
                     {{ district.name }}
                 </option>
                 {% endfor %}

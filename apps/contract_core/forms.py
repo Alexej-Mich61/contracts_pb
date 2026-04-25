@@ -498,12 +498,16 @@ class ProtectionObjectForm(forms.ModelForm):
         if self.instance.pk and self.instance.district:
             # Для существующего объекта — устанавливаем регион и список районов
             self.fields['region'].initial = self.instance.district.region_id
+            # ВАЖНО: заполняем queryset районов ПЕРЕД рендером
             self.fields['district'].queryset = District.objects.filter(
                 region=self.instance.district.region
             ).order_by('name')
+            # ВАЖНО: initial тоже нужен
             self.fields['district'].initial = self.instance.district_id
+            # Убираем disabled, иначе браузер не отправит значение при сохранении
             self.fields['district'].widget.attrs.pop('disabled', None)
 
+            # Подгружаем текущие АК в скрытое поле
             current_ak_ids = list(self.instance.aks.values_list('id', flat=True))
             self.fields['ak_ids'].initial = ','.join(map(str, current_ak_ids))
 
@@ -524,6 +528,8 @@ class ProtectionObjectForm(forms.ModelForm):
                     self.fields['district'].queryset = District.objects.none()
             else:
                 self.fields['district'].queryset = District.objects.none()
+
+            # Восстанавливаем ak_ids из POST
             raw_ak_ids = self.data.get(self.add_prefix('ak_ids'), '')
             if raw_ak_ids:
                 self.fields['ak_ids'].initial = raw_ak_ids

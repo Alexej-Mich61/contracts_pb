@@ -481,7 +481,7 @@ class EmptyProtectionObjectFormView(LoginRequiredMixin, View):
             'form': form,
             'object': None,
             'index': total_forms,
-            'all_regions': Region.objects.all().order_by('name'),  # <-- добавили
+            'all_regions': Region.objects.all().order_by('name'),
         })
 
 
@@ -504,9 +504,6 @@ class EmptyInterimActFormView(LoginRequiredMixin, View):
         })
 
 
-
-
-# старые
 class AkSearchView(LoginRequiredMixin, View):
     """HTMX: поиск АК по ID, номеру или названию с опциональным фильтром по району"""
 
@@ -533,7 +530,7 @@ class AkSearchView(LoginRequiredMixin, View):
                     q_filter |= Q(number=query) | Q(id=query)
                 aks = aks.filter(q_filter)
 
-            aks = aks.select_related('district__region').order_by('number')[:100]
+            aks = aks.select_related('district__region').order_by('number')[:100]  # не более 100 АК при поиске
 
             return render(request,
                 'contracts/partials/partials_contract_form/_contract_form_ak_selector_results.html',
@@ -562,37 +559,6 @@ class AkSearchView(LoginRequiredMixin, View):
             {'aks': aks, 'attached_ids': attached_ids, 'query': query}
         )
 
-
-class AddAkToObjectView(LoginRequiredMixin, View):
-    """Привязать АК к объекту защиты"""
-
-    def post(self, request, contract_pk, object_pk, ak_pk):
-        contract = get_object_or_404(Contract, pk=contract_pk)
-        protection_object = get_object_or_404(ProtectionObject, pk=object_pk, contract=contract)
-        ak = get_object_or_404(Ak, pk=ak_pk)
-
-        protection_object.aks.add(ak)
-
-        return render(request, 'contracts/partials/partials_contract_form/_contract_form_attached_aks.html', {
-            'object': protection_object,
-            'contract': contract
-        })
-
-
-class RemoveAkFromObjectView(LoginRequiredMixin, View):
-    """Отвязать АК от объекта защиты"""
-
-    def delete(self, request, contract_pk, object_pk, ak_pk):
-        contract = get_object_or_404(Contract, pk=contract_pk)
-        protection_object = get_object_or_404(ProtectionObject, pk=object_pk, contract=contract)
-        ak = get_object_or_404(Ak, pk=ak_pk)
-
-        protection_object.aks.remove(ak)
-
-        return render(request, 'contracts/partials/partials_contract_form/_contract_form_attached_aks.html', {
-            'object': protection_object,
-            'contract': contract
-        })
 
 
 class MarkSystemCheckView(LoginRequiredMixin, View):

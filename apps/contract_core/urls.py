@@ -96,17 +96,7 @@ urlpatterns = [
         views.MarkSystemCheckView.as_view(),
         name="mark_system_check"
     ),
-    # Привязка/отвязка АК
-    path(
-        "contracts/<int:contract_pk>/objects/<int:object_pk>/ak/<int:ak_pk>/add/",
-        views.AddAkToObjectView.as_view(),
-        name="add_ak_to_object"
-    ),
-    path(
-        "contracts/<int:contract_pk>/objects/<int:object_pk>/ak/<int:ak_pk>/remove/",
-        views.RemoveAkFromObjectView.as_view(),
-        name="remove_ak_from_object"
-    ),
+
 
     # Форма создания/редактирования CRUD ДОГОВОРОВ (отдельная страница)
     path("contracts/add/", views.ContractCreateView.as_view(), name="contract_create"),
