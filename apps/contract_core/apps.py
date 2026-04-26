@@ -1,4 +1,4 @@
-#apps/contract_core/apps.py
+# apps/contract_core/apps.py
 from django.apps import AppConfig # основной
 
 import os
@@ -37,7 +37,14 @@ class ContractCoreConfig(AppConfig):
 
         def scheduler_loop():
             # --- Регистрация задачи --- ВРЕМЯ ВЫПОЛНЕНИЯ
-            schedule.every().day.at("02:00").do(_update_all_contract_statuses) # указать время выполнения
+
+            # для теста, указать время выполнения задачи
+            # schedule.every().day.at("22:51").do(_update_all_contract_statuses)
+            # logger.info("Планировщик обновления статусов договоров запущен (ежедневно тест)")
+            # print("[Scheduler] Планировщик обновления статусов договоров запущен (тест)")
+
+            # указать время выполнения для продакшена
+            schedule.every().day.at("02:00").do(_update_all_contract_statuses)
 
             logger.info("Планировщик обновления статусов договоров запущен (ежедневно в 02:00)")
             print("[Scheduler] Планировщик обновления статусов договоров запущен (02:00)")

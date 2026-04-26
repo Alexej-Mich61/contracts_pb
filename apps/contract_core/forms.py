@@ -496,6 +496,16 @@ class ProtectionObjectForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+        # ВРЕМЕННАЯ ОТЛАДКА
+        print(f"=== POForm init ===")
+        print(f"  prefix: {self.prefix}")
+        print(f"  instance.pk: {self.instance.pk}")
+        print(f"  data region key: {self.add_prefix('region')}")
+        print(f"  data region value: {self.data.get(self.add_prefix('region')) if self.data else 'N/A'}")
+        if self.data:
+            all_keys = [k for k in self.data.keys() if k.startswith(self.prefix)]
+            print(f"  all keys with this prefix: {all_keys[:10]}")
+
         self.fields['subcontractor'].queryset = Company.objects.filter(
             is_subcontractor=True
         ).order_by('name')

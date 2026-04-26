@@ -249,7 +249,8 @@
                         hx-get="{% url 'contract_core:empty_protection_object_form' %}"
                         hx-target="#protection-objects-list"
                         hx-swap="beforeend"
-                        hx-vals="js:{total_forms: document.querySelectorAll('.protection-object-form').length}">
+                        hx-vals="js:{total_forms: Math.max(...Array.from(document.querySelectorAll('.protection-objects-form')).map(f => parseInt(f.getAttribute('data-index')) || 0)) + 1}"
+<!--                        hx-vals="js:{total_forms: parseInt(document.getElementById('id_contract_objects-TOTAL_FORMS').value) || 0}"-->
                     <i class="bi bi-plus-lg me-1"></i>Добавить объект
                 </button>
             </div>
@@ -356,48 +357,116 @@ function removeFormsetForm(btn, prefix) {
         return;
     }
     formDiv.remove();
-    recalculateFormsetIndices(prefix);
-}
 
-function recalculateFormsetIndices(prefix) {
-    const cssClass = prefix.replace(/_/g, '-');
-    const container = document.getElementById(prefix + 's-container');
-    if (!container) {
-        console.error('Контейнер не найден:', prefix + 's-container');
-        return;
-    }
-    const forms = container.querySelectorAll('.' + cssClass + '-form');
+    // Только уменьшаем TOTAL_FORMS, не пересчитываем индексы
     const totalFormsInput = document.getElementById('id_' + prefix + '-TOTAL_FORMS');
     if (totalFormsInput) {
-        totalFormsInput.value = forms.length;
+        totalFormsInput.value = Math.max(0, parseInt(totalFormsInput.value) - 1);
     }
-    forms.forEach(function(form, index) {
-        form.setAttribute('data-index', index);
-        form.querySelectorAll('input, select, textarea').forEach(function(el) {
-            if (el.name) {
-                el.name = el.name.replace(new RegExp(prefix + '-\\d+-'), prefix + '-' + index + '-');
-            }
-            if (el.id && el.id.includes(prefix)) {
-                el.id = el.id.replace(new RegExp(prefix + '-\\d+-'), prefix + '-' + index + '-');
-            }
-        });
-    });
 }
+
+<!--function removeFormsetForm(btn, prefix) {-->
+<!--    const cssClass = prefix.replace(/_/g, '-');-->
+<!--    const formDiv = btn.closest('.' + cssClass + '-form');-->
+<!--    if (!formDiv) {-->
+<!--        console.error('Не найден родительский .' + cssClass + '-form');-->
+<!--        return;-->
+<!--    }-->
+<!--    formDiv.remove();-->
+<!--    recalculateFormsetIndices(prefix);-->
+<!--}-->
+
+<!--function recalculateFormsetIndices(prefix) {-->
+<!--    const cssClass = prefix.replace(/_/g, '-');-->
+<!--    const container = document.getElementById(prefix + 's-container');-->
+<!--    if (!container) {-->
+<!--        console.error('Контейнер не найден:', prefix + 's-container');-->
+<!--        return;-->
+<!--    }-->
+<!--    const forms = container.querySelectorAll('.' + cssClass + '-form');-->
+<!--    const totalFormsInput = document.getElementById('id_' + prefix + '-TOTAL_FORMS');-->
+<!--    if (totalFormsInput) {-->
+<!--        totalFormsInput.value = forms.length;-->
+<!--    }-->
+<!--    -->
+<!--    // Считаем только НОВЫЕ формы (без pk) для назначения им правильных индексов-->
+<!--    var newFormIndex = 0;-->
+<!--    forms.forEach(function(form, index) {-->
+<!--        var pk = form.getAttribute('data-pk');-->
+<!--        var isNew = !pk || pk === '';-->
+<!--        -->
+<!--        if (isNew) {-->
+<!--            // Для новых форм: обновляем индекс в name/id-->
+<!--            var oldPrefix = prefix + '-\\d+-';-->
+<!--            var newPrefix = prefix + '-' + newFormIndex + '-';-->
+<!--            -->
+<!--            form.querySelectorAll('input, select, textarea').forEach(function(el) {-->
+<!--                if (el.name) {-->
+<!--                    el.name = el.name.replace(new RegExp(prefix + '-\\d+-'), newPrefix);-->
+<!--                }-->
+<!--                if (el.id && el.id.includes(prefix)) {-->
+<!--                    el.id = el.id.replace(new RegExp(prefix + '-\\d+-'), newPrefix);-->
+<!--                }-->
+<!--            });-->
+<!--            -->
+<!--            // Обновляем hx-target и hx-vals для региона-->
+<!--            var regionSelect = form.querySelector('.region-select');-->
+<!--            if (regionSelect) {-->
+<!--                regionSelect.setAttribute('hx-target', '#district-wrapper-' + newFormIndex);-->
+<!--                regionSelect.setAttribute('hx-vals', '{"field_name": "' + prefix + '-' + newFormIndex + '-district"}');-->
+<!--            }-->
+<!--            -->
+<!--            // Обновляем id обёртки района-->
+<!--            var districtWrapper = form.querySelector('.district-wrapper');-->
+<!--            if (districtWrapper) {-->
+<!--                districtWrapper.id = 'district-wrapper-' + newFormIndex;-->
+<!--            }-->
+<!--            -->
+<!--            // Обновляем id обёртки АК района-->
+<!--            var akDistrictWrapper = form.querySelector('.ak-sel-district-wrapper');-->
+<!--            if (akDistrictWrapper) {-->
+<!--                akDistrictWrapper.id = 'ak-district-wrapper-' + newFormIndex;-->
+<!--            }-->
+<!--            -->
+<!--            // Обновляем hx-target для АК региона-->
+<!--            var akRegionSelect = form.querySelector('.ak-sel-region');-->
+<!--            if (akRegionSelect) {-->
+<!--                akRegionSelect.setAttribute('hx-target', '#ak-district-wrapper-' + newFormIndex);-->
+<!--            }-->
+<!--            -->
+<!--            newFormIndex++;-->
+<!--        }-->
+<!--    });-->
+<!--}-->
 
 document.body.addEventListener('htmx:afterSwap', function(evt) {
     if (evt.detail.target.id === 'protection-objects-list') {
+        console.log('=== HTMX afterSwap: protection-objects-list ===');
+
+        // ВАЖНО: инициализируем HTMX для новых элементов ДО обновления индексов
+        if (typeof htmx !== 'undefined') {
+            htmx.process(evt.detail.target);
+            console.log('htmx.process() called for new elements');
+        }
+
         const prefix = 'contract_objects';
         const container = document.getElementById('protection-objects-list');
         const forms = container.querySelectorAll('.protection-objects-form');
         const totalFormsInput = document.getElementById('id_' + prefix + '-TOTAL_FORMS');
+
+        console.log('Forms count:', forms.length);
+
         if (totalFormsInput) {
             totalFormsInput.value = forms.length;
+            console.log('TOTAL_FORMS updated to:', forms.length);
         }
-        // Инициализируем HTMX для новых элементов
-        if (typeof htmx !== 'undefined') {
-            htmx.process(evt.detail.target);
-        }
+
+        // Проверяем, что у новой формы правильный data-index
+        forms.forEach(function(form, idx) {
+            console.log('Form', idx, 'data-index:', form.getAttribute('data-index'));
+        });
     }
+
     if (evt.detail.target.id === 'interim-acts-container') {
         const prefix = 'interim_acts';
         const container = document.getElementById('interim-acts-container');

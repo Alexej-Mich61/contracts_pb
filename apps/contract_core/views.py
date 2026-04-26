@@ -518,6 +518,8 @@ class EmptyProtectionObjectFormView(LoginRequiredMixin, View):
         prefix = ProtectionObjectFormSet().prefix
         total_forms = int(request.GET.get('total_forms', 0))
 
+        print(f"=== EmptyProtectionObjectFormView called, total_forms={total_forms} ===")
+
         form = ProtectionObjectForm(prefix=f"{prefix}-{total_forms}")
 
         # Важно: добавляем queryset для регионов в поле формы

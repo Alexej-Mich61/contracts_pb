@@ -168,6 +168,15 @@ class ContractCreateUpdateMixin:
 
         context = self.get_context_data()
         protection_formset = context['protection_object_formset']
+        # ВРЕМЕННАЯ ОТЛАДКА
+        print(f"=== form_valid ===")
+        print(f"  form.is_valid(): {form.is_valid()}")
+        print(f"  protection_formset.is_valid(): {protection_formset.is_valid()}")
+        if not protection_formset.is_valid():
+            print(f"  protection_formset.errors: {protection_formset.errors}")
+            for i, f in enumerate(protection_formset.forms):
+                print(f"  Form {i} errors: {f.errors}")
+
         signing_form = context['signing_stage_form']
         interim_formset = context['interim_act_formset']
         final_act_form = context['final_act_form']

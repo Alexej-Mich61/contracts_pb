@@ -1,4 +1,4 @@
-#config/settings/base.py
+# config/settings/base.py
 import environ
 from pathlib import Path
 
@@ -174,25 +174,35 @@ LOGGING = {
             "backupCount": 5,
             "formatter": "verbose",
         },
+        # ← Новый handler для планировщика
+        "scheduler_file": {
+            "level": "INFO",
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": LOGS_DIR / "scheduler.log",
+            "maxBytes": 5 * 1024 * 1024,    # 5 МБ
+            "backupCount": 3,
+            "formatter": "verbose",
+        },
     },
     "root": {
         "handlers": ["console"],
         "level": "WARNING",
     },
     "loggers": {
-        "django": {                       # системные логи Django
+        "django": {
             "handlers": ["console"],
             "level": "INFO",
             "propagate": False,
         },
-        "apps": {                         # всё, что пишем мы
+        "apps": {
             "handlers": ["console", "file"],
             "level": "DEBUG",
             "propagate": False,
         },
         "contract_core.scheduler": {
-            "handlers": ["console"],
+            "handlers": ["console", "scheduler_file"],  # ← пишем и в консоль, и в файл
             "level": "INFO",
+            "propagate": False,  # ← не дублировать в "apps" (иначе попадёт в contracts.log)
         },
     },
 }
