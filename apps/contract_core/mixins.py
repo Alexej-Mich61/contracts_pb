@@ -23,15 +23,27 @@ class ContractAccessMixin:
 
     def get_queryset(self):
         """Возвращает queryset с учетом прав пользователя"""
-        # Получаем queryset от родительского класса (или создаем новый)
-        queryset = getattr(super(), 'get_queryset', lambda: self.model.objects)()
+        # Получаем базовый queryset от родительского класса (DetailView, ListView и т.д.)
+        # Если родитель не имеет get_queryset (например, View), берём из модели
+        parent_get_queryset = getattr(super(), 'get_queryset', None)
 
-        # Если это уже QuerySet от модели Contract
+        if parent_get_queryset:
+            try:
+                queryset = parent_get_queryset()
+            except Exception:
+                # Если DetailView ругается на отсутствие model/queryset,
+                # но model есть у self — используем его
+                queryset = self.model._default_manager.all()
+        else:
+            # Родитель — обычный View без get_queryset, берём из модели
+            queryset = self.model._default_manager.all()
+
+        # Применяем фильтр прав пользователя
         if hasattr(queryset, 'for_user'):
             return queryset.for_user(self.request.user)
 
-        # Если нет — берем напрямую
-        return self.model.objects.for_user(self.request.user)
+        # Fallback: если for_user недоступен (не должно произойти для Contract)
+        return queryset
 
     def get_object(self, queryset=None):
         """Получает объект с проверкой доступа"""

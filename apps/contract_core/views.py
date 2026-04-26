@@ -269,21 +269,23 @@ class ContractUpdateView(LoginRequiredMixin, ContractAccessMixin, ContractCreate
 
 class ContractMoveToTrashView(LoginRequiredMixin, ContractAccessMixin, DetailView):
     """Перемещение договора в корзину (is_trash = True)"""
+    model = Contract
+    pk_url_kwarg = 'pk'
 
     def post(self, request, *args, **kwargs):
         print("=== TRASH VIEW CALLED ===")
         contract = self.get_object()
-        print(f"Contract {contract.pk}, is_trash before: {contract.is_trash}")
         contract.is_trash = True
         contract.updater = request.user
         contract.save()
-        print(f"is_trash after: {contract.is_trash}")
         messages.success(request, f"Договор №{contract.number} перемещён в корзину")
         return redirect('contract_core:contract_list')
 
 
 class ContractRestoreView(LoginRequiredMixin, ContractAccessMixin, DetailView):
     """Восстановление договора из корзины (is_trash = False)"""
+    model = Contract
+    pk_url_kwarg = 'pk'
 
     def post(self, request, *args, **kwargs):
         print("=== CONTRACT RESTORE VIEW CALLED ===")
