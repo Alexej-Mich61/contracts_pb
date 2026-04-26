@@ -287,6 +287,10 @@ class ContractRestoreView(LoginRequiredMixin, ContractAccessMixin, DetailView):
     model = Contract
     pk_url_kwarg = 'pk'
 
+    def get_queryset(self):
+        # Восстановление видит ВСЕ договоры пользователя, включая корзинные
+        return Contract.objects.for_user(self.request.user)
+
     def post(self, request, *args, **kwargs):
         print("=== CONTRACT RESTORE VIEW CALLED ===")
         contract = self.get_object()
@@ -302,9 +306,14 @@ class ContractHardDeleteView(LoginRequiredMixin, ContractAccessMixin, DeleteView
     model = Contract
     template_name = "contracts/partials/contract_confirm_hard_delete_modal.html"
     pk_url_kwarg = 'pk'
-    success_url = reverse_lazy('contract_core:contract_trash')
+    success_url = reverse_lazy('contract_core:contract_list')
+
+    def get_queryset(self):
+        # Удаление видит ВСЕ договоры пользователя, включая корзинные
+        return Contract.objects.for_user(self.request.user)
 
     def delete(self, request, *args, **kwargs):
+        print("=== CONTRACT HARD DELETE VIEW CALLED ===")
         contract = self.get_object()
         number = contract.number
         contract.delete()
