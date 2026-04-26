@@ -263,7 +263,7 @@
             </div>
         </div>
 
-        {# === Кнопки управления === #}
+                {# === Кнопки управления === #}
         <div class="card border shadow-sm my-4">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center">
@@ -288,10 +288,41 @@
                         {% endif %}
                     </div>
                 </div>
+
+                {# === Кнопки удаления/восстановления (только при редактировании) === #}
+                {% if object %}
+                <div class="d-flex justify-content-end gap-2 mt-3 pt-3 border-top">
+                    {% if object.is_trash %}
+                        {# Договор в корзине — восстановить или удалить навсегда #}
+                        <form method="post" action="{% url 'contract_core:contract_restore' object.pk %}" class="d-inline">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-outline-success">
+                                <i class="bi bi-arrow-counterclockwise me-1"></i>Восстановить
+                            </button>
+                        </form>
+                        <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#hardDeleteConfirmModal">
+                            <i class="bi bi-trash-fill me-1"></i>Удалить
+                        </button>
+                    {% else %}
+                        {# Активный договор — в корзину #}
+                        <button type="button" class="btn btn-outline-warning" data-bs-toggle="modal" data-bs-target="#trashConfirmModal">
+                            <i class="bi bi-trash me-1"></i>Удалить в корзину
+                        </button>
+                    {% endif %}
+                </div>
+                {% endif %}
             </div>
         </div>
     </form>
 </div>
+{# === Модальные окна подтверждения (ВНЕ формы договора) === #}
+{% if object %}
+    {% if object.is_trash %}
+        {% include "contracts/partials/contract_confirm_hard_delete_modal.html" with contract=object %}
+    {% else %}
+        {% include "contracts/partials/contract_confirm_trash_modal.html" with contract=object %}
+    {% endif %}
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}

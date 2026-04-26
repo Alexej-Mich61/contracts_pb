@@ -1,0 +1,28 @@
+<!--templates/contracts/partials/contract_confirm_trash_modal.html-->
+<div class="modal fade" id="trashConfirmModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-warning">
+        <h5 class="modal-title text-dark">
+          <i class="bi bi-trash me-2"></i>Перемещение в корзину
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+      </div>
+      <div class="modal-body">
+        <p>Вы уверены, что хотите переместить договор <strong>№{{ contract.number }}</strong> в корзину?</p>
+        <p class="text-muted small mb-0">Договор можно будет восстановить из корзины.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          <i class="bi bi-x-lg me-1"></i>Нет, отмена
+        </button>
+        <form method="post" action="{% url 'contract_core:contract_move_to_trash' contract.pk %}" class="d-inline">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-warning">
+            <i class="bi bi-trash me-1"></i>Да, в корзину
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>

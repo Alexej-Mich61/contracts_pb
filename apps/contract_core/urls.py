@@ -81,7 +81,6 @@ urlpatterns = [
         name="filter_districts_by_region"
     ),
 
-    # старые
     # Поиск АК
     path(
         "contracts/form/ak/search/",
@@ -101,7 +100,24 @@ urlpatterns = [
     # Форма создания/редактирования CRUD ДОГОВОРОВ (отдельная страница)
     path("contracts/add/", views.ContractCreateView.as_view(), name="contract_create"),
     path("contracts/<int:pk>/edit/", views.ContractUpdateView.as_view(), name="contract_update"),
-    path("contracts/<int:pk>/delete/", views.ContractDeleteView.as_view(), name="contract_delete"),
+    # Удаление в корзину (POST)
+    path(
+        "contracts/<int:pk>/trash/",
+        views.ContractMoveToTrashView.as_view(),
+        name="contract_move_to_trash"
+    ),
+    # Восстановление из корзины (POST)
+    path(
+        "contracts/<int:pk>/restore/",
+        views.ContractRestoreView.as_view(),
+        name="contract_restore"
+    ),
+    # Полное удаление (GET для модала, POST для удаления)
+    path(
+        "contracts/<int:pk>/delete/",
+        views.ContractHardDeleteView.as_view(),
+        name="contract_hard_delete"
+    ),
 
 
     # HTMX эндпоинты для модальных окон

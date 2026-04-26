@@ -267,19 +267,46 @@ class ContractUpdateView(LoginRequiredMixin, ContractAccessMixin, ContractCreate
         return reverse_lazy('contract_core:contract_list')
 
 
-class ContractDeleteView(LoginRequiredMixin, ContractAccessMixin, DeleteView):
-    """Удаление договора (перемещение в корзину) с проверкой доступа"""
+class ContractMoveToTrashView(LoginRequiredMixin, ContractAccessMixin, DetailView):
+    """Перемещение договора в корзину (is_trash = True)"""
+
+    def post(self, request, *args, **kwargs):
+        print("=== TRASH VIEW CALLED ===")
+        contract = self.get_object()
+        print(f"Contract {contract.pk}, is_trash before: {contract.is_trash}")
+        contract.is_trash = True
+        contract.updater = request.user
+        contract.save()
+        print(f"is_trash after: {contract.is_trash}")
+        messages.success(request, f"Договор №{contract.number} перемещён в корзину")
+        return redirect('contract_core:contract_list')
+
+
+class ContractRestoreView(LoginRequiredMixin, ContractAccessMixin, DetailView):
+    """Восстановление договора из корзины (is_trash = False)"""
+
+    def post(self, request, *args, **kwargs):
+        print("=== CONTRACT RESTORE VIEW CALLED ===")
+        contract = self.get_object()
+        contract.is_trash = False
+        contract.updater = request.user
+        contract.save()
+        messages.success(request, f"Договор №{contract.number} восстановлен")
+        return redirect('contract_core:contract_list')
+
+
+class ContractHardDeleteView(LoginRequiredMixin, ContractAccessMixin, DeleteView):
+    """Полное удаление договора из базы (только для корзины)"""
     model = Contract
-    template_name = "contracts/contract_confirm_delete.html"
+    template_name = "contracts/partials/contract_confirm_hard_delete_modal.html"
     pk_url_kwarg = 'pk'
-    success_url = reverse_lazy('contract_core:contract_list')
+    success_url = reverse_lazy('contract_core:contract_trash')
 
     def delete(self, request, *args, **kwargs):
-        self.object = self.get_object()
-        self.object.is_trash = True
-        self.object.updater = request.user
-        self.object.save()
-        messages.success(request, "Договор перемещён в корзину")
+        contract = self.get_object()
+        number = contract.number
+        contract.delete()
+        messages.success(request, f"Договор №{number} полностью удалён")
         return redirect(self.get_success_url())
 
 

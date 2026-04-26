@@ -1,0 +1,28 @@
+<!--templates/contracts/partials/contract_confirm_hard_delete_modal.html-->
+<div class="modal fade" id="hardDeleteConfirmModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title">
+          <i class="bi bi-exclamation-triangle me-2"></i>Полное удаление
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+      </div>
+      <div class="modal-body">
+        <p>Вы уверены, что хотите <strong class="text-danger">безвозвратно удалить</strong> договор <strong>№{{ contract.number }}</strong>?</p>
+        <p class="text-muted small mb-0">Это действие нельзя отменить. Договор будет удалён из базы данных.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          <i class="bi bi-x-lg me-1"></i>Нет, отмена
+        </button>
+        <form method="post" action="{% url 'contract_core:contract_hard_delete' contract.pk %}" class="d-inline">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-danger">
+            <i class="bi bi-trash-fill me-1"></i>Да, удалить навсегда
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
