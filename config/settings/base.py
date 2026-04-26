@@ -190,6 +190,10 @@ LOGGING = {
             "level": "DEBUG",
             "propagate": False,
         },
+        "contract_core.scheduler": {
+            "handlers": ["console"],
+            "level": "INFO",
+        },
     },
 }
 
