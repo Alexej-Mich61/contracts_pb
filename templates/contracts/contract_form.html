@@ -277,8 +277,7 @@
                         hx-get="{% url 'contract_core:empty_protection_object_form' %}"
                         hx-target="#protection-objects-list"
                         hx-swap="beforeend"
-                        hx-vals="js:{total_forms: Math.max(...Array.from(document.querySelectorAll('.protection-objects-form')).map(f => parseInt(f.getAttribute('data-index')) || 0)) + 1}"
-<!--                        hx-vals="js:{total_forms: parseInt(document.getElementById('id_contract_objects-TOTAL_FORMS').value) || 0}"-->
+                        hx-vals="js:{total_forms: parseInt(document.getElementById('id_contract_objects-TOTAL_FORMS')?.value || '0')}">
                     <i class="bi bi-plus-lg me-1"></i>Добавить объект
                 </button>
             </div>

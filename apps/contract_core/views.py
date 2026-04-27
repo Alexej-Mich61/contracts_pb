@@ -554,13 +554,19 @@ class EmptyProtectionObjectFormView(LoginRequiredMixin, View):
 
     def get(self, request):
         prefix = ProtectionObjectFormSet().prefix
-        total_forms = int(request.GET.get('total_forms', 0))
+
+        # --- защита от некорректного total_forms ---
+        try:
+            total_forms = int(request.GET.get('total_forms', 0))
+        except (ValueError, TypeError):
+            total_forms = 0
+
+        total_forms = max(0, total_forms)
+        # -------------------------------------------
 
         print(f"=== EmptyProtectionObjectFormView called, total_forms={total_forms} ===")
 
         form = ProtectionObjectForm(prefix=f"{prefix}-{total_forms}")
-
-        # Важно: добавляем queryset для регионов в поле формы
         form.fields['region'].queryset = Region.objects.all().order_by('name')
         form.fields['subcontractor'].queryset = Company.objects.filter(
             is_subcontractor=True
