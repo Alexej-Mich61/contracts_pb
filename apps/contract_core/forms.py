@@ -230,6 +230,24 @@ class ContractForm(forms.ModelForm):
 
         return cleaned_data
 
+    # def clean_total_sum(self):
+    #     val = self.cleaned_data.get('total_sum')
+    #     if val is not None and val < 0:
+    #         raise forms.ValidationError("Сумма не может быть отрицательной")
+    #     return val
+    #
+    # def clean_monthly_sum(self):
+    #     val = self.cleaned_data.get('monthly_sum')
+    #     if val is not None and val < 0:
+    #         raise forms.ValidationError("Сумма не может быть отрицательной")
+    #     return val
+    #
+    # def clean_advance(self):
+    #     val = self.cleaned_data.get('advance')
+    #     if val is not None and val < 0:
+    #         raise forms.ValidationError("Аванс не может быть отрицательным")
+    #     return val
+
 
 class ContractSigningStageForm(forms.ModelForm):
     """Форма стадии подписания договора (inline)"""
@@ -574,6 +592,18 @@ class ProtectionObjectForm(forms.ModelForm):
             return list(existing)
         except ValueError:
             raise forms.ValidationError("Некорректный формат ID АК")
+
+    # def clean_total_sum_subcontract(self):
+    #     val = self.cleaned_data.get('total_sum_subcontract')
+    #     if val is not None and val < 0:
+    #         raise forms.ValidationError("Сумма не может быть отрицательной")
+    #     return val
+    #
+    # def clean_monthly_sum_subcontract(self):
+    #     val = self.cleaned_data.get('monthly_sum_subcontract')
+    #     if val is not None and val < 0:
+    #         raise forms.ValidationError("Сумма не может быть отрицательной")
+    #     return val
 
 # Formset для объектов защиты
 ProtectionObjectFormSet = forms.inlineformset_factory(

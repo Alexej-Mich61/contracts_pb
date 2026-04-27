@@ -492,13 +492,22 @@ class Contract(models.Model):
         "Сумма контракта общая",
         max_digits=12,
         decimal_places=2,
-        default=0.00)
+        default=0.00,
+        validators = [MinValueValidator(0, message="Сумма не может быть отрицательной")]
+    )
     monthly_sum = models.DecimalField(
         "Сумма контракта в месяц",
         max_digits=12,
         decimal_places=2,
-        default=0.00)
-    advance = models.DecimalField("Аванс", max_digits=12, decimal_places=2, default=0.00)
+        default=0.00,
+        validators=[MinValueValidator(0, message="Сумма не может быть отрицательной")]
+    )
+    advance = models.DecimalField(
+        "Аванс", max_digits=12,
+        decimal_places=2,
+        default=0.00,
+        validators=[MinValueValidator(0, message="Аванс не может быть отрицательным")]
+    )
 
     # Статус
     STATUS_PENDING = "pending"
@@ -711,13 +720,15 @@ class ProtectionObject(models.Model):
         "Сумма субконтракта общая",
         max_digits=12,
         decimal_places=2,
-        default=0.00
+        default=0.00,
+        validators=[MinValueValidator(0, message="Сумма не может быть отрицательной")]
     )
     monthly_sum_subcontract = models.DecimalField(
         "Сумма субконтракта в месяц",
         max_digits=12,
         decimal_places=2,
-        default=0.00
+        default=0.00,
+        validators=[MinValueValidator(0, message="Сумма не может быть отрицательной")]
     )
 
     @property
