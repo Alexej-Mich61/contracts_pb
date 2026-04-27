@@ -136,7 +136,7 @@ class ContractDetailHtmxView(LoginRequiredMixin, ContractAccessMixin, DetailView
 # ========== СПИСОЧНЫЕ ПРЕДСТАВЛЕНИЯ ==========
 
 class ContractListView(LoginRequiredMixin, ListView):
-    """Главная страница списка договоров с фильтром"""
+    """Главная страница списка договоров"""
     model = Contract
     template_name = "contracts/contract_list.html"
     context_object_name = "contracts"
@@ -154,53 +154,65 @@ class ContractListView(LoginRequiredMixin, ListView):
         return False
 
     def get_filtered_queryset(self):
-        """Полный отфильтрованный queryset БЕЗ ограничений (для счётчиков)."""
+        """Полный отфильтрованный queryset (используется для статистики и пагинации)"""
         base_queryset = Contract.objects.for_user(self.request.user)
         service = ContractFilterService(self.request, queryset=base_queryset)
         return service.filter()
 
     def get_queryset(self):
-        filtered = self.get_filtered_queryset()
+        filtered_qs = self.get_filtered_queryset()
         has_filters = self._has_active_filters()
         self._has_filters = has_filters
+
         if not has_filters:
-            return filtered[:10]
-        return filtered
+            return filtered_qs[:10]  # лимит только без фильтров
+        return filtered_qs
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['filter_data'] = ContractFilterService.get_filter_choices()
 
-        region_id = self.request.GET.get('region')
-        context['districts'] = ContractFilterService.get_districts_by_region(region_id)
+        context['filter_data'] = ContractFilterService.get_filter_choices()
+        context['districts'] = ContractFilterService.get_districts_by_region(
+            self.request.GET.get('region')
+        )
 
         has_filters = getattr(self, '_has_filters', self._has_active_filters())
         context['is_limited'] = not has_filters
 
-        # --- Агрегаты по полному отфильтрованному queryset ---
+        # === СТАТИСТИКА ===
+        # 1. Для статистики всегда используем ПОЛНЫЙ отфильтрованный queryset
         full_qs = self.get_filtered_queryset()
-        aggregates = full_qs.aggregate(
+
+        if not has_filters:
+            # Без фильтров — статистика только по 10 отображаемым
+            stats_qs = context['contracts']
+        else:
+            # При активных фильтрах — статистика по всем отфильтрованным
+            stats_qs = full_qs
+
+        aggregates = stats_qs.aggregate(
             count=Count('id'),
             total_sum=Sum('total_sum'),
             monthly_sum=Sum('monthly_sum'),
         )
 
         context['total_contracts'] = aggregates['count'] or 0
-        context['total_count'] = context['total_contracts']  # для совместимости с заголовком
+        context['total_count'] = context['total_contracts']
         context['total_sum'] = aggregates['total_sum'] or 0
         context['total_monthly_sum'] = aggregates['monthly_sum'] or 0
+
         context['total_objects'] = ProtectionObject.objects.filter(
-            contract__in=full_qs
+            contract__in=stats_qs
         ).count()
         context['total_aks'] = Ak.objects.filter(
-            protection_objects__contract__in=full_qs
+            protection_objects__contract__in=stats_qs
         ).distinct().count()
 
         return context
 
 
 class ContractListHtmxView(LoginRequiredMixin, ListView):
-    """HTMX эндпоинт для фильтрованного списка договоров + пагинация"""
+    """HTMX-эндпоинт для списка договоров"""
     model = Contract
     template_name = "contracts/contract_list.html"
     context_object_name = "contracts"
@@ -226,14 +238,20 @@ class ContractListHtmxView(LoginRequiredMixin, ListView):
         return self.get_filtered_queryset()
 
     def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)  # ← важно! ListView сам добавит page_obj и is_paginated
+        context = super().get_context_data(**kwargs)
 
         has_filters = self._has_active_filters()
         context['is_limited'] = not has_filters
 
-        # Агрегаты по полному отфильтрованному queryset (без пагинации)
+        # === СТАТИСТИКА ===
         full_qs = self.get_filtered_queryset()
-        aggregates = full_qs.aggregate(
+
+        if not has_filters:
+            stats_qs = context['contracts']        # только 10 последних
+        else:
+            stats_qs = full_qs                     # все отфильтрованные
+
+        aggregates = stats_qs.aggregate(
             count=Count('id'),
             total_sum=Sum('total_sum'),
             monthly_sum=Sum('monthly_sum'),
@@ -243,23 +261,18 @@ class ContractListHtmxView(LoginRequiredMixin, ListView):
         context['total_count'] = context['total_contracts']
         context['total_sum'] = aggregates['total_sum'] or 0
         context['total_monthly_sum'] = aggregates['monthly_sum'] or 0
+
         context['total_objects'] = ProtectionObject.objects.filter(
-            contract__in=full_qs
+            contract__in=stats_qs
         ).count()
         context['total_aks'] = Ak.objects.filter(
-            protection_objects__contract__in=full_qs
+            protection_objects__contract__in=stats_qs
         ).distinct().count()
-
-        # Явно добавляем для надёжности
-        context['is_paginated'] = context.get('is_paginated', False)
-        if 'page_obj' not in context:
-            context['page_obj'] = context.get('page_obj')
 
         return context
 
     def render_to_response(self, context, **response_kwargs):
         if self.request.htmx:
-            # Рендерим только блок contracts_list — внутри него и список, и пагинация
             html = render_block_to_string(
                 self.template_name,
                 'contracts_list',
@@ -267,7 +280,6 @@ class ContractListHtmxView(LoginRequiredMixin, ListView):
                 request=self.request
             )
             return HttpResponse(html)
-
         return super().render_to_response(context, **response_kwargs)
 
 

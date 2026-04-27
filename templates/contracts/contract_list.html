@@ -7,121 +7,119 @@
 
 {% block content %}
 <div class="container mt-4">
-    <!-- Заголовок (не входит в блок - не перерендеривается при фильтрации) -->
+
+    <!-- Заголовок -->
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="mb-0">Контракты</h1>
-        <span class="badge bg-secondary fs-5" id="contract-count">
-            {{ total_count|default:contracts|length }}
-        </span>
+        <h2 class="mb-0">Контракты</h2>
     </div>
 
-    <!-- Информация о лимите (не входит в блок) -->
+    <!-- Информация о лимите -->
     {% if is_limited %}
     <div class="alert alert-info alert-dismissible fade show py-2 mb-3" id="limit-alert">
-        <small><i class="bi bi-info-circle"></i> Показаны <strong>10 последних</strong> добавленных договоров. Используйте фильтры для просмотра всех записей.</small>
+        <small>
+            <i class="bi bi-info-circle"></i>
+            Показаны <strong>10 последних</strong> добавленных договоров.
+            Используйте фильтры для просмотра всех записей.
+        </small>
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
     {% endif %}
 
-    <!-- Фильтр (не входит в блок - не перерендеривается при фильтрации) -->
+    <!-- Фильтр -->
     {% include "contracts/partials/contract_filter.html" %}
 
-    <!-- Счетчики и кнопка (вне блока — не перерендериваются при обычном HTMX) -->
-    <div id="contract-stats-bar">
-        {% include "contracts/partials/contract_stats_bar.html" %}
-    </div>
-
-    <!-- НАЧАЛО БЛОКА: Этот блок рендерится отдельно для HTMX-запросов -->
+    <!-- НАЧАЛО БЛОКА contracts_list -->
     {% block contracts_list %}
-    {% if request.htmx %}
-    <div id="contract-stats-bar" hx-swap-oob="true">
-        {% include "contracts/partials/contract_stats_bar.html" %}
-    </div>
-    {% endif %}
 
-    <div id="contracts-container" class="row g-3">
-        {% for contract in contracts %}
-        {% include "contracts/partials/contract_card.html" %}
-        {% empty %}
-        <div class="col-12">
-            <div class="alert alert-info text-center py-5" id="empty-state">
-                <h5>Договоры не найдены</h5>
-                <p class="mb-0">Попробуйте изменить параметры фильтра</p>
+        {% if not request.htmx %}
+            <!-- Обычная загрузка: статистика рендерится один раз -->
+            <div id="contract-stats-bar">
+                {% include "contracts/partials/contract_stats_bar.html" %}
             </div>
-        </div>
-        {% endfor %}
-
-        <!-- Пагинация -->
-        {% if is_paginated and not is_limited %}
-        <div class="col-12">
-            <nav aria-label="Пагинация" class="mt-4">
-                <ul class="pagination justify-content-center">
-
-                    {% if page_obj.has_previous %}
-                    <!-- К первой странице -->
-                    <li class="page-item">
-                        <a class="page-link" href="#"
-                           hx-get="{% url 'contract_core:contract_list_htmx' %}?{% query_transform page=1 %}"
-                           hx-target="#contracts-container"
-                           hx-indicator="#contracts-container"
-                           hx-push-url="true">
-                            «
-                        </a>
-                    </li>
-
-                    <!-- Предыдущая страница -->
-                    <li class="page-item">
-                        <a class="page-link" href="#"
-                           hx-get="{% url 'contract_core:contract_list_htmx' %}?{% query_transform page=page_obj.previous_page_number %}"
-                           hx-target="#contracts-container"
-                           hx-indicator="#contracts-container"
-                           hx-push-url="true">
-                            ‹
-                        </a>
-                    </li>
-                    {% endif %}
-
-                    <!-- Информация о текущей странице -->
-                    <li class="page-item disabled">
-                <span class="page-link">
-                    Страница {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}
-                </span>
-                    </li>
-
-                    {% if page_obj.has_next %}
-                    <!-- Следующая страница -->
-                    <li class="page-item">
-                        <a class="page-link" href="#"
-                           hx-get="{% url 'contract_core:contract_list_htmx' %}?{% query_transform page=page_obj.next_page_number %}"
-                           hx-target="#contracts-container"
-                           hx-indicator="#contracts-container"
-                           hx-push-url="true">
-                            ›
-                        </a>
-                    </li>
-
-                    <!-- К последней странице -->
-                    <li class="page-item">
-                        <a class="page-link" href="#"
-                           hx-get="{% url 'contract_core:contract_list_htmx' %}?{% query_transform page=page_obj.paginator.num_pages %}"
-                           hx-target="#contracts-container"
-                           hx-indicator="#contracts-container"
-                           hx-push-url="true">
-                            »
-                        </a>
-                    </li>
-                    {% endif %}
-                </ul>
-            </nav>
-        </div>
+        {% else %}
+            <!-- HTMX-запрос: статистика только как OOB-swap -->
+            <div id="contract-stats-bar" hx-swap-oob="true">
+                {% include "contracts/partials/contract_stats_bar.html" %}
+            </div>
         {% endif %}
-    </div>
+
+        <div id="contracts-container" class="row g-3">
+
+            {% for contract in contracts %}
+                {% include "contracts/partials/contract_card.html" %}
+            {% empty %}
+                <div class="col-12">
+                    <div class="alert alert-info text-center py-5" id="empty-state">
+                        <h5>Договоры не найдены</h5>
+                        <p class="mb-0">Попробуйте изменить параметры фильтра</p>
+                    </div>
+                </div>
+            {% endfor %}
+
+            <!-- Пагинация -->
+            {% if is_paginated and not is_limited %}
+            <div class="col-12">
+                <nav aria-label="Пагинация" class="mt-4">
+                    <ul class="pagination justify-content-center">
+
+                        {% if page_obj.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" href="#"
+                                   hx-get="{% url 'contract_core:contract_list_htmx' %}?{% query_transform page=1 %}"
+                                   hx-target="#contracts-container"
+                                   hx-indicator="#contracts-container"
+                                   hx-push-url="true">
+                                    «
+                                </a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="#"
+                                   hx-get="{% url 'contract_core:contract_list_htmx' %}?{% query_transform page=page_obj.previous_page_number %}"
+                                   hx-target="#contracts-container"
+                                   hx-indicator="#contracts-container"
+                                   hx-push-url="true">
+                                    ‹
+                                </a>
+                            </li>
+                        {% endif %}
+
+                        <li class="page-item disabled">
+                            <span class="page-link">
+                                Страница {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}
+                            </span>
+                        </li>
+
+                        {% if page_obj.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="#"
+                                   hx-get="{% url 'contract_core:contract_list_htmx' %}?{% query_transform page=page_obj.next_page_number %}"
+                                   hx-target="#contracts-container"
+                                   hx-indicator="#contracts-container"
+                                   hx-push-url="true">
+                                    ›
+                                </a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="#"
+                                   hx-get="{% url 'contract_core:contract_list_htmx' %}?{% query_transform page=page_obj.paginator.num_pages %}"
+                                   hx-target="#contracts-container"
+                                   hx-indicator="#contracts-container"
+                                   hx-push-url="true">
+                                    »
+                                </a>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+            {% endif %}
+        </div>
+
     {% endblock contracts_list %}
-    <!-- КОНЕЦ БЛОКА -->
 
 </div>
 
-<!-- Модальное окно (вне контейнера, чтобы не перерендеривалось) -->
+<!-- Модальное окно -->
 <div class="modal fade" id="contractModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-scrollable">
         <div class="modal-content" id="modal-content">
@@ -129,4 +127,5 @@
         </div>
     </div>
 </div>
+
 {% endblock content %}
