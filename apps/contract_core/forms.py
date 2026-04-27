@@ -496,61 +496,65 @@ class ProtectionObjectForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        # ВРЕМЕННАЯ ОТЛАДКА
+        # ВРЕМЕННАЯ ОТЛАДКА (можно убрать после проверки)
         print(f"=== POForm init ===")
         print(f"  prefix: {self.prefix}")
         print(f"  instance.pk: {self.instance.pk}")
         print(f"  data region key: {self.add_prefix('region')}")
         print(f"  data region value: {self.data.get(self.add_prefix('region')) if self.data else 'N/A'}")
-        if self.data:
-            all_keys = [k for k in self.data.keys() if k.startswith(self.prefix)]
-            print(f"  all keys with this prefix: {all_keys[:10]}")
 
         self.fields['subcontractor'].queryset = Company.objects.filter(
             is_subcontractor=True
         ).order_by('name')
 
-        # Инициализация региона и района
-        if self.instance.pk and self.instance.district:
-            # Для существующего объекта — устанавливаем регион и список районов
-            self.fields['region'].initial = self.instance.district.region_id
-            # ВАЖНО: заполняем queryset районов ПЕРЕД рендером
-            self.fields['district'].queryset = District.objects.filter(
-                region=self.instance.district.region
-            ).order_by('name')
-            # ВАЖНО: initial тоже нужен
-            self.fields['district'].initial = self.instance.district_id
-            # Убираем disabled, иначе браузер не отправит значение при сохранении
-            self.fields['district'].widget.attrs.pop('disabled', None)
-
-            # Подгружаем текущие АК в скрытое поле
-            current_ak_ids = list(self.instance.aks.values_list('id', flat=True))
-            self.fields['ak_ids'].initial = ','.join(map(str, current_ak_ids))
-
-        elif self.data:
-            # Для POST-запроса (создание/редактирование) — определяем регион из данных
-            # и подгружаем соответствующие районы для валидации
+        # ============================================================
+        # 1. ПРИОРИТЕТ: POST-данные (создание / редактирование / ошибка)
+        # ============================================================
+        if self.data:
             region_id = self.data.get(self.add_prefix('region'))
+
             if region_id:
                 try:
                     region = Region.objects.get(pk=region_id)
                     self.fields['district'].queryset = District.objects.filter(
                         region=region
                     ).order_by('name')
-                    # Устанавливаем initial для региона чтобы он отобразился в форме при ошибке
                     self.fields['region'].initial = region_id
                     self.fields['district'].widget.attrs.pop('disabled', None)
                 except Region.DoesNotExist:
                     self.fields['district'].queryset = District.objects.none()
             else:
+                # Регион сброшен — районов быть не должно
                 self.fields['district'].queryset = District.objects.none()
+
+            # Восстанавливаем выбранный район из POST (для отображения при ошибке)
+            district_id = self.data.get(self.add_prefix('district'))
+            if district_id:
+                self.fields['district'].initial = district_id
 
             # Восстанавливаем ak_ids из POST
             raw_ak_ids = self.data.get(self.add_prefix('ak_ids'), '')
             if raw_ak_ids:
                 self.fields['ak_ids'].initial = raw_ak_ids
+
+        # ============================================================
+        # 2. GET для существующего объекта (instance уже в базе)
+        # ============================================================
+        elif self.instance.pk and self.instance.district:
+            self.fields['region'].initial = self.instance.district.region_id
+            self.fields['district'].queryset = District.objects.filter(
+                region=self.instance.district.region
+            ).order_by('name')
+            self.fields['district'].initial = self.instance.district_id
+            self.fields['district'].widget.attrs.pop('disabled', None)
+
+            current_ak_ids = list(self.instance.aks.values_list('id', flat=True))
+            self.fields['ak_ids'].initial = ','.join(map(str, current_ak_ids))
+
+        # ============================================================
+        # 3. Новый объект (чистый GET без данных)
+        # ============================================================
         else:
-            # Для нового объекта (GET запрос) — пустой список районов
             self.fields['district'].queryset = District.objects.none()
 
     def clean_ak_ids(self):
