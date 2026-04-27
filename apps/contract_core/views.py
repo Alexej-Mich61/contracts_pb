@@ -7,7 +7,7 @@ from django.contrib import messages
 from django.utils import timezone
 from django.views.generic import TemplateView, ListView, CreateView, UpdateView, DetailView, DeleteView
 from django.db.models import Q
-from django.db.models import Count
+from django.db.models import Count, Sum
 from auditlog.models import LogEntry
 from django.contrib.contenttypes.models import ContentType
 from django.http import JsonResponse
@@ -143,42 +143,28 @@ class ContractListView(LoginRequiredMixin, ListView):
     paginate_by = 10
 
     def _has_active_filters(self):
-        """Проверяет, есть ли активные фильтры в GET-параметрах."""
-        # Игнорируем служебные параметры и location=active (дефолт)
         ignored = {'page', 'csrfmiddlewaretoken', 'hx-request', 'hx-target', 'hx-current-url'}
-
-        # Для отладки — выводим все параметры
-        import logging
-        logger = logging.getLogger(__name__)
-        logger.info(f"GET params: {dict(self.request.GET)}")
-
         for key, value in self.request.GET.items():
             if key in ignored:
                 continue
-            # location=active считается дефолтным, не фильтром
             if key == 'location' and value == 'active':
-                logger.info(f"Skipping default location=active")
                 continue
-            # Любое непустое значение — это фильтр
             if value and str(value).strip():
-                logger.info(f"Found filter: {key}={value}")
                 return True
-
-        logger.info("No active filters found")
         return False
 
-    def get_queryset(self):
+    def get_filtered_queryset(self):
+        """Полный отфильтрованный queryset БЕЗ ограничений (для счётчиков)."""
         base_queryset = Contract.objects.for_user(self.request.user)
         service = ContractFilterService(self.request, queryset=base_queryset)
-        filtered = service.filter()
+        return service.filter()
 
-        # Если нет фильтров — ограничиваем 10 последними
+    def get_queryset(self):
+        filtered = self.get_filtered_queryset()
         has_filters = self._has_active_filters()
-        self._has_filters = has_filters  # сохраняем для использования в контексте
-
+        self._has_filters = has_filters
         if not has_filters:
             return filtered[:10]
-
         return filtered
 
     def get_context_data(self, **kwargs):
@@ -188,9 +174,27 @@ class ContractListView(LoginRequiredMixin, ListView):
         region_id = self.request.GET.get('region')
         context['districts'] = ContractFilterService.get_districts_by_region(region_id)
 
-        # Используем сохранённое значение или пересчитываем
         has_filters = getattr(self, '_has_filters', self._has_active_filters())
         context['is_limited'] = not has_filters
+
+        # --- Агрегаты по полному отфильтрованному queryset ---
+        full_qs = self.get_filtered_queryset()
+        aggregates = full_qs.aggregate(
+            count=Count('id'),
+            total_sum=Sum('total_sum'),
+            monthly_sum=Sum('monthly_sum'),
+        )
+
+        context['total_contracts'] = aggregates['count'] or 0
+        context['total_count'] = context['total_contracts']  # для совместимости с заголовком
+        context['total_sum'] = aggregates['total_sum'] or 0
+        context['total_monthly_sum'] = aggregates['monthly_sum'] or 0
+        context['total_objects'] = ProtectionObject.objects.filter(
+            contract__in=full_qs
+        ).count()
+        context['total_aks'] = Ak.objects.filter(
+            protection_objects__contract__in=full_qs
+        ).distinct().count()
 
         return context
 
@@ -198,7 +202,7 @@ class ContractListView(LoginRequiredMixin, ListView):
 class ContractListHtmxView(LoginRequiredMixin, ListView):
     """HTMX эндпоинт для фильтрованного списка договоров"""
     model = Contract
-    template_name = "contracts/contract_list.html"  # Тот же шаблон!
+    template_name = "contracts/contract_list.html"
     context_object_name = "contracts"
     paginate_by = 10
 
@@ -213,30 +217,47 @@ class ContractListHtmxView(LoginRequiredMixin, ListView):
                 return True
         return False
 
-    def get_queryset(self):
+    def get_filtered_queryset(self):
         base_queryset = Contract.objects.for_user(self.request.user)
         service = ContractFilterService(self.request, queryset=base_queryset)
         return service.filter()
 
+    def get_queryset(self):
+        return self.get_filtered_queryset()
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['total_count'] = self.get_queryset().count()
         context['is_limited'] = not self._has_active_filters()
+
+        full_qs = self.get_filtered_queryset()
+        aggregates = full_qs.aggregate(
+            count=Count('id'),
+            total_sum=Sum('total_sum'),
+            monthly_sum=Sum('monthly_sum'),
+        )
+
+        context['total_contracts'] = aggregates['count'] or 0
+        context['total_count'] = context['total_contracts']
+        context['total_sum'] = aggregates['total_sum'] or 0
+        context['total_monthly_sum'] = aggregates['monthly_sum'] or 0
+        context['total_objects'] = ProtectionObject.objects.filter(
+            contract__in=full_qs
+        ).count()
+        context['total_aks'] = Ak.objects.filter(
+            protection_objects__contract__in=full_qs
+        ).distinct().count()
+
         return context
 
     def render_to_response(self, context, **response_kwargs):
-        # Проверяем HTMX через middleware (request.htmx)
         if getattr(self.request, 'htmx', False):
-            # Рендерим ТОЛЬКО блок contracts_list, а не весь шаблон
             html = render_block_to_string(
                 self.template_name,
-                'contracts_list',  # Имя блока из шаблона
+                'contracts_list',
                 context,
                 request=self.request
             )
             return HttpResponse(html)
-
-        # Для обычного запроса - рендерим всё как обычно
         return super().render_to_response(context, **response_kwargs)
 
 

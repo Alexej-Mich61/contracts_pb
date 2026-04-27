@@ -1,0 +1,30 @@
+<!--templates/contracts/partials/contract_stats_bar.html-->
+{% load humanize %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <a href="{% url 'contract_core:contract_create' %}" class="btn btn-primary btn-lg">
+        + Новый договор
+    </a>
+    <div class="d-flex gap-4 flex-wrap justify-content-end align-items-baseline">
+        <div class="text-center">
+            <div class="text-muted small">Договоров</div>
+            <div class="fw-bold fs-4 text-primary">{{ total_contracts }}</div>
+        </div>
+        <div class="text-center">
+            <div class="text-muted small">Объектов</div>
+            <div class="fw-bold fs-4 text-info">{{ total_objects }}</div>
+        </div>
+        <div class="text-center">
+            <div class="text-muted small">АК</div>
+            <div class="fw-bold fs-4 text-secondary">{{ total_aks }}</div>
+        </div>
+        <div class="text-center">
+            <div class="text-muted small">Сумма общая</div>
+            <div class="fw-bold fs-4 text-success">{{ total_sum|floatformat:0|intcomma }} ₽</div>
+        </div>
+        <div class="text-center">
+            <div class="text-muted small">Сумма в месяц</div>
+            <div class="fw-bold fs-4 text-warning">{{ total_monthly_sum|floatformat:0|intcomma }} ₽</div>
+        </div>
+    </div>
+</div>
