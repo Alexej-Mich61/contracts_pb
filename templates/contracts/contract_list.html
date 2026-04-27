@@ -1,6 +1,7 @@
 <!-- templates/contracts/contract_list.html -->
 {% extends "base.html" %}
 {% load humanize %}
+{% load contract_extras %}
 
 {% block title %}Контракты{% endblock %}
 
@@ -40,61 +41,75 @@
 
     <div id="contracts-container" class="row g-3">
         {% for contract in contracts %}
-            {% include "contracts/partials/contract_card.html" %}
+        {% include "contracts/partials/contract_card.html" %}
         {% empty %}
-            <div class="col-12">
-                <div class="alert alert-info text-center py-5" id="empty-state">
-                    <h5>Договоры не найдены</h5>
-                    <p class="mb-0">Попробуйте изменить параметры фильтра</p>
-                </div>
+        <div class="col-12">
+            <div class="alert alert-info text-center py-5" id="empty-state">
+                <h5>Договоры не найдены</h5>
+                <p class="mb-0">Попробуйте изменить параметры фильтра</p>
             </div>
+        </div>
         {% endfor %}
 
-        <!-- Пагинация (внутри блока - обновляется вместе со списком) -->
+        <!-- Пагинация -->
         {% if is_paginated and not is_limited %}
         <div class="col-12">
             <nav aria-label="Пагинация" class="mt-4">
                 <ul class="pagination justify-content-center">
+
                     {% if page_obj.has_previous %}
-                        <li class="page-item">
-                            <a class="page-link" href="#"
-                               hx-get="{% url 'contract_core:contract_list_htmx' %}?page=1"
-                               hx-target="#contracts-container"
-                               hx-indicator="#contracts-container">
-                                «
-                            </a>
-                        </li>
-                        <li class="page-item">
-                            <a class="page-link" href="#"
-                               hx-get="{% url 'contract_core:contract_list_htmx' %}?page={{ page_obj.previous_page_number }}"
-                               hx-target="#contracts-container"
-                               hx-indicator="#contracts-container">
-                                ‹
-                            </a>
-                        </li>
+                    <!-- К первой странице -->
+                    <li class="page-item">
+                        <a class="page-link" href="#"
+                           hx-get="{% url 'contract_core:contract_list_htmx' %}?{% query_transform page=1 %}"
+                           hx-target="#contracts-container"
+                           hx-indicator="#contracts-container"
+                           hx-push-url="true">
+                            «
+                        </a>
+                    </li>
+
+                    <!-- Предыдущая страница -->
+                    <li class="page-item">
+                        <a class="page-link" href="#"
+                           hx-get="{% url 'contract_core:contract_list_htmx' %}?{% query_transform page=page_obj.previous_page_number %}"
+                           hx-target="#contracts-container"
+                           hx-indicator="#contracts-container"
+                           hx-push-url="true">
+                            ‹
+                        </a>
+                    </li>
                     {% endif %}
 
+                    <!-- Информация о текущей странице -->
                     <li class="page-item disabled">
-                        <span class="page-link">Страница {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}</span>
+                <span class="page-link">
+                    Страница {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}
+                </span>
                     </li>
 
                     {% if page_obj.has_next %}
-                        <li class="page-item">
-                            <a class="page-link" href="#"
-                               hx-get="{% url 'contract_core:contract_list_htmx' %}?page={{ page_obj.next_page_number }}"
-                               hx-target="#contracts-container"
-                               hx-indicator="#contracts-container">
-                                ›
-                            </a>
-                        </li>
-                        <li class="page-item">
-                            <a class="page-link" href="#"
-                               hx-get="{% url 'contract_core:contract_list_htmx' %}?page={{ page_obj.paginator.num_pages }}"
-                               hx-target="#contracts-container"
-                               hx-indicator="#contracts-container">
-                                »
-                            </a>
-                        </li>
+                    <!-- Следующая страница -->
+                    <li class="page-item">
+                        <a class="page-link" href="#"
+                           hx-get="{% url 'contract_core:contract_list_htmx' %}?{% query_transform page=page_obj.next_page_number %}"
+                           hx-target="#contracts-container"
+                           hx-indicator="#contracts-container"
+                           hx-push-url="true">
+                            ›
+                        </a>
+                    </li>
+
+                    <!-- К последней странице -->
+                    <li class="page-item">
+                        <a class="page-link" href="#"
+                           hx-get="{% url 'contract_core:contract_list_htmx' %}?{% query_transform page=page_obj.paginator.num_pages %}"
+                           hx-target="#contracts-container"
+                           hx-indicator="#contracts-container"
+                           hx-push-url="true">
+                            »
+                        </a>
+                    </li>
                     {% endif %}
                 </ul>
             </nav>

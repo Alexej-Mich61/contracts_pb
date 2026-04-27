@@ -200,7 +200,7 @@ class ContractListView(LoginRequiredMixin, ListView):
 
 
 class ContractListHtmxView(LoginRequiredMixin, ListView):
-    """HTMX эндпоинт для фильтрованного списка договоров"""
+    """HTMX эндпоинт для фильтрованного списка договоров + пагинация"""
     model = Contract
     template_name = "contracts/contract_list.html"
     context_object_name = "contracts"
@@ -226,9 +226,12 @@ class ContractListHtmxView(LoginRequiredMixin, ListView):
         return self.get_filtered_queryset()
 
     def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['is_limited'] = not self._has_active_filters()
+        context = super().get_context_data(**kwargs)  # ← важно! ListView сам добавит page_obj и is_paginated
 
+        has_filters = self._has_active_filters()
+        context['is_limited'] = not has_filters
+
+        # Агрегаты по полному отфильтрованному queryset (без пагинации)
         full_qs = self.get_filtered_queryset()
         aggregates = full_qs.aggregate(
             count=Count('id'),
@@ -247,10 +250,16 @@ class ContractListHtmxView(LoginRequiredMixin, ListView):
             protection_objects__contract__in=full_qs
         ).distinct().count()
 
+        # Явно добавляем для надёжности
+        context['is_paginated'] = context.get('is_paginated', False)
+        if 'page_obj' not in context:
+            context['page_obj'] = context.get('page_obj')
+
         return context
 
     def render_to_response(self, context, **response_kwargs):
-        if getattr(self.request, 'htmx', False):
+        if self.request.htmx:
+            # Рендерим только блок contracts_list — внутри него и список, и пагинация
             html = render_block_to_string(
                 self.template_name,
                 'contracts_list',
@@ -258,6 +267,7 @@ class ContractListHtmxView(LoginRequiredMixin, ListView):
                 request=self.request
             )
             return HttpResponse(html)
+
         return super().render_to_response(context, **response_kwargs)
 
 
