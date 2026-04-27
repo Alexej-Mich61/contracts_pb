@@ -25,6 +25,7 @@ from apps.contract_core.export_excel.works_sum_report_excel import WorksSumRepor
 
 from apps.contract_core.services.status_sum_report_service import StatusSumReportService
 from apps.contract_core.export_excel.status_sum_report_excel import StatusSumReportExcelExporter
+from apps.contract_core.export_excel.contract_list_excel import export_contracts_to_excel
 
 from apps.identity.mixins import PermissionRequiredMixin
 
@@ -283,6 +284,22 @@ class ContractListHtmxView(LoginRequiredMixin, ListView):
             )
             return HttpResponse(html)
         return super().render_to_response(context, **response_kwargs)
+
+
+class ContractExportExcelView(LoginRequiredMixin, View):
+    """Экспорт отфильтрованного списка договоров в Excel"""
+
+    def get(self, request, *args, **kwargs):
+        base_queryset = Contract.objects.for_user(request.user)
+        service = ContractFilterService(request, queryset=base_queryset)
+        contracts = (
+            service.filter()
+            .select_related("customer", "executor", "work", "signing_stage__stage")
+            .prefetch_related("contract_objects", "contract_objects__aks")
+        )
+
+        filename = f"contracts_{timezone.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+        return export_contracts_to_excel(contracts, filename=filename)
 
 
 # ========== CRUD ПРЕДСТАВЛЕНИЯ ==========

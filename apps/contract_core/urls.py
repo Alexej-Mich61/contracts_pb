@@ -11,6 +11,12 @@ urlpatterns = [
     # Главная страница списка договоров
     path("contracts/", views.ContractListView.as_view(), name="contract_list"),
 
+    # Главная страница списка договоров Экспорт в Эксель
+    path("export/excel/",
+         views.ContractExportExcelView.as_view(),
+         name="contract_export_excel"
+         ),
+
     # HTMX эндпоинты для фильтра списка договоров (contract_filter.html)
     # Используются в: templates/contracts/partials/contract_filter.html
     path(
@@ -28,6 +34,7 @@ urlpatterns = [
         views.FilterDistrictsView.as_view(),  # Возвращает _district_select.html
         name="filter_districts"
     ),
+
 
 
     # ========== HTMX ЭНДПОИНТЫ ДЛЯ ФОРМЫ ДОГОВОРА ==========
