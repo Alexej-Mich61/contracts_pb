@@ -17,6 +17,12 @@ urlpatterns = [
          name="contract_export_excel"
          ),
 
+    # Модальное окно деталей по договору Экспорт в Эксель
+    path("contracts/<int:pk>/export/excel/",
+         views.ContractDetailExportExcelView.as_view(),
+         name="contract_detail_export_excel"
+         ),
+
     # HTMX эндпоинты для фильтра списка договоров (contract_filter.html)
     # Используются в: templates/contracts/partials/contract_filter.html
     path(

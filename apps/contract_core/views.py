@@ -26,6 +26,7 @@ from apps.contract_core.export_excel.works_sum_report_excel import WorksSumRepor
 from apps.contract_core.services.status_sum_report_service import StatusSumReportService
 from apps.contract_core.export_excel.status_sum_report_excel import StatusSumReportExcelExporter
 from apps.contract_core.export_excel.contract_list_excel import export_contracts_to_excel
+from apps.contract_core.export_excel.contract_detail_excel import export_contract_detail_to_excel
 
 from apps.identity.mixins import PermissionRequiredMixin
 
@@ -131,6 +132,41 @@ class ContractDetailHtmxView(LoginRequiredMixin, ContractAccessMixin, DetailView
 
         return context
 
+# Экспорт деталей договора в Excel
+class ContractDetailExportExcelView(LoginRequiredMixin, ContractAccessMixin, DetailView):
+    """Экспорт деталей договора в Excel"""
+    model = Contract
+    pk_url_kwarg = 'pk'
+
+    def get_queryset(self):
+        return super().get_queryset().select_related(
+            'customer', 'executor', 'work'
+        ).prefetch_related(
+            'contract_objects__district__region',
+            'contract_objects__subcontractor',
+            'contract_objects__aks',
+            'final_act',
+            'interim_acts',
+            'signing_stage',
+            'system_checks__system_type'
+        )
+
+    def get(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        contract = self.object
+
+        # Счётчики (как в детальной HTMX-вьюхе)
+        contract_objects = list(contract.contract_objects.all())
+        objects_count = len(contract_objects)
+
+        seen_ak_ids = set()
+        for obj in contract_objects:
+            for ak in obj.aks.all():
+                seen_ak_ids.add(ak.pk)
+        aks_count = len(seen_ak_ids)
+
+        filename = f"contract_{contract.number or contract.pk}_{timezone.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+        return export_contract_detail_to_excel(contract, objects_count, aks_count, filename=filename)
 
 
 # Вьюхи для договоров

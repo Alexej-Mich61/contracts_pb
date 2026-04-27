@@ -190,5 +190,9 @@
     </div>
 </div>
 <div class="modal-footer">
+    <a href="{% url 'contract_core:contract_detail_export_excel' contract.pk %}"
+       class="btn btn-success">
+        <i class="bi bi-file-earmark-excel"></i> Экспорт в Excel
+    </a>
     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
 </div>
