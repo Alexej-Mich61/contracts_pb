@@ -106,12 +106,29 @@ class ContractDetailHtmxView(LoginRequiredMixin, ContractAccessMixin, DetailView
         ).prefetch_related(
             'contract_objects__district__region',
             'contract_objects__subcontractor',
-            'contract_objects__aks',
+            'contract_objects__aks',        # <-- АК уже подгружены
             'final_act',
             'interim_acts',
             'signing_stage',
             'system_checks__system_type'
         )
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        contract = context['contract']
+
+        # Берём уже закэшированные prefetch-данные, чтобы не стучать в БД лишний раз
+        contract_objects = list(contract.contract_objects.all())
+        context['objects_count'] = len(contract_objects)
+
+        # Собираем уникальные АК (на случай, если один АК привязан к нескольким объектам)
+        seen_ak_ids = set()
+        for obj in contract_objects:
+            for ak in obj.aks.all():
+                seen_ak_ids.add(ak.pk)
+        context['aks_count'] = len(seen_ak_ids)
+
+        return context
 
 
 

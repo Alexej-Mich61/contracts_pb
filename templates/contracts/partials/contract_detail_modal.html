@@ -47,7 +47,7 @@
         <!-- Объекты защиты -->
         <div class="col-12">
             <div class="card border-info">
-                <div class="card-header fw-bold">Объекты защиты (Объектов: {{ contract.contract_objects.count }}, АК: {{ contract.contract_objects.aks.count }})</div>
+                <div class="card-header fw-bold">Объекты защиты (Объектов: {{ objects_count }}, АК: {{ aks_count }})</div>
                 <div class="card-body">
                     {% for obj in contract.contract_objects.all %}
                     <div class="border rounded p-2 mb-2 bg-light">
