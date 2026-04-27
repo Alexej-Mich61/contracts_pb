@@ -3,6 +3,7 @@ from django import forms
 from django.db.models import Q
 from django.core.validators import FileExtensionValidator
 from django.utils import timezone
+from .validators import file_validator
 
 from .models import (
     Ak,
@@ -17,7 +18,7 @@ from .models import (
     FinalAct,
     InterimAct,
 )
-from .validators import file_validator
+
 
 
 # ========== СПРАВОЧНИКИ ==========
@@ -514,12 +515,12 @@ class ProtectionObjectForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        # ВРЕМЕННАЯ ОТЛАДКА (можно убрать после проверки)
-        print(f"=== POForm init ===")
-        print(f"  prefix: {self.prefix}")
-        print(f"  instance.pk: {self.instance.pk}")
-        print(f"  data region key: {self.add_prefix('region')}")
-        print(f"  data region value: {self.data.get(self.add_prefix('region')) if self.data else 'N/A'}")
+        # ВРЕМЕННАЯ ОТЛАДКА (убрать после проверки)
+        # print(f"=== POForm init ===")
+        # print(f"  prefix: {self.prefix}")
+        # print(f"  instance.pk: {self.instance.pk}")
+        # print(f"  data region key: {self.add_prefix('region')}")
+        # print(f"  data region value: {self.data.get(self.add_prefix('region')) if self.data else 'N/A'}")
 
         self.fields['subcontractor'].queryset = Company.objects.filter(
             is_subcontractor=True
@@ -533,22 +534,25 @@ class ProtectionObjectForm(forms.ModelForm):
 
             if region_id:
                 try:
-                    region = Region.objects.get(pk=region_id)
+                    region_id_int = int(region_id)
+                    region = Region.objects.get(pk=region_id_int)
                     self.fields['district'].queryset = District.objects.filter(
                         region=region
                     ).order_by('name')
-                    self.fields['region'].initial = region_id
+                    self.fields['region'].initial = region_id_int
                     self.fields['district'].widget.attrs.pop('disabled', None)
-                except Region.DoesNotExist:
+                except (ValueError, Region.DoesNotExist):
                     self.fields['district'].queryset = District.objects.none()
             else:
-                # Регион сброшен — районов быть не должно
                 self.fields['district'].queryset = District.objects.none()
 
             # Восстанавливаем выбранный район из POST (для отображения при ошибке)
             district_id = self.data.get(self.add_prefix('district'))
             if district_id:
-                self.fields['district'].initial = district_id
+                try:
+                    self.fields['district'].initial = int(district_id)
+                except ValueError:
+                    self.fields['district'].initial = district_id
 
             # Восстанавливаем ak_ids из POST
             raw_ak_ids = self.data.get(self.add_prefix('ak_ids'), '')

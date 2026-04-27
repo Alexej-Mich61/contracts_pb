@@ -49,8 +49,8 @@
                 <option value="">— Выберите регион —</option>
                 {% for region in form.fields.region.queryset %}
                 <option value="{{ region.pk }}"
-                        {% if form.region.value == region.pk %}selected{% endif %}>
-                    {{ region.name }}
+                        {% if form.region.value|stringformat:"s" == region.pk|stringformat:"s" %}selected{% endif %}>
+                {{ region.name }}
                 </option>
                 {% endfor %}
             </select>
