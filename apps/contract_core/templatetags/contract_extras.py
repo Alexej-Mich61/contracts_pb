@@ -1,5 +1,6 @@
 # apps/contract_core/templatetags/contract_extras.py
 from django import template
+from django.utils import timezone
 
 register = template.Library()
 
@@ -48,3 +49,13 @@ def is_htmx(request):
     if not request:
         return False
     return bool(getattr(request, 'headers', {}).get('HX-Request'))
+
+@register.filter
+def is_overdue(signing_stage, control_days):
+    """
+    Проверка просрочки стадии подписания.
+    Использование: {% if contract.signing_stage|is_overdue:signing_control_days %}
+    """
+    if not signing_stage or not signing_stage.changed_at or control_days is None:
+        return False
+    return (timezone.now() - signing_stage.changed_at).days > int(control_days)

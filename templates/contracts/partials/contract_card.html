@@ -1,10 +1,25 @@
 <!-- templates/contracts/partials/contract_card.html -->
 {% load humanize %}
+{% load contract_extras %}
 
-<div class="col-12 mb-3">
-    <div class="card shadow-lg border">
+<<div class="col-12 mb-3">
+    <div class="card shadow-sm border rounded-4">
         <!-- Шапка карточки: ключевая информация -->
-        <div class="card-header bg-white py-2">
+        <div class="card-header bg-white py-2 rounded-top-4">
+            <!-- Номер и дата договора + системные индикаторы -->
+            <div class="d-flex align-items-center gap-2 mb-2 flex-wrap bg-info-subtle p-1 rounded-3">
+                <span class="fw-bold text-dark fs-6">
+                    {{ contract.number|default:"б/н" }} от {{ contract.date_concluded|date:"d.m.Y"|default:"—" }}
+                </span>
+                {% for check in contract.system_checks.all %}
+                    {% if check.last_checked %}
+                        <span class="badge bg-success" title="{{ check.system_type.name }}: {{ check.last_checked|date:'d.m.Y' }}">
+                            <i class="bi bi-check-circle"></i> {{ check.system_type.name }}
+                        </span>
+                    {% endif %}
+                {% endfor %}
+            </div>
+
             <div class="row align-items-center g-2">
                 <!-- Заказчик и основное -->
                 <div class="col-12 col-lg-3">
@@ -39,21 +54,33 @@
                     </div>
                 </div>
 
-                    <!-- Финансы -->
+                <!-- Финансы -->
                 <div class="col-6 col-lg-2 text-center border-start">
-<!--                    <div class="small text-muted">Общая / мес.</div>-->
+                    {% if contract.total_sum %}
                     <div class="fw-bold text-success">
                         {{ contract.total_sum|floatformat:0|intcomma }} ₽
                     </div>
+                    {% endif %}
+                    {% if contract.monthly_sum %}
                     <div class="small text-muted">
                         {{ contract.monthly_sum|floatformat:0|intcomma }} ₽/мес
                     </div>
+                    {% endif %}
+                    {% if contract.advance %}
+                    <div class="small text-warning">
+                        Аванс: {{ contract.advance|floatformat:0|intcomma }} ₽
+                    </div>
+                    {% endif %}
                 </div>
 
                 <!-- Объекты и АК -->
                 <div class="col-6 col-lg-1 text-center border-start">
+                    {% if contract.object_count %}
                     <div class="small text-muted">Об.: <strong>{{ contract.object_count }}</strong></div>
+                    {% endif %}
+                    {% if contract.ak_count %}
                     <div class="small text-muted">АК: <strong>{{ contract.ak_count }}</strong></div>
+                    {% endif %}
                 </div>
 
                 <!-- Срок, статус и итоговый акт -->
@@ -74,28 +101,40 @@
 
                 <!-- Стадия подписания -->
                 <div class="col-6 col-lg-2 text-center border-start">
-<!--                    <div class="small text-muted">Подписание</div>-->
                     {% if contract.signing_stage %}
-                        <div class="fw-bold small">{{ contract.signing_stage.stage.name }}</div>
-                        <small class="text-muted">{{ contract.signing_stage.changed_at|date:"d.m.Y" }}</small>
+                    <div class="fw-bold small">
+                        {% if contract.signing_stage|is_overdue:signing_control_days %}
+                        <i class="bi bi-exclamation-circle-fill text-danger me-1"
+                           title="Стадия не обновлялась более {{ signing_control_days }} дн."></i>
+                        {% endif %}
+                        {{ contract.signing_stage.stage.name }}
+                    </div>
+                    <small class="text-muted">{{ contract.signing_stage.changed_at|date:"d.m.Y" }}</small>
                     {% else %}
-                        <span class="badge bg-light text-dark">Не указана</span>
+                    <span class="badge bg-light text-dark">Не указана</span>
                     {% endif %}
                 </div>
 
-                <!-- Роботы -->
+                <!-- Работы и кнопки -->
                 <div class="col-12 col-lg-2 text-center border-start">
                     <div class="d-flex justify-content-center gap-2 align-items-center mb-1">
                         <span class="badge bg-dark">{{ contract.work.name|truncatechars:30 }}</span>
                     </div>
-                    <!-- Кнопка разворачивания -->
-                    <button class="btn btn-sm btn-outline-primary w-100"
-                            type="button"
-                            data-bs-toggle="collapse"
-                            data-bs-target="#contract-details-{{ contract.pk }}"
-                            aria-expanded="false">
-                        <i class="bi bi-chevron-down"></i> Детали
-                    </button>
+                    <div class="d-flex gap-1 justify-content-center">
+                        <button class="btn btn-sm btn-outline-primary flex-grow-1"
+                                type="button"
+                                data-bs-toggle="collapse"
+                                data-bs-target="#contract-details-{{ contract.pk }}"
+                                aria-expanded="false"
+                                title="Детали">
+                            <i class="bi bi-chevron-down"></i>
+                        </button>
+                        <a href="{% url 'contract_core:contract_update' contract.pk %}"
+                           class="btn btn-sm btn-outline-secondary"
+                           title="Редактировать">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
@@ -104,7 +143,7 @@
         <div class="collapse" id="contract-details-{{ contract.pk }}">
             <div class="card-body bg-light border-top">
                 <div class="row g-3">
-                    <!-- Колонка 1: Договор и стороны -->
+                    <!-- Колонка 1: Договор, стороны и системы -->
                     <div class="col-12 col-md-6 col-lg-3">
                         <h6 class="fw-bold text-primary mb-2">
                             <i class="bi bi-file-text"></i> Договор
@@ -136,6 +175,22 @@
                             </tr>
                         </table>
 
+                        {% if contract.system_checks.all %}
+                        <div class="mt-3">
+                            <h6 class="small fw-bold text-muted mb-2">
+                                <i class="bi bi-shield-check"></i> Проверки систем:
+                            </h6>
+                            {% for check in contract.system_checks.all %}
+                                <div class="d-flex justify-content-between align-items-center small mb-1">
+                                    <span class="{% if check.last_checked %}text-success{% else %}text-muted{% endif %}">
+                                        <i class="bi bi-{% if check.last_checked %}check-circle-fill{% else %}circle{% endif %}"></i>
+                                        {{ check.system_type.name }}
+                                    </span>
+                                    <small class="text-muted">{{ check.last_checked|date:"d.m.Y"|default:"—" }}</small>
+                                </div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
                     </div>
 
                     <!-- Колонка 2: Финансы детально -->
@@ -197,7 +252,7 @@
                         {% endfor %}
                     </div>
 
-                    <!-- Колонка 4: Подписание, акты, системы -->
+                    <!-- Колонка 4: Подписание и акты -->
                     <div class="col-12 col-md-6 col-lg-3">
                         <h6 class="fw-bold text-warning mb-2">
                             <i class="bi bi-pen"></i> Подписание и акты
@@ -233,18 +288,6 @@
                                         <i class="bi bi-download"></i> Скачать акт
                                     </a>
                                 {% endif %}
-                            </div>
-                        {% endif %}
-
-                        {% if contract.system_checks.all %}
-                            <div class="mt-2">
-                                <h6 class="small fw-bold text-muted">Проверки систем:</h6>
-                                {% for check in contract.system_checks.all %}
-                                    <div class="bg-white rounded p-1 mb-1 small d-flex justify-content-between align-items-center">
-                                        <span>{{ check.system_type.name }}</span>
-                                        <small class="text-muted">{{ check.last_checked|date:"d.m.Y"|default:"—" }}</small>
-                                    </div>
-                                {% endfor %}
                             </div>
                         {% endif %}
                     </div>

@@ -43,7 +43,7 @@ from .models import (
     ContractSystemCheck,
     Work,
     SystemType,
-    SigningStage,
+    SigningStage, SigningStageControlSettings,
 )
 from .forms import (
     AkForm,
@@ -175,6 +175,7 @@ class ContractListView(LoginRequiredMixin, ListView):
         context['districts'] = ContractFilterService.get_districts_by_region(
             self.request.GET.get('region')
         )
+        context['signing_control_days'] = SigningStageControlSettings.get_settings().control_days
 
         has_filters = getattr(self, '_has_filters', self._has_active_filters())
         context['is_limited'] = not has_filters
@@ -268,6 +269,7 @@ class ContractListHtmxView(LoginRequiredMixin, ListView):
         context['total_aks'] = Ak.objects.filter(
             protection_objects__contract__in=stats_qs
         ).distinct().count()
+        context['signing_control_days'] = SigningStageControlSettings.get_settings().control_days
 
         return context
 

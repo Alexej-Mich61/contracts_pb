@@ -85,6 +85,7 @@ class SigningStageControlSettings(models.Model):
         return obj
 
 
+
 # ---------- СПРАВОЧНИКИ (регион/район) ----------
 class Region(models.Model):
     name = models.CharField(
@@ -334,6 +335,22 @@ class ContractSigningStage(models.Model):
         editable=False,
     )
     note = models.TextField("Примечание", blank=True, max_length=200)
+
+    @property
+    def is_overdue(self):
+        """Проверка просрочки с запросом к БД (для обратной совместимости)."""
+        return self.is_overdue_with()
+
+    def is_overdue_with(self, control_days=None):
+        """
+        Проверка просрочки.
+        Если control_days не передан — берётся из настроек (1 запрос).
+        """
+        if not self.changed_at:
+            return False
+        if control_days is None:
+            control_days = SigningStageControlSettings.get_settings().control_days
+        return (timezone.now() - self.changed_at).days > control_days
 
     def save(self, *args, **kwargs):
         current_user = get_current_user()
