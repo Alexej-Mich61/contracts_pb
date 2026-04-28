@@ -14,19 +14,30 @@
     </div>
 
     <!-- Информация о лимите -->
-    {% if is_limited %}
-    <div class="alert alert-info alert-dismissible fade show py-2 mb-3" id="limit-alert">
-        <small>
-            <i class="bi bi-info-circle"></i>
-            Показаны <strong>10 последних</strong> добавленных договоров.
-            Используйте фильтры для просмотра всех записей.
-        </small>
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    {% block limit_alert_oob %}
+    <div id="limit-alert-wrapper" hx-swap-oob="true">
+        {% if is_limited %}
+        <div class="alert alert-info alert-dismissible fade show py-2 mb-3" id="limit-alert">
+            <small>
+                <i class="bi bi-info-circle"></i>
+                Показаны <strong>10 последних</strong> добавленных договоров.
+                Используйте фильтры для просмотра всех записей.
+            </small>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% else %}
+        <!-- Пустой placeholder чтобы удалить алерт при фильтрации -->
+        <div id="limit-alert-wrapper" hx-swap-oob="true"></div>
+        {% endif %}
     </div>
-    {% endif %}
+    {% endblock limit_alert_oob %}
 
     <!-- Фильтр -->
-    {% include "contracts/partials/contract_filter.html" %}
+    {% block filter_oob %}
+    <div id="filter-wrapper" hx-swap-oob="true">
+        {% include "contracts/partials/contract_filter.html" %}
+    </div>
+    {% endblock filter_oob %}
 
     <!-- НАЧАЛО БЛОКА contracts_list -->
     {% block contracts_list %}

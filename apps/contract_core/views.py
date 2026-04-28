@@ -281,13 +281,19 @@ class ContractListHtmxView(LoginRequiredMixin, ListView):
         has_filters = self._has_active_filters()
         context['is_limited'] = not has_filters
 
+        # === ДАННЫЕ ДЛЯ ФИЛЬТРА ===
+        context['filter_data'] = ContractFilterService.get_filter_choices()
+        context['districts'] = ContractFilterService.get_districts_by_region(
+            self.request.GET.get('region')
+        )
+
         # === СТАТИСТИКА ===
         full_qs = self.get_filtered_queryset()
 
         if not has_filters:
-            stats_qs = context['contracts']        # только 10 последних
+            stats_qs = context['contracts']
         else:
-            stats_qs = full_qs                     # все отфильтрованные
+            stats_qs = full_qs
 
         aggregates = stats_qs.aggregate(
             count=Count('id'),
@@ -312,13 +318,25 @@ class ContractListHtmxView(LoginRequiredMixin, ListView):
 
     def render_to_response(self, context, **response_kwargs):
         if self.request.htmx:
-            html = render_block_to_string(
-                self.template_name,
-                'contracts_list',
-                context,
-                request=self.request
-            )
-            return HttpResponse(html)
+            # Рендерим основной блок + OOB-обновления для фильтра и алерта
+            blocks = ['contracts_list', 'filter_oob', 'limit_alert_oob']
+            html_parts = []
+
+            for block_name in blocks:
+                try:
+                    html_parts.append(
+                        render_block_to_string(
+                            self.template_name,
+                            block_name,
+                            context,
+                            request=self.request
+                        )
+                    )
+                except Exception:
+                    # Если блок не найден, пропускаем
+                    pass
+
+            return HttpResponse('\n'.join(html_parts))
         return super().render_to_response(context, **response_kwargs)
 
 
