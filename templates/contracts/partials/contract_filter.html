@@ -28,6 +28,18 @@
                       onsubmit="closeFilterAccordion()">
 
                     <div class="row g-3">
+                     <!-- Кнопки -->
+                    <div class="d-flex justify-content-between mt-3">
+                        <button type="button" class="btn btn-outline-secondary btn-sm"
+                                onclick="resetFilter()">
+                            <i class="bi bi-x-circle"></i> Сбросить фильтр
+                        </button>
+                        <button type="submit" class="btn btn-primary btn-sm">
+                            <span class="spinner-border spinner-border-sm d-none" id="filter-spinner"></span>
+                            <i class="bi bi-search"></i> Применить фильтры
+                        </button>
+                    </div>
+
                         <!-- Базовые фильтры -->
                         <div class="col-md-3">
                             <label class="form-label">Расположение</label>

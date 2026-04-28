@@ -243,24 +243,34 @@ class ContractFilterService:
         """Фильтр по актам"""
         from django.db.models import Exists, OuterRef
 
-        # Итоговый акт (OneToOne)
+        # Итоговый акт (OneToOne) — проверяем поле present, а не просто наличие записи
         has_final_act = self.params.get('has_final_act')
         if has_final_act == 'yes':
-            queryset = queryset.filter(final_act__isnull=False)
+            # Акт сформирован: есть запись И present=True
+            queryset = queryset.filter(
+                final_act__isnull=False,
+                final_act__present=True
+            )
         elif has_final_act == 'no':
-            queryset = queryset.filter(final_act__isnull=True)
+            # Акт НЕ сформирован: либо нет записи, либо present=False
+            queryset = queryset.filter(
+                Q(final_act__isnull=True) |
+                Q(final_act__present=False)
+            )
 
-        # Файл итогового акта
+        # Файл итогового акта (проверяем только если акт сформирован)
         has_final_act_file = self.params.get('has_final_act_file')
         if has_final_act_file == 'yes':
             queryset = queryset.filter(
                 final_act__isnull=False,
+                final_act__present=True,
                 final_act__file__isnull=False,
                 final_act__file__gt=''
             )
         elif has_final_act_file == 'no':
             queryset = queryset.filter(
                 Q(final_act__isnull=True) |
+                Q(final_act__present=False) |
                 Q(final_act__file__isnull=True) |
                 Q(final_act__file='')
             )
