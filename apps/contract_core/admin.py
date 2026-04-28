@@ -122,11 +122,11 @@ class AkInline(admin.TabularInline):
 
 @admin.register(ContractSettings)
 class ContractSettingsAdmin(admin.ModelAdmin):
-    list_display = ('days_before_expires', 'longterm_status_time', 'oneoff_status_time')
+    list_display = ('days_before_expires', 'contract_status_time')
     readonly_fields = ('pk',)
     fieldsets = (
         (None, {
-            'fields': ('days_before_expires', 'longterm_status_time', 'oneoff_status_time')
+            'fields': ('days_before_expires', 'contract_status_time')
         }),
     )
 

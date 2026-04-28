@@ -129,6 +129,7 @@
                                 <option value="">Все</option>
                                 <option value="yes" {% if request.GET.is_final == 'yes' %}selected{% endif %}>Да</option>
                                 <option value="no" {% if request.GET.is_final == 'no' %}selected{% endif %}>Нет</option>
+                                <option value="overdue" {% if request.GET.is_final == 'overdue' %}selected{% endif %}>Нет (просрочено)</option>
                             </select>
                         </div>
 

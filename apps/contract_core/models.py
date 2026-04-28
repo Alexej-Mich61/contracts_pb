@@ -26,28 +26,27 @@ from .services.uuid_path_generator import (
 # ---------- НАСТРОЙКА ДЛЯ СТАТУСОВ КОНТРАКТОВ ----------
 class ContractSettings(models.Model):
     """Единая строка на весь проект – настройки расчёта статусов контрактов."""
+
     days_before_expires = models.PositiveSmallIntegerField(
         "Дней до статуса «Истекает»",
         default=10,
         validators=[MinValueValidator(1), MaxValueValidator(365)],
         help_text="Если до конца срока ≤ этого числа – статус «Истекает»",
     )
-    longterm_status_time = models.TimeField(
-        "Время обновления долгосрочных",
+    contract_status_time = models.TimeField(
+        "Время обновления статусов договоров",
         default=datetime.time(2, 0),  # 02:00
-    )
-    oneoff_status_time = models.TimeField(
-        "Время обновления разовых",
-        default=datetime.time(3, 0),  # 03:00
     )
 
     class Meta:
         verbose_name = "Настройки статусов договоров"
         verbose_name_plural = "Настройки статусов договоров"
 
-
     def __str__(self):
-        return f"До «Истекает» {self.days_before_expires} дн., обновления в {self.longterm_status_time} и {self.oneoff_status_time}"
+        return (
+            f"До «Истекает» {self.days_before_expires} дн., "
+            f"обновление в {self.contract_status_time}"
+        )
 
     @classmethod
     def get_settings(cls):

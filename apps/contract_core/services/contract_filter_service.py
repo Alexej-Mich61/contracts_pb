@@ -1,10 +1,13 @@
 # apps/contract_core/services/contract_filter_service.py
 from django.db.models import Q, Count
 from django.contrib.auth import get_user_model
+from django.db.models import Exists, OuterRef
+from django.utils import timezone
+from datetime import timedelta
 
 from ..models import (
     Contract, Company, Work, Region, District, SigningStage,
-    ProtectionObject, Ak, FinalAct, InterimAct
+    ProtectionObject, Ak, FinalAct, InterimAct, SigningStageControlSettings
 )
 
 User = get_user_model()
@@ -181,7 +184,11 @@ class ContractFilterService:
 
     def _filter_by_signing_stage(self, queryset):
         """Фильтр по текущей стадии подписания"""
+
         is_final = self.params.get('is_final')
+        stages = self.params.getlist('signing_stages')
+
+        # === Финальная стадия ===
         if is_final == 'yes':
             queryset = queryset.filter(signing_stage__stage__is_final=True)
         elif is_final == 'no':
@@ -189,8 +196,18 @@ class ContractFilterService:
                 Q(signing_stage__isnull=True) |
                 Q(signing_stage__stage__is_final=False)
             )
+        elif is_final == 'overdue':
+            # Нефинальные стадии с просроченным контрольным сроком
+            control_days = SigningStageControlSettings.get_settings().control_days
+            cutoff_date = timezone.now() - timedelta(days=control_days)
 
-        stages = self.params.getlist('signing_stages')
+            queryset = queryset.filter(
+                signing_stage__isnull=False,
+                signing_stage__stage__is_final=False,
+                signing_stage__changed_at__lt=cutoff_date
+            )
+
+        # === Конкретные стадии ===
         if stages:
             queryset = queryset.filter(signing_stage__stage_id__in=stages)
 
