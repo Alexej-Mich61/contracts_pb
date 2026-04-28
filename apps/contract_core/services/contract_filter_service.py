@@ -38,6 +38,7 @@ class ContractFilterService:
         queryset = self._filter_by_status(queryset)
         queryset = self._filter_by_search(queryset)
         queryset = self._filter_by_date_range(queryset)
+        queryset = self._filter_by_created_date(queryset)
         queryset = self._filter_by_signing_stage(queryset)
         queryset = self._filter_by_region(queryset)
         queryset = self._filter_by_objects(queryset)
@@ -163,6 +164,18 @@ class ContractFilterService:
             queryset = queryset.filter(date_start__gte=date_from)
         if date_to:
             queryset = queryset.filter(date_end__lte=date_to)
+
+        return queryset
+
+    def _filter_by_created_date(self, queryset):
+        """Фильтр по диапазону дат создания договора"""
+        created_from = self.params.get('created_from')
+        created_to = self.params.get('created_to')
+
+        if created_from:
+            queryset = queryset.filter(created_at__date__gte=created_from)
+        if created_to:
+            queryset = queryset.filter(created_at__date__lte=created_to)
 
         return queryset
 

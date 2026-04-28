@@ -266,6 +266,19 @@
                             <input type="text" name="author" class="form-control form-control-sm"
                                    value="{{ request.GET.author }}" placeholder="Имя или логин">
                         </div>
+
+                        <!-- Дата создания -->
+                        <div class="col-md-3">
+                            <label class="form-label">Дата создания с</label>
+                            <input type="date" name="created_from" class="form-control form-control-sm"
+                                   value="{{ request.GET.created_from }}">
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label">Дата создания по</label>
+                            <input type="date" name="created_to" class="form-control form-control-sm"
+                                   value="{{ request.GET.created_to }}">
+                        </div>
                     </div>
 
                     <!-- Кнопки -->
