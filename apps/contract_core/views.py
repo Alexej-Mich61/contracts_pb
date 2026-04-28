@@ -796,34 +796,7 @@ class FilterDistrictsView(LoginRequiredMixin, View):
 
 
 
-
-# ========== КОРЗИНА ==========
-
-class ContractTrashView(LoginRequiredMixin, ListView):
-    """Корзина договоров с фильтрацией по правам доступа"""
-    model = Contract
-    template_name = "contracts/contract_trash.html"
-    context_object_name = "contracts"
-    paginate_by = 10
-
-    def get_queryset(self):
-        # Только удаленные договоры пользователя
-        base_queryset = Contract.objects.for_user(self.request.user)
-        return base_queryset.filter(is_trash=True).order_by('-updated_at')
-
-
-
-
-
-
-# Отчеты
-# отчет заказчик (пустой)
-class CustomerReportsView(LoginRequiredMixin, TemplateView):
-    template_name = "reports/customer_reports.html"
-
-# отчет исполнитель (пустой)
-class ExecutorReportsView(LoginRequiredMixin, TemplateView):
-    template_name = "reports/executor_reports.html"
+# Отчеты/////////////////////////////
 
 # отчет по стадиям подписания
 class ContractSigningStageReportsView(LoginRequiredMixin, TemplateView):

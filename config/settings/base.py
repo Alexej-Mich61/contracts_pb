@@ -37,17 +37,12 @@ THIRD_PARTY_APPS = [
 ]
 
 LOCAL_APPS = [
-    #"simple_history",
     "auditlog",
     "apps.identity",
     "apps.contract_core",
-    "apps.audit",
-    "apps.chat",
     "apps.faq",
     "apps.mailing",
     "import_export",
-    "frontend",
-
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS

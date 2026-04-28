@@ -119,16 +119,6 @@
                             </a>
                             <ul class="dropdown-menu" aria-labelledby="reportsDropdown">
                                 <li>
-                                    <a class="dropdown-item" href="{% url 'contract_core:customer_reports' %}">
-                                        <i class="bi bi-building me-2"></i>Заказчики
-                                    </a>
-                                </li>
-                                <li>
-                                    <a class="dropdown-item" href="{% url 'contract_core:executor_reports' %}">
-                                        <i class="bi bi-tools me-2"></i>Исполнители
-                                    </a>
-                                </li>
-                                <li>
                                     <a class="dropdown-item" href="{% url 'contract_core:subcontractors_to_reports_list' %}">
                                         <i class="bi bi-people me-2"></i>Субподрядчики ТО
                                     </a>
@@ -191,9 +181,6 @@
                             </ul>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="{% url 'chat:chat' %}">Чат</a>
-                        </li>
-                        <li class="nav-item">
                             <a class="nav-link" href="{% url 'faq:list' %}">FAQ</a>
                         </li>
                     </ul>
@@ -203,13 +190,6 @@
                         <!-- Текущее время (включенный шаблон) -->
                         <li class="nav-item d-none d-lg-block">
                             {% include "partials/current_time.html" %}
-                        </li>
-
-                        <!-- Корзина -->
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'contract_core:contract_trash' %}" title="Корзина">
-                                <i class="bi bi-trash"></i>
-                            </a>
                         </li>
 
                         {% if user.is_staff %}
