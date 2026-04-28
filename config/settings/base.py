@@ -1,8 +1,14 @@
 # config/settings/base.py
 import environ
 from pathlib import Path
+import os
 
 env = environ.Env(DEBUG=(bool, True))
+
+# === Читаем .env из той же папки, где лежит base.py ===
+_ENV_FILE = Path(__file__).resolve().parent / ".env"
+if _ENV_FILE.exists():
+    environ.Env.read_env(str(_ENV_FILE))
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -17,7 +23,11 @@ SECRET_KEY = env("SECRET_KEY", default="dev-secret-change-me")
 
 DEBUG = env("DEBUG")
 
-ALLOWED_HOSTS = []
+# ALLOWED_HOSTS из .env (через запятую) или пустой список по умолчанию
+ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=[])
+
+# Если нужен fallback для разработки:
+# ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["localhost", "127.0.0.1"])
 
 
 # Apps
@@ -84,12 +94,25 @@ WSGI_APPLICATION = "config.wsgi.application"
 
 
 # Database
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": ROOT_DIR / "db.sqlite3",   # файл появится в корне проекта
+DB_ENGINE = env("DB_ENGINE", default="sqlite")
+
+if DB_ENGINE == "postgres":
+    DATABASES = {
+        "default": env.db_url("DATABASE_URL")
     }
-}
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": ROOT_DIR / "db.sqlite3",
+        }
+    }
+# DATABASES = {
+#     "default": {
+#         "ENGINE": "django.db.backends.sqlite3",
+#         "NAME": ROOT_DIR / "db.sqlite3",   # файл появится в корне проекта
+#     }
+# }
 # DATABASES = {
 #     "default": env.db(
 #         default="postgres://postgres:pbpass@localhost:5433/contracts_pb"
