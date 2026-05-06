@@ -1,4 +1,5 @@
 # apps/contract_core/mixins.py
+import logging
 from django.core.exceptions import PermissionDenied
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -12,6 +13,8 @@ from .forms import (
     ContractSystemCheckFormSet,
 )
 from .models import ContractSystemCheck, FinalAct, SystemType, SigningStage, Region
+
+logger = logging.getLogger(__name__)   # ← apps.contract_core.mixins
 
 
 # Миксин для вьюх (проверка допусков)
@@ -82,7 +85,7 @@ class ContractCreateUpdateMixin:
             context['signing_stage_form'] = ContractSigningStageForm(
                 self.request.POST,
                 instance=self.object.signing_stage if self.object and hasattr(self.object, 'signing_stage') else None,
-                prefix='signing_stage'  # <-- уникальный префикс
+                prefix='signing_stage'
             )
             context['interim_act_formset'] = InterimActFormSet(
                 self.request.POST, self.request.FILES, instance=self.object
@@ -90,10 +93,9 @@ class ContractCreateUpdateMixin:
             context['final_act_form'] = FinalActForm(
                 self.request.POST, self.request.FILES,
                 instance=self.object.final_act if self.object and hasattr(self.object, 'final_act') else None,
-                prefix='final_act'  # <-- уникальный префикс
+                prefix='final_act'
             )
 
-            # Formset отметок по системам
             context['system_check_formset'] = ContractSystemCheckFormSet(
                 self.request.POST,
                 instance=self.object,
@@ -103,26 +105,24 @@ class ContractCreateUpdateMixin:
         else:
             context['protection_object_formset'] = ProtectionObjectFormSet(instance=self.object)
 
-            # Стадия подписания
             if self.object and hasattr(self.object, 'signing_stage'):
                 context['signing_stage_form'] = ContractSigningStageForm(
                     instance=self.object.signing_stage,
-                    prefix='signing_stage'  # <-- уникальный префикс
+                    prefix='signing_stage'
                 )
             else:
                 initial_stage = SigningStage.objects.order_by('order').first()
                 context['signing_stage_form'] = ContractSigningStageForm(
                     initial={'stage': initial_stage.id if initial_stage else None},
-                    prefix='signing_stage'  # <-- уникальный префикс
+                    prefix='signing_stage'
                 )
 
             context['interim_act_formset'] = InterimActFormSet(instance=self.object)
             context['final_act_form'] = FinalActForm(
                 instance=self.object.final_act if self.object and hasattr(self.object, 'final_act') else None,
-                prefix='final_act'  # <-- уникальный префикс
+                prefix='final_act'
             )
 
-            # === ОТМЕТКИ ПО СИСТЕМАМ ===
             if self.object:
                 existing_qs = ContractSystemCheck.objects.filter(
                     contract=self.object,
@@ -165,27 +165,45 @@ class ContractCreateUpdateMixin:
         return checks
 
     def form_valid(self, form):
-        # ВРЕМЕННАЯ ОТЛАДКА
-        print("=== POST DATA ===")
+        # === ВРЕМЕННЫЕ ПРИНТЫ ДЛЯ РАЗРАБОТЧИКА ===
+        print("=" * 60)
+        print(f"[DEV] form_valid START | user={self.request.user} | method={self.request.method}")
+        print("=" * 60)
+
+        print("[DEV] === POST DATA (ak_ids / contract_objects) ===")
         for k, v in self.request.POST.items():
             if 'ak_ids' in k or 'contract_objects' in k:
-                print(f"{k}: {v}")
+                print(f"[DEV] {k}: {v}")
 
         context = self.get_context_data()
         protection_formset = context['protection_object_formset']
-        # ВРЕМЕННАЯ ОТЛАДКА
-        print(f"=== form_valid ===")
-        print(f"  form.is_valid(): {form.is_valid()}")
-        print(f"  protection_formset.is_valid(): {protection_formset.is_valid()}")
-        if not protection_formset.is_valid():
-            print(f"  protection_formset.errors: {protection_formset.errors}")
-            for i, f in enumerate(protection_formset.forms):
-                print(f"  Form {i} errors: {f.errors}")
-
         signing_form = context['signing_stage_form']
         interim_formset = context['interim_act_formset']
         final_act_form = context['final_act_form']
         system_check_formset = context['system_check_formset']
+
+        print(f"[DEV] form.is_valid(): {form.is_valid()}")
+        print(f"[DEV] protection_formset.is_valid(): {protection_formset.is_valid()}")
+        if not protection_formset.is_valid():
+            print(f"[DEV] protection_formset.errors: {protection_formset.errors}")
+            for i, f in enumerate(protection_formset.forms):
+                print(f"[DEV]  Form {i} ({f.prefix}) errors: {f.errors}")
+
+        print(f"[DEV] signing_form.is_valid(): {signing_form.is_valid()}")
+        if not signing_form.is_valid():
+            print(f"[DEV] signing_form.errors: {signing_form.errors}")
+
+        print(f"[DEV] interim_formset.is_valid(): {interim_formset.is_valid()}")
+        if not interim_formset.is_valid():
+            print(f"[DEV] interim_formset.errors: {interim_formset.errors}")
+
+        print(f"[DEV] final_act_form.is_valid(): {final_act_form.is_valid()}")
+        if not final_act_form.is_valid():
+            print(f"[DEV] final_act_form.errors: {final_act_form.errors}")
+
+        print(f"[DEV] system_check_formset.is_valid(): {system_check_formset.is_valid()}")
+        if not system_check_formset.is_valid():
+            print(f"[DEV] system_check_formset.errors: {system_check_formset.errors}")
 
         is_valid = True
 
@@ -201,31 +219,51 @@ class ContractCreateUpdateMixin:
             is_valid = False
 
         if not is_valid:
+            # === ЛОГИРОВАНИЕ ОШИБОК ВАЛИДАЦИИ ===
+            logger.warning(
+                "Ошибка валидации договора | user=%s | form_errors=%s | "
+                "po_errors=%s | sign_errors=%s | interim_errors=%s | "
+                "final_errors=%s | sys_errors=%s",
+                self.request.user,
+                form.errors.as_json() if hasattr(form.errors, 'as_json') else str(form.errors),
+                protection_formset.errors,
+                signing_form.errors,
+                interim_formset.errors,
+                final_act_form.errors,
+                system_check_formset.errors,
+            )
+            print("[DEV] ВАЛИДАЦИЯ НЕ ПРОШЛА — рендерим форму с ошибками")
             return self.render_to_response(self.get_context_data(form=form))
 
         # Запоминаем, создаём ли новый договор
         is_new_contract = not form.instance.pk
+        action_word = "СОЗДАНИЕ" if is_new_contract else "ОБНОВЛЕНИЕ"
+        print(f"[DEV] >>> Начинаем {action_word} договора")
 
         # 1. Сохраняем основной договор
         self.object = form.save()
+        print(f"[DEV] Договор сохранён | pk={self.object.pk} | number={self.object.number}")
 
         # 2. Объекты защиты
         protection_formset.instance = self.object
         protection_formset.save()
+        print(f"[DEV] Объекты защиты сохранены | forms={len(protection_formset.forms)}")
 
         # Привязка АК ко всем сохранённым объектам защиты
         for po_form in protection_formset.forms:
-            print(f"Form {po_form.prefix}: ak_ids = {po_form.cleaned_data.get('ak_ids')}")
+            print(f"[DEV] Form {po_form.prefix}: ak_ids = {po_form.cleaned_data.get('ak_ids')}")
             if po_form in protection_formset.deleted_forms:
                 continue
             ak_ids = po_form.cleaned_data.get('ak_ids', [])
             if ak_ids is not None:
                 po_form.instance.aks.set(ak_ids)
+        print("[DEV] АК привязаны")
 
         # 3. Стадия подписания
         signing_stage = signing_form.save(commit=False)
         signing_stage.contract = self.object
         signing_stage.save()
+        print(f"[DEV] Стадия подписания сохранена | stage={signing_stage.stage}")
 
         # 4. Итоговый акт
         final_act = final_act_form.save(commit=False)
@@ -246,34 +284,35 @@ class ContractCreateUpdateMixin:
             defaults['checked_by'] = None
             defaults['checked_at'] = None
         FinalAct.objects.update_or_create(contract=self.object, defaults=defaults)
+        print(f"[DEV] Итоговый акт сохранён | present={final_act.present}")
 
         # 5. Промежуточные акты
         interim_formset.instance = self.object
         interim_formset.save()
+        print(f"[DEV] Промежуточные акты сохранены | count={len(interim_formset.forms)}")
 
         # 6. ОТМЕТКИ ПО СИСТЕМАМ
         system_check_formset.instance = self.object
 
         if is_new_contract:
-            # Ручная обработка при создании — защита от дублей и unique constraint
             saved_system_ids = set()
-            for form in system_check_formset.forms:
-                if not hasattr(form, 'cleaned_data') or not form.cleaned_data:
+            for sys_form in system_check_formset.forms:
+                if not hasattr(sys_form, 'cleaned_data') or not sys_form.cleaned_data:
                     continue
-                if form.cleaned_data.get('DELETE'):
-                    continue  # при создании нечего удалять
+                if sys_form.cleaned_data.get('DELETE'):
+                    continue
 
-                system_type = form.cleaned_data.get('system_type')
+                system_type = sys_form.cleaned_data.get('system_type')
                 if not system_type:
                     continue
 
                 st_id = system_type.pk if hasattr(system_type, 'pk') else system_type
                 if st_id in saved_system_ids:
-                    continue  # пропускаем дубль внутри запроса
+                    continue
                 saved_system_ids.add(st_id)
 
-                last_checked = form.cleaned_data.get('last_checked')
-                note = form.cleaned_data.get('note', '')
+                last_checked = sys_form.cleaned_data.get('last_checked')
+                note = sys_form.cleaned_data.get('note', '')
 
                 ContractSystemCheck.objects.update_or_create(
                     contract=self.object,
@@ -284,8 +323,8 @@ class ContractCreateUpdateMixin:
                         'checked_by': self.request.user if last_checked else None,
                     }
                 )
+            print(f"[DEV] Системные отметки созданы | count={len(saved_system_ids)}")
         else:
-            # При редактировании стандартный save() работает корректно
             saved_checks = system_check_formset.save()
             for obj in saved_checks:
                 if obj.last_checked and not obj.checked_by:
@@ -294,8 +333,38 @@ class ContractCreateUpdateMixin:
                 elif not obj.last_checked and obj.checked_by:
                     obj.checked_by = None
                     obj.save(update_fields=['checked_by'])
-            # Удаление отмеченных форм
             for obj in system_check_formset.deleted_objects:
                 obj.delete()
+            print(f"[DEV] Системные отметки обновлены | saved={len(saved_checks)} | deleted={len(system_check_formset.deleted_objects)}")
+
+        # === ЛОГИРОВАНИЕ УСПЕХА ===
+        logger.info(
+            "Договор %s | pk=%s | user=%s (pk=%s) | "
+            "number=%s | customer=%s | objects=%s | stage=%s | final_act=%s",
+            "СОЗДАН" if is_new_contract else "ОБНОВЛЁН",
+            self.object.pk,
+            self.request.user,
+            self.request.user.pk,
+            self.object.number or "б/н",
+            self.object.customer,
+            len(protection_formset.forms),
+            signing_stage.stage.name if signing_stage.stage else "—",
+            "да" if final_act.present else "нет",
+        )
+        print(f"[DEV] <<< УСПЕХ: договор {action_word} pk={self.object.pk}")
+        print("=" * 60)
 
         return redirect(self.get_success_url())
+
+    def form_invalid(self, form):
+        """
+        Вызывается Django, если НЕ прошла валидация основной формы ContractForm.
+        (Ошибки inline-форм мы ловим вручную в form_valid.)
+        """
+        logger.warning(
+            "form_invalid (основная форма) | user=%s | errors=%s",
+            self.request.user,
+            form.errors.as_json() if hasattr(form.errors, 'as_json') else str(form.errors),
+        )
+        print(f"[DEV] form_invalid вызван | errors={form.errors}")
+        return super().form_invalid(form)

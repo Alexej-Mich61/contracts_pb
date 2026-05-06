@@ -189,17 +189,25 @@ LOGGING = {
             "level": "INFO",
             "class": "logging.handlers.RotatingFileHandler",
             "filename": LOGS_DIR / "contracts.log",
-            "maxBytes": 10 * 1024 * 1024,   # 10 МБ
+            "maxBytes": 10 * 1024 * 1024,
             "backupCount": 5,
             "formatter": "verbose",
         },
-        # ← Новый handler для планировщика
         "scheduler_file": {
             "level": "INFO",
             "class": "logging.handlers.RotatingFileHandler",
             "filename": LOGS_DIR / "scheduler.log",
-            "maxBytes": 5 * 1024 * 1024,    # 5 МБ
+            "maxBytes": 5 * 1024 * 1024,
             "backupCount": 3,
+            "formatter": "verbose",
+        },
+        # ← НОВЫЙ handler для сохранения договоров
+        "contracts_save_file": {
+            "level": "DEBUG",   # DEBUG, чтобы ловить и принты-уровень при разработке
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": LOGS_DIR / "contracts_save.log",
+            "maxBytes": 10 * 1024 * 1024,
+            "backupCount": 5,
             "formatter": "verbose",
         },
     },
@@ -219,9 +227,15 @@ LOGGING = {
             "propagate": False,
         },
         "contract_core.scheduler": {
-            "handlers": ["console", "scheduler_file"],  # ← пишем и в консоль, и в файл
+            "handlers": ["console", "scheduler_file"],
             "level": "INFO",
-            "propagate": False,  # ← не дублировать в "apps" (иначе попадёт в contracts.log)
+            "propagate": False,
+        },
+        # ← НОВЫЙ logger для миксина сохранения договоров
+        "apps.contract_core.mixins": {
+            "handlers": ["console", "contracts_save_file"],
+            "level": "DEBUG",
+            "propagate": False,
         },
     },
 }
