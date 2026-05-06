@@ -25,6 +25,7 @@ DEBUG = env("DEBUG")
 
 # ALLOWED_HOSTS из .env (через запятую) или пустой список по умолчанию
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=[])
+CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=[])
 
 # Если нужен fallback для разработки:
 # ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["localhost", "127.0.0.1"])
@@ -236,3 +237,8 @@ ADMIN_AUTOCOMPLETE_FIELDS = True
 # }
 
 # Tailwind не используется
+
+# Auth
+LOGIN_URL = "identity:login"
+LOGIN_REDIRECT_URL = "identity:home"
+
