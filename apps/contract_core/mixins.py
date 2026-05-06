@@ -81,17 +81,19 @@ class ContractCreateUpdateMixin:
             )
             context['signing_stage_form'] = ContractSigningStageForm(
                 self.request.POST,
-                instance=self.object.signing_stage if self.object and hasattr(self.object, 'signing_stage') else None
+                instance=self.object.signing_stage if self.object and hasattr(self.object, 'signing_stage') else None,
+                prefix='signing_stage'  # <-- уникальный префикс
             )
             context['interim_act_formset'] = InterimActFormSet(
                 self.request.POST, self.request.FILES, instance=self.object
             )
             context['final_act_form'] = FinalActForm(
                 self.request.POST, self.request.FILES,
-                instance=self.object.final_act if self.object and hasattr(self.object, 'final_act') else None
+                instance=self.object.final_act if self.object and hasattr(self.object, 'final_act') else None,
+                prefix='final_act'  # <-- уникальный префикс
             )
 
-            # Formset отметок по системам (instance=None при создании допустимо для валидации)
+            # Formset отметок по системам
             context['system_check_formset'] = ContractSystemCheckFormSet(
                 self.request.POST,
                 instance=self.object,
@@ -103,21 +105,25 @@ class ContractCreateUpdateMixin:
 
             # Стадия подписания
             if self.object and hasattr(self.object, 'signing_stage'):
-                context['signing_stage_form'] = ContractSigningStageForm(instance=self.object.signing_stage)
+                context['signing_stage_form'] = ContractSigningStageForm(
+                    instance=self.object.signing_stage,
+                    prefix='signing_stage'  # <-- уникальный префикс
+                )
             else:
                 initial_stage = SigningStage.objects.order_by('order').first()
                 context['signing_stage_form'] = ContractSigningStageForm(
-                    initial={'stage': initial_stage.id if initial_stage else None}
+                    initial={'stage': initial_stage.id if initial_stage else None},
+                    prefix='signing_stage'  # <-- уникальный префикс
                 )
 
             context['interim_act_formset'] = InterimActFormSet(instance=self.object)
             context['final_act_form'] = FinalActForm(
-                instance=self.object.final_act if self.object and hasattr(self.object, 'final_act') else None
+                instance=self.object.final_act if self.object and hasattr(self.object, 'final_act') else None,
+                prefix='final_act'  # <-- уникальный префикс
             )
 
             # === ОТМЕТКИ ПО СИСТЕМАМ ===
             if self.object:
-                # РЕДАКТИРОВАНИЕ: существующие отметки + новые системы из справочника
                 existing_qs = ContractSystemCheck.objects.filter(
                     contract=self.object,
                     system_type__is_active=True
@@ -133,7 +139,6 @@ class ContractCreateUpdateMixin:
                     prefix='sys_checks'
                 )
             else:
-                # СОЗДАНИЕ: формы для всех активных систем
                 context['system_check_formset'] = ContractSystemCheckFormSet(
                     instance=None,
                     queryset=ContractSystemCheck.objects.none(),

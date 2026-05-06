@@ -146,11 +146,19 @@
                 <div class="card-header fw-bold">Итоговый акт</div>
                 <div class="card-body">
                     {% if contract.final_act %}
-                        <p>Наличие: <strong>{{ contract.final_act.present|yesno:"Да,Нет" }}</strong></p>
-                        <p>Дата: {{ contract.final_act.date|date:"d.m.Y"|default:"—" }}</p>
-                        <p>Файл: {% if contract.final_act.file %}<a href="{{ contract.final_act.file.url }}" target="_blank">скачать</a>{% else %}—{% endif %}</p>
+                    <p>Наличие: <strong>{{ contract.final_act.present|yesno:"Да,Нет" }}</strong></p>
+                    <p>Дата: {{ contract.final_act.date|date:"d.m.Y"|default:"—" }}</p>
+                    {% if contract.final_act.note %}
+                    <div class="alert alert-light border mb-2 small">
+                        <i class="bi bi-journal-text text-secondary me-1"></i>
+                        <strong>Примечание к акту:</strong><br>
+                        {{ contract.final_act.note|linebreaksbr }}
+                    </div>
+                    {% endif %}
+                    <p>Файл: {% if contract.final_act.file %}<a href="{{ contract.final_act.file.url }}" target="_blank">скачать</a>{% else %}—{% endif %}
+                    </p>
                     {% else %}
-                        <p class="text-muted">Нет итогового акта</p>
+                    <p class="text-muted">Нет итогового акта</p>
                     {% endif %}
                 </div>
             </div>

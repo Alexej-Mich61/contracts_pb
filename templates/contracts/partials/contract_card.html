@@ -304,6 +304,12 @@
                                 {% if contract.final_act.date %}
                                     <div class="text-muted">Дата: {{ contract.final_act.date|date:"d.m.Y" }}</div>
                                 {% endif %}
+                                {% if contract.final_act.note %}
+                                    <div class="alert alert-light border py-1 px-2 mb-1 mt-1 small">
+                                        <i class="bi bi-journal-text text-secondary me-1"></i>
+                                        {{ contract.final_act.note|linebreaksbr }}
+                                    </div>
+                                {% endif %}
                                 {% if contract.final_act.file %}
                                     <a href="{{ contract.final_act.file.url }}" target="_blank" class="btn btn-sm btn-outline-success mt-1">
                                         <i class="bi bi-download"></i> Скачать акт
