@@ -69,12 +69,12 @@
                     </div>
                     {% endif %}
                     {% if contract.monthly_sum %}
-                    <div class="small text-muted">
+                    <div class="fw-bolder text-primary">
                         {{ contract.monthly_sum|floatformat:0|intcomma }} ₽/мес
                     </div>
                     {% endif %}
                     {% if contract.advance %}
-                    <div class="small text-warning">
+                    <div class="small text-danger">
                         Аванс: {{ contract.advance|floatformat:0|intcomma }} ₽
                     </div>
                     {% endif %}
