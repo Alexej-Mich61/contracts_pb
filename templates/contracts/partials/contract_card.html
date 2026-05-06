@@ -18,6 +18,13 @@
                         </span>
                     {% endif %}
                 {% endfor %}
+
+                {% if contract.note %}
+                <div class="text-dark fs-6">
+                    <i class="bi bi-journal-text text-secondary me-1"></i>
+                    {{ contract.note|truncatechars:250|linebreaksbr }}
+                </div>
+                {% endif %}
             </div>
 
             <div class="row align-items-center g-2">
@@ -112,6 +119,12 @@
                     <small class="text-muted">{{ contract.signing_stage.changed_at|date:"d.m.Y" }}</small>
                     {% else %}
                     <span class="badge bg-light text-dark">Не указана</span>
+                    {% endif %}
+
+                    {% if contract.signing_stage.note %}
+                    <div class="alert alert-warning py-1 px-2 mb-0 mt-1 small">
+                        <i class="bi bi-lightning-fill"></i> {{ contract.signing_stage.note }}
+                    </div>
                     {% endif %}
                 </div>
 
@@ -220,6 +233,14 @@
                                 <td>{{ contract.ak_count }}</td>
                             </tr>
                         </table>
+
+                        {% if contract.note %}
+                        <div class="alert alert-light border mt-2 mb-0 small">
+                            <i class="bi bi-journal-text text-secondary me-1"></i>
+                            <strong>Примечание:</strong><br>
+                            {{ contract.note|linebreaksbr }}
+                        </div>
+                        {% endif %}
                     </div>
 
                     <!-- Колонка 3: Объекты и субподряд -->

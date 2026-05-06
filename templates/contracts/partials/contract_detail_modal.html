@@ -25,7 +25,7 @@
                     <h5><span class="badge {% if contract.status == 'active' %}bg-success{% elif contract.status == 'active_expires' %}bg-warning{% elif contract.status == 'active_expired' %}bg-danger{% elif contract.status == 'completed' %}bg-primary{% else %}bg-secondary{% endif %}">
                         {{ contract.get_status_display }}
                     </span>
-                    <span class="badge bg-secondary">{{ contract.work.name }}</span></h5>
+                        <span class="badge bg-secondary">{{ contract.work.name }}</span></h5>
                 </div>
             </div>
         </div>
@@ -39,7 +39,17 @@
                     <p><strong>Сумма в месяц:</strong> {{ contract.monthly_sum|floatformat:2 }} руб.</p>
                     <p><strong>Аванс:</strong> {{ contract.advance|floatformat:2 }} руб.</p>
                     <hr class="my-2">
-                    <p>Файл договора:<br>{% if contract.file %}<a href="{{ contract.file.url }}" target="_blank">скачать</a>{% else %}—{% endif %}</p>
+                    <p>Файл договора:<br>{% if contract.file %}<a href="{{ contract.file.url }}" target="_blank">скачать</a>{% else %}—{% endif %}
+                    </p>
+
+                    {% if contract.note %}
+                    <hr class="my-2">
+                    <div class="alert alert-light border mb-0 small">
+                        <i class="bi bi-journal-text text-secondary me-1"></i>
+                        <strong>Примечание к договору:</strong><br>
+                        {{ contract.note|linebreaksbr }}
+                    </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
