@@ -39,7 +39,7 @@ class ContractCoreConfig(AppConfig):
             # --- Регистрация задачи --- ВРЕМЯ ВЫПОЛНЕНИЯ
 
             # для теста, указать время выполнения задачи
-            # schedule.every().day.at("12:34").do(_update_all_contract_statuses)
+            # schedule.every().day.at("04:42").do(_update_all_contract_statuses)
             # logger.info("Планировщик обновления статусов договоров запущен (ежедневно тест)")
             # print("[Scheduler] Планировщик обновления статусов договоров запущен (тест)")
 

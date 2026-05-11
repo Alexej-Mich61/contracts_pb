@@ -242,9 +242,15 @@ class ContractListView(LoginRequiredMixin, ListView):
         context['total_objects'] = ProtectionObject.objects.filter(
             contract__in=stats_qs
         ).count()
+        # счетчик, убирающий дубли АК (с помощью distinct)
+        # context['total_aks'] = Ak.objects.filter(
+        #     protection_objects__contract__in=stats_qs
+        # ).distinct().count()
+
+        # счетчик без distinct, т.е. если один и тот же АК в 2 объектах - посчитает за 2 АК
         context['total_aks'] = Ak.objects.filter(
             protection_objects__contract__in=stats_qs
-        ).distinct().count()
+        ).count()
 
         return context
 
