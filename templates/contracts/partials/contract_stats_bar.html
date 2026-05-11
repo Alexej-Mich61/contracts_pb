@@ -2,12 +2,17 @@
 {% load humanize %}
 
 <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
-    <!-- Лево: создание -->
+    <!-- Лево: создание (только для авторизованных с правом) -->
+    {% if user.can_add_contract %}
     <div>
         <a href="{% url 'contract_core:contract_create' %}" class="btn btn-primary">
             <i class="bi bi-plus-lg"></i> Новый договор
         </a>
     </div>
+    {% else %}
+    <!-- Пустой placeholder чтобы верстка не ехала при отсутствии кнопки -->
+    <div></div>
+    {% endif %}
 
     <!-- Центр: счетчики -->
     <div class="d-flex gap-4 flex-wrap justify-content-center align-items-baseline">

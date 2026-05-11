@@ -364,10 +364,11 @@ class ContractExportExcelView(LoginRequiredMixin, View):
 
 # ========== CRUD ПРЕДСТАВЛЕНИЯ ==========
 
-class ContractCreateView(LoginRequiredMixin, ContractCreateUpdateMixin, CreateView):
+class ContractCreateView(PermissionRequiredMixin, LoginRequiredMixin, ContractCreateUpdateMixin, CreateView):
     model = Contract
     form_class = ContractForm
     template_name = "contracts/contract_form.html"
+    permission = 'can_add_contract'  # ← проверка через миксин
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
