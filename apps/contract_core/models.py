@@ -343,12 +343,19 @@ class ContractSigningStage(models.Model):
     def is_overdue_with(self, control_days=None):
         """
         Проверка просрочки.
+        Финальные стадии никогда не считаются просроченными.
         Если control_days не передан — берётся из настроек (1 запрос).
         """
+        # Финальные стадии не контролируются по сроку
+        if self.stage_id and self.stage.is_final:
+            return False
+
         if not self.changed_at:
             return False
+
         if control_days is None:
             control_days = SigningStageControlSettings.get_settings().control_days
+
         return (timezone.now() - self.changed_at).days > control_days
 
     def save(self, *args, **kwargs):

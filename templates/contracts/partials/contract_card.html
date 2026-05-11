@@ -110,7 +110,7 @@
                 <div class="col-6 col-lg-2 text-center border-start">
                     {% if contract.signing_stage %}
                     <div class="fw-bold small">
-                        {% if contract.signing_stage|is_overdue:signing_control_days %}
+                        {% if not contract.signing_stage.stage.is_final and contract.signing_stage|is_overdue:signing_control_days %}
                         <i class="bi bi-exclamation-circle-fill text-danger me-1"
                            title="Стадия не обновлялась более {{ signing_control_days }} дн."></i>
                         {% endif %}

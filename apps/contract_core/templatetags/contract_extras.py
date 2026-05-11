@@ -50,12 +50,16 @@ def is_htmx(request):
         return False
     return bool(getattr(request, 'headers', {}).get('HX-Request'))
 
+
 @register.filter
 def is_overdue(signing_stage, control_days):
     """
     Проверка просрочки стадии подписания.
+    Финальные стадии никогда не считаются просроченными.
     Использование: {% if contract.signing_stage|is_overdue:signing_control_days %}
     """
-    if not signing_stage or not signing_stage.changed_at or control_days is None:
+    if not signing_stage:
         return False
-    return (timezone.now() - signing_stage.changed_at).days > int(control_days)
+
+    # Делегируем методу модели — вся бизнес-логика централизована
+    return signing_stage.is_overdue_with(control_days)
