@@ -3,6 +3,7 @@
 {% load static %}
 {% load custom_filters %}
 
+
 {% block title %}
     {% if object %}Редактировать договор №{{ object.number|default:object.pk }}{% else %}Добавить договор{% endif %}
 {% endblock %}
@@ -45,255 +46,277 @@
         </div>
 
         <!-- Основная информация -->
-        <div class="card shadow-sm mb-4">
-            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">
-                    <i class="bi bi-file-text me-2"></i>
-                    {% if object %}Редактирование договора{% else %}Новый договор{% endif %}
-                </h5>
-                {% if object %}
-                    <span class="badge bg-light text-dark">№{{ object.number|default:"б/н" }}</span>
-                {% endif %}
-            </div>
-            <div class="card-body">
+        {% with can_edit_main=user.can_edit_contract_main_fields %}
+        <fieldset {% if object and not can_edit_main %}disabled{% endif %} class="border-0 p-0 m-0">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="bi bi-file-text me-2"></i>
+                        {% if object %}Редактирование договора{% else %}Новый договор{% endif %}
+                    </h5>
+                    {% if object %}
+                        <span class="badge bg-light text-dark">№{{ object.number|default:"б/н" }}</span>
+                    {% endif %}
+                </div>
+                <div class="card-body">
 
-                {% if form.errors or protection_object_formset.errors or signing_stage_form.errors or interim_act_formset.errors or final_act_form.errors %}
-                    <div class="alert alert-danger">
-                        <h6 class="alert-heading"><i class="bi bi-exclamation-triangle me-2"></i>Ошибки заполнения:</h6>
-                        <ul class="mb-0">
-                            {% for field, errors in form.errors.items %}
-                            {% for error in errors %}
-                            <li>{{ form.fields.field.label|default:field }}: {{ error }}</li>
-                            {% endfor %}
-                            {% endfor %}
-
-                            {% if protection_object_formset.non_form_errors %}
-                            <li><strong>Объекты защиты:</strong> {{ protection_object_formset.non_form_errors }}</li>
-                            {% endif %}
-                            {% for err_form in protection_object_formset %}
-                            {% if err_form.errors %}
-                            <li><strong>Объект защиты #{{ forloop.counter }}:</strong>
-                                <ul>
-                                    {% for field, errors in err_form.errors.items %}
-                                    {% for error in errors %}
-                                    <li>{{ err_form.fields|get_field_label:field|default:field }}: {{ error }}</li>
-                                    {% endfor %}
-                                    {% endfor %}
-                                </ul>
-                            </li>
-                            {% endif %}
-                            {% endfor %}
-
-
-                            {% if interim_act_formset.non_form_errors %}
-                            <li>Промежуточные акты: {{ interim_act_formset.non_form_errors }}</li>
-                            {% endif %}
-                            {% for err_form in interim_act_formset %}
-                                {% for field, errors in err_form.errors.items %}
-                                    <li>Промежуточный акт {{ forloop.parentloop.counter }} - {{ err_form.fields.field.label|default:field }}: {{ error }}</li>
+                    {% if form.errors or protection_object_formset.errors or signing_stage_form.errors or interim_act_formset.errors or final_act_form.errors %}
+                        <div class="alert alert-danger">
+                            <h6 class="alert-heading"><i class="bi bi-exclamation-triangle me-2"></i>Ошибки заполнения:</h6>
+                            <ul class="mb-0">
+                                {% for field, errors in form.errors.items %}
+                                {% for error in errors %}
+                                <li>{{ form.fields.field.label|default:field }}: {{ error }}</li>
                                 {% endfor %}
-                            {% endfor %}
-                            {% for field, errors in signing_stage_form.errors.items %}
-                                <li>Стадия подписания - {{ signing_stage_form.fields.field.label|default:field }}: {{ error }}</li>
-                            {% endfor %}
-                            {% for field, errors in final_act_form.errors.items %}
-                                <li>Итоговый акт - {{ final_act_form.fields.field.label|default:field }}: {{ error }}</li>
-                            {% endfor %}
-                        </ul>
-                    </div>
-                {% endif %}
+                                {% endfor %}
 
-                <div class="row g-4">
-                    <!-- Левая колонка: Основные сведения -->
-                    <div class="col-lg-6">
-                        <h6 class="text-primary border-bottom pb-2 mb-3">Основные сведения</h6>
-
-                        <!-- Тип договора, Исполнитель, Вид работы -->
-                        {% if object %}
-                            <!-- Режим редактирования — readonly с кнопкой Изменить -->
-                            {% include "contracts/partials/partials_contract_form/_contract_form_type_executor_work_readonly.html" with contract=object %}
-                        {% else %}
-                            <!-- Режим создания — сразу динамические поля (все три в ряд), без preselected типа -->
-                            {% include "contracts/partials/partials_contract_form/_contract_form_dynamic_fields_edit.html" with contract_type=form.type.value %}
-                        {% endif %}
-
-                        <!-- Номер договора -->
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="{{ form.number.id_for_label }}" class="form-label fw-semibold">
-                                    Номер договора
-                                </label>
-                                {{ form.number }}
-                                {% if form.number.help_text %}
-                                    <div class="form-text">{{ form.number.help_text }}</div>
+                                {% if protection_object_formset.non_form_errors %}
+                                <li><strong>Объекты защиты:</strong> {{ protection_object_formset.non_form_errors }}</li>
                                 {% endif %}
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="{{ form.date_concluded.id_for_label }}" class="form-label fw-semibold">
-                                    Дата заключения
-                                    {% if form.date_concluded.field.required %}<span class="text-danger">*</span>{% endif %}
-                                </label>
-                                {{ form.date_concluded }}
-                            </div>
+                                {% for err_form in protection_object_formset %}
+                                {% if err_form.errors %}
+                                <li><strong>Объект защиты #{{ forloop.counter }}:</strong>
+                                    <ul>
+                                        {% for field, errors in err_form.errors.items %}
+                                        {% for error in errors %}
+                                        <li>{{ err_form.fields|get_field_label:field|default:field }}: {{ error }}</li>
+                                        {% endfor %}
+                                        {% endfor %}
+                                    </ul>
+                                </li>
+                                {% endif %}
+                                {% endfor %}
+
+                                {% if interim_act_formset.non_form_errors %}
+                                <li>Промежуточные акты: {{ interim_act_formset.non_form_errors }}</li>
+                                {% endif %}
+                                {% for err_form in interim_act_formset %}
+                                    {% for field, errors in err_form.errors.items %}
+                                        <li>Промежуточный акт {{ forloop.parentloop.counter }} - {{ err_form.fields.field.label|default:field }}: {{ error }}</li>
+                                    {% endfor %}
+                                {% endfor %}
+                                {% for field, errors in signing_stage_form.errors.items %}
+                                    <li>Стадия подписания - {{ signing_stage_form.fields.field.label|default:field }}: {{ error }}</li>
+                                {% endfor %}
+                                {% for field, errors in final_act_form.errors.items %}
+                                    <li>Итоговый акт - {{ final_act_form.fields.field.label|default:field }}: {{ error }}</li>
+                                {% endfor %}
+                            </ul>
                         </div>
+                    {% endif %}
 
-                        <!-- Заказчик -->
-                        <div class="mb-3">
-                            <label for="id_customer" class="form-label fw-semibold">
-                                Заказчик
-                                <span class="text-danger">*</span>
-                            </label>
+                    <div class="row g-4">
+                        <!-- Левая колонка: Основные сведения -->
+                        <div class="col-lg-6">
+                            <h6 class="text-primary border-bottom pb-2 mb-3">Основные сведения</h6>
 
-                            <!-- Выпадающий список заказчиков + поиск -->
-                            <div id="customer-select-wrapper">
-                                {% include "contracts/partials/partials_contract_form/_contract_form_customer_select.html" with customers=form.fields.customer.queryset selected=form.customer.value query='' %}
-                            </div>
-
-                            {% if form.customer.errors %}
-                            <div class="text-danger small mt-1">
-                                <i class="bi bi-exclamation-circle me-1"></i>{{ form.customer.errors.0 }}
-                            </div>
+                            <!-- Тип договора, Исполнитель, Вид работы -->
+                            {% if object %}
+                                <!-- Режим редактирования — readonly с кнопкой Изменить -->
+                                {% include "contracts/partials/partials_contract_form/_contract_form_type_executor_work_readonly.html" with contract=object %}
+                            {% else %}
+                                <!-- Режим создания — сразу динамические поля -->
+                                {% include "contracts/partials/partials_contract_form/_contract_form_dynamic_fields_edit.html" with contract_type=form.type.value %}
                             {% endif %}
-                        </div>
 
-                        <!--Срок действия договора-->
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="{{ form.date_start.id_for_label }}" class="form-label fw-semibold">
-                                    Начало действия
-                                    <span class="text-danger">*</span>
-                                </label>
-                                {{ form.date_start }}
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="{{ form.date_end.id_for_label }}" class="form-label fw-semibold">
-                                    Окончание действия
-                                    <span class="text-danger">*</span>
-                                </label>
-                                {{ form.date_end }}
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Правая колонка: Финансы и файл -->
-                    <div class="col-lg-6">
-                        <h6 class="text-success border-bottom pb-2 mb-3">Финансовые условия</h6>
-
-                        <div class="row">
-                            <div class="col-md-4 mb-3">
-                                <label for="{{ form.total_sum.id_for_label }}" class="form-label fw-semibold">
-                                    Общая сумма, ₽
-                                </label>
-                                {{ form.total_sum }}
-                                {% if form.total_sum.help_text %}
-                                    <div class="form-text">{{ form.total_sum.help_text }}</div>
-                                {% endif %}
-                            </div>
-                            <div class="col-md-4 mb-3">
-                                <label for="{{ form.monthly_sum.id_for_label }}" class="form-label fw-semibold">
-                                    В месяц, ₽
-                                </label>
-                                {{ form.monthly_sum }}
-                                {% if form.monthly_sum.help_text %}
-                                    <div class="form-text">{{ form.monthly_sum.help_text }}</div>
-                                {% endif %}
-                            </div>
-                            <div class="col-md-4 mb-3">
-                                <label for="{{ form.advance.id_for_label }}" class="form-label fw-semibold">
-                                    Аванс, ₽
-                                </label>
-                                {{ form.advance }}
-                            </div>
-                        </div>
-
-                        <h6 class="text-info border-bottom pb-2 mb-3 mt-4">Документы и примечания</h6>
-
-                        <div class="mb-3">
-                            <label for="{{ form.file.id_for_label }}" class="form-label fw-semibold">
-                                Файл договора
-                            </label>
-                            {{ form.file }}
-                            {% if form.file.help_text %}
-                                <div class="form-text">{{ form.file.help_text }}</div>
-                            {% endif %}
-                            {% if object and object.file %}
-                                <div class="mt-2">
-                                    <a href="{{ object.file.url }}" target="_blank" class="btn btn-sm btn-outline-primary">
-                                        <i class="bi bi-eye me-1"></i>Текущий файл: {{ object.file.name|cut:"contracts/" }}
-                                    </a>
+                            <!-- Номер договора -->
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="{{ form.number.id_for_label }}" class="form-label fw-semibold">
+                                        Номер договора
+                                    </label>
+                                    {{ form.number }}
+                                    {% if form.number.help_text %}
+                                        <div class="form-text">{{ form.number.help_text }}</div>
+                                    {% endif %}
                                 </div>
-                            {% endif %}
+                                <div class="col-md-6 mb-3">
+                                    <label for="{{ form.date_concluded.id_for_label }}" class="form-label fw-semibold">
+                                        Дата заключения
+                                        {% if form.date_concluded.field.required %}<span class="text-danger">*</span>{% endif %}
+                                    </label>
+                                    {{ form.date_concluded }}
+                                </div>
+                            </div>
+
+                            <!-- Заказчик -->
+                            <div class="mb-3">
+                                <label for="id_customer" class="form-label fw-semibold">
+                                    Заказчик
+                                    <span class="text-danger">*</span>
+                                </label>
+                                <div id="customer-select-wrapper">
+                                    {% include "contracts/partials/partials_contract_form/_contract_form_customer_select.html" with customers=form.fields.customer.queryset selected=form.customer.value query='' %}
+                                </div>
+                                {% if form.customer.errors %}
+                                <div class="text-danger small mt-1">
+                                    <i class="bi bi-exclamation-circle me-1"></i>{{ form.customer.errors.0 }}
+                                </div>
+                                {% endif %}
+                            </div>
+
+                            <!--Срок действия договора-->
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="{{ form.date_start.id_for_label }}" class="form-label fw-semibold">
+                                        Начало действия
+                                        <span class="text-danger">*</span>
+                                    </label>
+                                    {{ form.date_start }}
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="{{ form.date_end.id_for_label }}" class="form-label fw-semibold">
+                                        Окончание действия
+                                        <span class="text-danger">*</span>
+                                    </label>
+                                    {{ form.date_end }}
+                                </div>
+                            </div>
                         </div>
 
-                        <div class="mb-3">
-                            <label for="{{ form.note.id_for_label }}" class="form-label fw-semibold">
-                                Примечание к договору
-                            </label>
-                            {{ form.note }}
+                        <!-- Правая колонка: Финансы и файл -->
+                        <div class="col-lg-6">
+                            <h6 class="text-success border-bottom pb-2 mb-3">Финансовые условия</h6>
+
+                            <div class="row">
+                                <div class="col-md-4 mb-3">
+                                    <label for="{{ form.total_sum.id_for_label }}" class="form-label fw-semibold">
+                                        Общая сумма, ₽
+                                    </label>
+                                    {{ form.total_sum }}
+                                    {% if form.total_sum.help_text %}
+                                        <div class="form-text">{{ form.total_sum.help_text }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label for="{{ form.monthly_sum.id_for_label }}" class="form-label fw-semibold">
+                                        В месяц, ₽
+                                    </label>
+                                    {{ form.monthly_sum }}
+                                    {% if form.monthly_sum.help_text %}
+                                        <div class="form-text">{{ form.monthly_sum.help_text }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label for="{{ form.advance.id_for_label }}" class="form-label fw-semibold">
+                                        Аванс, ₽
+                                    </label>
+                                    {{ form.advance }}
+                                </div>
+                            </div>
+
+                            <h6 class="text-info border-bottom pb-2 mb-3 mt-4">Документы и примечания</h6>
+
+                            <div class="mb-3">
+                                <label for="{{ form.file.id_for_label }}" class="form-label fw-semibold">
+                                    Файл договора
+                                </label>
+                                {{ form.file }}
+                                {% if form.file.help_text %}
+                                    <div class="form-text">{{ form.file.help_text }}</div>
+                                {% endif %}
+                                {% if object and object.file %}
+                                    <div class="mt-2">
+                                        <a href="{{ object.file.url }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                            <i class="bi bi-eye me-1"></i>Текущий файл: {{ object.file.name|cut:"contracts/" }}
+                                        </a>
+                                    </div>
+                                {% endif %}
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="{{ form.note.id_for_label }}" class="form-label fw-semibold">
+                                    Примечание к договору
+                                </label>
+                                {{ form.note }}
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
+        </fieldset>
 
-        <!-- Стадия подписания (всегда доступна) -->
-        {% include "contracts/partials/partials_contract_form/_contract_form_signing_stage.html" %}
+        <!-- Стадия подписания -->
+        {% with can_edit_signing=user.can_edit_signing_stages %}
+        <fieldset {% if object and not can_edit_signing %}disabled{% endif %} class="border-0 p-0 m-0">
+            {% include "contracts/partials/partials_contract_form/_contract_form_signing_stage.html" %}
+        </fieldset>
+        {% endwith %}
 
         <!-- Отметки по системам -->
-        {% include "contracts/partials/partials_contract_form/_contract_form_system_checks.html" %}
+        {% with can_edit_system=user.can_edit_system_checklist %}
+        <fieldset {% if object and not can_edit_system %}disabled{% endif %} class="border-0 p-0 m-0">
+            {% include "contracts/partials/partials_contract_form/_contract_form_system_checks.html" %}
+        </fieldset>
+        {% endwith %}
 
-        <!-- Итоговый акт (статический include) -->
+        <!-- Итоговый акт -->
         {% if final_act_form %}
-        {% include "contracts/partials/partials_contract_form/_contract_form_final_act.html" %}
+            {% with can_mark_final=user.can_mark_final_act %}
+            <fieldset {% if object and not can_mark_final %}disabled{% endif %} class="border-0 p-0 m-0">
+                {% include "contracts/partials/partials_contract_form/_contract_form_final_act.html" %}
+            </fieldset>
+            {% endwith %}
         {% endif %}
 
-        <!-- Промежуточные акты (динамический formset) -->
+        <!-- Промежуточные акты -->
         {% if interim_act_formset %}
-        <div class="card shadow-sm mb-4">
-            <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
-                <h6 class="mb-0"><i class="bi bi-files me-2"></i>Промежуточные акты</h6>
-                <button type="button"
-                        class="btn btn-light btn-sm"
-                        hx-get="{% url 'contract_core:empty_interim_act_form' %}"
-                        hx-target="#interim-acts-container"
-                        hx-swap="beforeend"
-                        hx-vals="js:{total_forms: document.querySelectorAll('.interim-act-form').length}">
-                    <i class="bi bi-plus-lg me-1"></i>Добавить акт
-                </button>
-            </div>
-            <div class="card-body">
-                {{ interim_act_formset.management_form }}
-                <div id="interim-acts-container">
-                    {% for form in interim_act_formset %}
-                    {% include "contracts/partials/partials_contract_form/_contract_form_interim_act.html" with index=forloop.counter0 %}
-                    {% endfor %}
+            {% with can_edit_interim=user.can_edit_interim_act %}
+            <fieldset {% if object and not can_edit_interim %}disabled{% endif %} class="border-0 p-0 m-0">
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0"><i class="bi bi-files me-2"></i>Промежуточные акты</h6>
+                        {% if can_edit_interim %}
+                        <button type="button"
+                                class="btn btn-light btn-sm"
+                                hx-get="{% url 'contract_core:empty_interim_act_form' %}"
+                                hx-target="#interim-acts-container"
+                                hx-swap="beforeend"
+                                hx-vals="js:{total_forms: document.querySelectorAll('.interim-act-form').length}">
+                            <i class="bi bi-plus-lg me-1"></i>Добавить акт
+                        </button>
+                        {% endif %}
+                    </div>
+                    <div class="card-body">
+                        {{ interim_act_formset.management_form }}
+                        <div id="interim-acts-container">
+                            {% for form in interim_act_formset %}
+                            {% include "contracts/partials/partials_contract_form/_contract_form_interim_act.html" with index=forloop.counter0 %}
+                            {% endfor %}
+                        </div>
+                    </div>
                 </div>
-            </div>
-        </div>
+            </fieldset>
+            {% endwith %}
         {% endif %}
 
-        <!-- Объекты защиты (динамические через HTMX) -->
-        <div class="card shadow-sm mb-4">
-            <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
-                <h6 class="mb-0"><i class="bi bi-building me-2"></i>Объекты защиты</h6>
-                <button type="button"
-                        class="btn btn-light btn-sm"
-                        hx-get="{% url 'contract_core:empty_protection_object_form' %}"
-                        hx-target="#protection-objects-list"
-                        hx-swap="beforeend"
-                        hx-vals="js:{total_forms: parseInt(document.getElementById('id_contract_objects-TOTAL_FORMS')?.value || '0')}">
-                    <i class="bi bi-plus-lg me-1"></i>Добавить объект
-                </button>
-            </div>
-            <div class="card-body" id="protection-objects-container">
-                {{ protection_object_formset.management_form }}
-                <div id="protection-objects-list">
-                    {% for form in protection_object_formset %}
-                    {% include "contracts/partials/partials_contract_form/_contract_form_protection_object.html" with index=forloop.counter0 object=object %}
-                    {% endfor %}
+        <!-- Объекты защиты -->
+        <fieldset {% if object and not can_edit_main %}disabled{% endif %} class="border-0 p-0 m-0">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0"><i class="bi bi-building me-2"></i>Объекты защиты</h6>
+                    {% if can_edit_main %}
+                    <button type="button"
+                            class="btn btn-light btn-sm"
+                            hx-get="{% url 'contract_core:empty_protection_object_form' %}"
+                            hx-target="#protection-objects-list"
+                            hx-swap="beforeend"
+                            hx-vals="js:{total_forms: parseInt(document.getElementById('id_contract_objects-TOTAL_FORMS')?.value || '0')}">
+                        <i class="bi bi-plus-lg me-1"></i>Добавить объект
+                    </button>
+                    {% endif %}
+                </div>
+                <div class="card-body" id="protection-objects-container">
+                    {{ protection_object_formset.management_form }}
+                    <div id="protection-objects-list">
+                        {% for form in protection_object_formset %}
+                        {% include "contracts/partials/partials_contract_form/_contract_form_protection_object.html" with index=forloop.counter0 object=object %}
+                        {% endfor %}
+                    </div>
                 </div>
             </div>
-        </div>
+        </fieldset>
+        {% endwith %}
 
         {# === Кнопки управления (низ) === #}
         <div class="card border shadow-sm my-4">
