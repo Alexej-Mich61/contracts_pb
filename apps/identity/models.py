@@ -236,7 +236,22 @@ class User(AbstractUser):
             return self.has_manager_perm('can_manage_aks')
         return False
 
+
     # === Гранулярные права внутри договоров ===
+    def can_edit_contract_any(self) -> bool:
+        """Может редактировать договор (любое из прав на редактирование)"""
+        if self.is_superuser or self.is_admin:
+            return True
+        if self.is_manager:
+            return any([
+                self.has_manager_perm('can_edit_contract_main_fields'),
+                self.has_manager_perm('can_edit_signing_stages'),
+                self.has_manager_perm('can_edit_system_checklist'),
+                self.has_manager_perm('can_mark_final_act'),
+                self.has_manager_perm('can_edit_interim_act'),
+            ])
+        return False
+
 
     def can_edit_signing_stages(self) -> bool:
         if self.is_superuser or self.is_admin:

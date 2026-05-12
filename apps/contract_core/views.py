@@ -391,11 +391,12 @@ class ContractCreateView(PermissionRequiredMixin, LoginRequiredMixin, ContractCr
         return reverse_lazy('contract_core:contract_list')
 
 
-class ContractUpdateView(LoginRequiredMixin, ContractAccessMixin, ContractCreateUpdateMixin, UpdateView):
+class ContractUpdateView(PermissionRequiredMixin, LoginRequiredMixin, ContractAccessMixin, ContractCreateUpdateMixin, UpdateView):
     model = Contract
     form_class = ContractForm
     template_name = "contracts/contract_form.html"
     pk_url_kwarg = 'pk'
+    permission = 'can_edit_contract_any'  # ← строка = метод у user
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
