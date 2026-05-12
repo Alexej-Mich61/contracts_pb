@@ -281,6 +281,18 @@ class User(AbstractUser):
             return self.has_manager_perm('can_edit_interim_act')
         return False
 
+    def can_trash_contract(self) -> bool:
+        """Может перемещать договор в корзину"""
+        if self.is_superuser or self.is_admin:
+            return True
+        if self.is_manager:
+            return self.has_manager_perm('can_edit_contract_main_fields')
+        return False
+
+    def can_restore_or_hard_delete(self) -> bool:
+        """Может восстанавливать из корзины или удалять навсегда"""
+        return self.is_superuser or self.is_admin
+
     # Устаревший метод оставляем для совместимости
     def get_manager_perm(self, attr: str) -> bool:
         """Безопасное получение прав менеджера (для обратной совместимости)."""

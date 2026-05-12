@@ -408,10 +408,11 @@ class ContractUpdateView(PermissionRequiredMixin, LoginRequiredMixin, ContractAc
         return reverse_lazy('contract_core:contract_list')
 
 
-class ContractMoveToTrashView(LoginRequiredMixin, ContractAccessMixin, DetailView):
+class ContractMoveToTrashView(PermissionRequiredMixin, LoginRequiredMixin, ContractAccessMixin, DetailView):
     """Перемещение договора в корзину (is_trash = True)"""
     model = Contract
     pk_url_kwarg = 'pk'
+    permission = 'can_trash_contract'
 
     def post(self, request, *args, **kwargs):
         print("=== TRASH VIEW CALLED ===")
@@ -423,10 +424,11 @@ class ContractMoveToTrashView(LoginRequiredMixin, ContractAccessMixin, DetailVie
         return redirect('contract_core:contract_list')
 
 
-class ContractRestoreView(LoginRequiredMixin, ContractAccessMixin, DetailView):
+class ContractRestoreView(PermissionRequiredMixin, LoginRequiredMixin, ContractAccessMixin, DetailView):
     """Восстановление договора из корзины (is_trash = False)"""
     model = Contract
     pk_url_kwarg = 'pk'
+    permission = 'can_restore_or_hard_delete'
 
     def get_queryset(self):
         # Восстановление видит ВСЕ договоры пользователя, включая корзинные
@@ -442,12 +444,13 @@ class ContractRestoreView(LoginRequiredMixin, ContractAccessMixin, DetailView):
         return redirect('contract_core:contract_list')
 
 
-class ContractHardDeleteView(LoginRequiredMixin, ContractAccessMixin, DeleteView):
+class ContractHardDeleteView(PermissionRequiredMixin, LoginRequiredMixin, ContractAccessMixin, DeleteView):
     """Полное удаление договора из базы (только для корзины)"""
     model = Contract
     template_name = "contracts/partials/contract_confirm_hard_delete_modal.html"
     pk_url_kwarg = 'pk'
     success_url = reverse_lazy('contract_core:contract_list')
+    permission = 'can_restore_or_hard_delete'
 
     def get_queryset(self):
         # Удаление видит ВСЕ договоры пользователя, включая корзинные
