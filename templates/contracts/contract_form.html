@@ -513,7 +513,7 @@ document.body.addEventListener('htmx:afterSwap', function(evt) {
 
         const prefix = 'contract_objects';
         const container = document.getElementById('protection-objects-list');
-        const forms = container.querySelectorAll('.protection-objects-form');
+        const forms = container.querySelectorAll('.contract-objects-form');
         const totalFormsInput = document.getElementById('id_' + prefix + '-TOTAL_FORMS');
 
         console.log('Forms count:', forms.length);
