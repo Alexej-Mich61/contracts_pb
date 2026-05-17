@@ -1,4 +1,17 @@
 <!-- templates/contracts/partials/contract_filter.html -->
+<style>
+    .btn-orange {
+        background-color: #fd7e14;
+        border-color: #fd7e14;
+        color: #fff;
+    }
+    .btn-orange:hover {
+        background-color: #e56b0a;
+        border-color: #e56b0a;
+        color: #fff;
+    }
+</style>
+
 <div class="accordion mb-3" id="filterAccordion">
     <div class="accordion-item">
         <h2 class="accordion-header" id="filterHeading">
@@ -18,7 +31,7 @@
              class="accordion-collapse collapse"
              aria-labelledby="filterHeading"
              data-bs-parent="#filterAccordion">
-            <div class="accordion-body">
+            <div class="accordion-body bg-light">
                 <form id="contract-filter-form"
                       hx-get="{% url 'contract_core:contract_list_htmx' %}"
                       hx-target="#contracts-container"
@@ -28,21 +41,21 @@
                       onsubmit="closeFilterAccordion()">
 
                     <div class="row g-3">
-                     <!-- Кнопки -->
-                    <div class="d-flex justify-content-between mt-3">
-                        <button type="button" class="btn btn-outline-secondary btn-sm"
-                                onclick="resetFilter()">
-                            <i class="bi bi-x-circle"></i> Сбросить фильтр
-                        </button>
-                        <button type="submit" class="btn btn-primary btn-sm">
-                            <span class="spinner-border spinner-border-sm d-none" id="filter-spinner"></span>
-                            <i class="bi bi-search"></i> Применить фильтры
-                        </button>
-                    </div>
+                        <!-- Кнопки -->
+                        <div class="d-flex justify-content-between mt-3">
+                            <button type="button" class="btn btn-orange btn-sm"
+                                    onclick="resetFilter()">
+                                <i class="bi bi-x-circle"></i> Сбросить фильтр
+                            </button>
+                            <button type="submit" class="btn btn-primary btn-sm">
+                                <span class="spinner-border spinner-border-sm d-none" id="filter-spinner"></span>
+                                <i class="bi bi-search"></i> Применить фильтры
+                            </button>
+                        </div>
 
                         <!-- Базовые фильтры -->
                         <div class="col-md-3">
-                            <label class="form-label">Расположение</label>
+                            <label class="form-label fw-bold">Расположение</label>
                             <select name="location" class="form-select form-select-sm">
                                 <option value="active" {% if request.GET.location == 'active' %}selected{% endif %}>Актуальные</option>
                                 <option value="archived" {% if request.GET.location == 'archived' %}selected{% endif %}>В архиве</option>
@@ -52,7 +65,7 @@
 
                         <!-- Тип договора -->
                         <div class="col-md-3">
-                            <label class="form-label">Тип договора</label>
+                            <label class="form-label fw-bold">Тип договора</label>
                             <select name="contract_type" class="form-select form-select-sm filter-dependent"
                                     data-hx-url="{% url 'contract_core:filter_works' %}"
                                     data-hx-target="#work-select-container">
@@ -67,14 +80,14 @@
 
                         <!-- Вид работы -->
                         <div class="col-md-3">
-                            <label class="form-label">Вид работы</label>
+                            <label class="form-label fw-bold">Вид работы</label>
                             <div id="work-select-container">
                                 {% include "contracts/partials/partials_contract_list_filter/_work_select.html" with works=filter_data.works selected_work=request.GET.work %}
                             </div>
                         </div>
 
                         <div class="col-md-3">
-                            <label class="form-label">Статус</label>
+                            <label class="form-label fw-bold">Статус</label>
                             <select name="status" class="form-select form-select-sm" multiple size="4">
                                 {% for value, label in filter_data.statuses %}
                                     <option value="{{ value }}" {% if value in request.GET.status %}selected{% endif %}>
@@ -86,45 +99,45 @@
 
                         <!-- Поисковые поля -->
                         <div class="col-md-2">
-                            <label class="form-label">ID договора</label>
+                            <label class="form-label fw-bold">ID договора</label>
                             <input type="number" name="contract_id" class="form-control form-control-sm"
                                    value="{{ request.GET.contract_id }}" placeholder="ID">
                         </div>
 
                         <div class="col-md-2">
-                            <label class="form-label">Номер договора</label>
+                            <label class="form-label fw-bold">Номер договора</label>
                             <input type="text" name="number" class="form-control form-control-sm"
                                    value="{{ request.GET.number }}" placeholder="Номер">
                         </div>
 
                         <div class="col-md-4">
-                            <label class="form-label">Заказчик (название/ИНН)</label>
+                            <label class="form-label fw-bold">Заказчик (название/ИНН)</label>
                             <input type="text" name="customer" class="form-control form-control-sm"
                                    value="{{ request.GET.customer }}" placeholder="Поиск по заказчику">
                         </div>
 
                         <div class="col-md-4">
-                            <label class="form-label">Исполнитель (название/ИНН)</label>
+                            <label class="form-label fw-bold">Исполнитель (название/ИНН)</label>
                             <input type="text" name="executor" class="form-control form-control-sm"
                                    value="{{ request.GET.executor }}" placeholder="Поиск по исполнителю">
                         </div>
 
                         <!-- Диапазон дат -->
                         <div class="col-md-3">
-                            <label class="form-label">Дата начала с</label>
+                            <label class="form-label fw-bold">Дата начала с</label>
                             <input type="date" name="date_from" class="form-control form-control-sm"
                                    value="{{ request.GET.date_from }}">
                         </div>
 
                         <div class="col-md-3">
-                            <label class="form-label">Дата окончания по</label>
+                            <label class="form-label fw-bold">Дата окончания по</label>
                             <input type="date" name="date_to" class="form-control form-control-sm"
                                    value="{{ request.GET.date_to }}">
                         </div>
 
                         <!-- Стадии подписания -->
                         <div class="col-md-3">
-                            <label class="form-label">Финальная стадия</label>
+                            <label class="form-label fw-bold">Финальная стадия</label>
                             <select name="is_final" class="form-select form-select-sm">
                                 <option value="">Все</option>
                                 <option value="yes" {% if request.GET.is_final == 'yes' %}selected{% endif %}>Да</option>
@@ -134,7 +147,7 @@
                         </div>
 
                         <div class="col-md-3">
-                            <label class="form-label">Текущая стадия</label>
+                            <label class="form-label fw-bold">Текущая стадия</label>
                             <select name="signing_stages" class="form-select form-select-sm" multiple size="4">
                                 {% for stage in filter_data.signing_stages %}
                                     <option value="{{ stage.id }}" {% if stage.id|stringformat:"s" in request.GET.signing_stages %}selected{% endif %}>
@@ -146,7 +159,7 @@
 
                         <!-- География -->
                         <div class="col-md-3">
-                            <label class="form-label">Регион</label>
+                            <label class="form-label fw-bold">Регион</label>
                             <select name="region" class="form-select form-select-sm filter-dependent"
                                     data-hx-url="{% url 'contract_core:filter_districts' %}"
                                     data-hx-target="#district-select-container">
@@ -160,7 +173,7 @@
                         </div>
 
                         <div class="col-md-3">
-                            <label class="form-label">Район</label>
+                            <label class="form-label fw-bold">Район</label>
                             <div id="district-select-container">
                                 {% include "contracts/partials/partials_contract_list_filter/_district_select.html" with districts=districts selected_district=request.GET.district %}
                             </div>
@@ -168,20 +181,20 @@
 
                         <!-- Объекты защиты -->
                         <div class="col-md-3">
-                            <label class="form-label">Название объекта</label>
+                            <label class="form-label fw-bold">Название объекта</label>
                             <input type="text" name="object_name" class="form-control form-control-sm"
                                    value="{{ request.GET.object_name }}" placeholder="Поиск по объекту">
                         </div>
 
                         <div class="col-md-3">
-                            <label class="form-label">Адрес объекта</label>
+                            <label class="form-label fw-bold">Адрес объекта</label>
                             <input type="text" name="object_address" class="form-control form-control-sm"
                                    value="{{ request.GET.object_address }}" placeholder="Поиск по адресу">
                         </div>
 
                         <!-- Флаги объектов -->
                         <div class="col-md-2">
-                            <label class="form-label">Субподрядчик</label>
+                            <label class="form-label fw-bold">Субподрядчик</label>
                             <select name="has_subcontractor" class="form-select form-select-sm">
                                 <option value="">Все</option>
                                 <option value="yes" {% if request.GET.has_subcontractor == 'yes' %}selected{% endif %}>Есть</option>
@@ -190,7 +203,7 @@
                         </div>
 
                         <div class="col-md-2">
-                            <label class="form-label">АК</label>
+                            <label class="form-label fw-bold">АК</label>
                             <select name="has_ak" class="form-select form-select-sm">
                                 <option value="">Все</option>
                                 <option value="yes" {% if request.GET.has_ak == 'yes' %}selected{% endif %}>Есть</option>
@@ -200,32 +213,32 @@
 
                         <!-- АК -->
                         <div class="col-md-2">
-                            <label class="form-label">ID АК</label>
+                            <label class="form-label fw-bold">ID АК</label>
                             <input type="number" name="ak_id" class="form-control form-control-sm"
                                    value="{{ request.GET.ak_id }}" placeholder="ID АК">
                         </div>
 
                         <div class="col-md-2">
-                            <label class="form-label">Номер АК</label>
+                            <label class="form-label fw-bold">Номер АК</label>
                             <input type="number" name="ak_number" class="form-control form-control-sm"
                                    value="{{ request.GET.ak_number }}" placeholder="Номер АК">
                         </div>
 
                         <div class="col-md-3">
-                            <label class="form-label">Название АК</label>
+                            <label class="form-label fw-bold">Название АК</label>
                             <input type="text" name="ak_name" class="form-control form-control-sm"
                                    value="{{ request.GET.ak_name }}" placeholder="Поиск по названию АК">
                         </div>
 
                         <div class="col-md-3">
-                            <label class="form-label">Адрес АК</label>
+                            <label class="form-label fw-bold">Адрес АК</label>
                             <input type="text" name="ak_address" class="form-control form-control-sm"
                                    value="{{ request.GET.ak_address }}" placeholder="Поиск по адресу АК">
                         </div>
 
                         <!-- Акты -->
                         <div class="col-md-2">
-                            <label class="form-label">Итоговый акт</label>
+                            <label class="form-label fw-bold">Итоговый акт</label>
                             <select name="has_final_act" class="form-select form-select-sm">
                                 <option value="">Все</option>
                                 <option value="yes" {% if request.GET.has_final_act == 'yes' %}selected{% endif %}>Есть</option>
@@ -234,7 +247,7 @@
                         </div>
 
                         <div class="col-md-2">
-                            <label class="form-label">Файл итог. акта</label>
+                            <label class="form-label fw-bold">Файл итог. акта</label>
                             <select name="has_final_act_file" class="form-select form-select-sm">
                                 <option value="">Все</option>
                                 <option value="yes" {% if request.GET.has_final_act_file == 'yes' %}selected{% endif %}>Есть</option>
@@ -243,7 +256,7 @@
                         </div>
 
                         <div class="col-md-2">
-                            <label class="form-label">Промеж. акты</label>
+                            <label class="form-label fw-bold">Промеж. акты</label>
                             <select name="has_interim_acts" class="form-select form-select-sm">
                                 <option value="">Все</option>
                                 <option value="yes" {% if request.GET.has_interim_acts == 'yes' %}selected{% endif %}>Есть</option>
@@ -253,7 +266,7 @@
 
                         <!-- Файл договора -->
                         <div class="col-md-2">
-                            <label class="form-label">Файл договора</label>
+                            <label class="form-label fw-bold">Файл договора</label>
                             <select name="has_file" class="form-select form-select-sm">
                                 <option value="">Все</option>
                                 <option value="yes" {% if request.GET.has_file == 'yes' %}selected{% endif %}>Есть</option>
@@ -263,20 +276,20 @@
 
                         <!-- Автор -->
                         <div class="col-md-4">
-                            <label class="form-label">Автор (создатель/обновитель)</label>
+                            <label class="form-label fw-bold">Автор (создатель/обновитель)</label>
                             <input type="text" name="author" class="form-control form-control-sm"
                                    value="{{ request.GET.author }}" placeholder="Имя или логин">
                         </div>
 
                         <!-- Дата создания -->
                         <div class="col-md-3">
-                            <label class="form-label">Дата создания с</label>
+                            <label class="form-label fw-bold">Дата создания с</label>
                             <input type="date" name="created_from" class="form-control form-control-sm"
                                    value="{{ request.GET.created_from }}">
                         </div>
 
                         <div class="col-md-3">
-                            <label class="form-label">Дата создания по</label>
+                            <label class="form-label fw-bold">Дата создания по</label>
                             <input type="date" name="created_to" class="form-control form-control-sm"
                                    value="{{ request.GET.created_to }}">
                         </div>
@@ -284,7 +297,7 @@
 
                     <!-- Кнопки -->
                     <div class="d-flex justify-content-between mt-3">
-                        <button type="button" class="btn btn-outline-secondary btn-sm"
+                        <button type="button" class="btn btn-orange btn-sm"
                                 onclick="resetFilter()">
                             <i class="bi bi-x-circle"></i> Сбросить фильтр
                         </button>

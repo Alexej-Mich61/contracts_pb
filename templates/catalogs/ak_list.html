@@ -4,6 +4,20 @@
 {% block title %}Справочник АК{% endblock %}
 
 {% block content %}
+
+<style>
+    .btn-orange {
+        background-color: #fd7e14;
+        border-color: #fd7e14;
+        color: #fff;
+    }
+    .btn-orange:hover {
+        background-color: #e56b0a;
+        border-color: #e56b0a;
+        color: #fff;
+    }
+</style>
+
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div class="d-flex align-items-center gap-3">
         <h2 class="mb-0">Справочник АК</h2>
@@ -86,24 +100,24 @@
              class="accordion-collapse collapse {% if is_limited %}collapse{% endif %}"
              aria-labelledby="filterHeading"
              data-bs-parent="#filterAccordion">
-            <div class="accordion-body">
+            <div class="accordion-body bg-light">
                 <form method="get" hx-get="{% url 'contract_core:ak_list' %}" hx-target="body" hx-push-url="true">
                     <!-- Первая строка: ID, номер АК, название -->
                     <div class="row g-2 mb-2">
                         <div class="col-md-2">
-                            <label class="form-label small text-muted mb-1">ID</label>
+                            <label class="form-label small fw-bold mb-1">ID</label>
                             <input type="number" name="id" class="form-control form-control-sm" placeholder="ID..." value="{{ search_id }}" min="1">
                         </div>
                         <div class="col-md-2">
-                            <label class="form-label small text-muted mb-1">Номер АК</label>
+                            <label class="form-label small fw-bold mb-1">Номер АК</label>
                             <input type="number" name="number" class="form-control form-control-sm" placeholder="Пример - 6001" value="{{ search_number }}" min="1">
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label small text-muted mb-1">Наименование</label>
+                            <label class="form-label small fw-bold mb-1">Наименование</label>
                             <input type="text" name="name" class="form-control form-control-sm" placeholder="Название АК..." value="{{ search_name }}">
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label small text-muted mb-1">Адрес</label>
+                            <label class="form-label small fw-bold mb-1">Адрес</label>
                             <input type="text" name="address" class="form-control form-control-sm" placeholder="Адрес установки..." value="{{ search_address }}">
                         </div>
                     </div>
@@ -111,7 +125,7 @@
                     <!-- Вторая строка: регион и район -->
                     <div class="row g-2 mb-2 align-items-end">
                         <div class="col-md-5">
-                            <label class="form-label small text-muted mb-1">Регион</label>
+                            <label class="form-label small fw-bold mb-1">Регион</label>
                             <select name="region" class="form-select form-select-sm"
                                     hx-get="{% url 'contract_core:ak_list' %}"
                                     hx-target="#district-wrapper"
@@ -128,7 +142,7 @@
                         </div>
 
                         <div class="col-md-5" id="district-wrapper">
-                            <label class="form-label small text-muted mb-1">Район</label>
+                            <label class="form-label small fw-bold mb-1">Район</label>
                             <select name="district" class="form-select form-select-sm" {% if not districts %}disabled{% endif %}>
                                 <option value="">Все районы</option>
                                 {% for district in districts %}
@@ -141,7 +155,7 @@
 
                         <!-- Кнопки -->
                         <div class="col-md-2 d-flex justify-content-end gap-2">
-                            <a href="{% url 'contract_core:ak_list' %}" class="btn btn-outline-secondary btn-sm">
+                            <a href="{% url 'contract_core:ak_list' %}" class="btn btn-orange btn-sm">
                                 <i class="bi bi-x-circle"></i> Сбросить
                             </a>
                             <button type="submit" class="btn btn-outline-primary btn-sm">
