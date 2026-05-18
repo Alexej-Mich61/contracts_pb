@@ -1,5 +1,6 @@
 <!-- templates/reports/status_sum_report.html -->
 {% extends "base.html" %}
+{% load rub_format %}
 
 {% block content %}
 <div class="container-fluid py-4">
@@ -73,12 +74,12 @@
                             <!-- Сумма -->
                             <tr class="fw-semibold">
                                 <td>Сумма общая, р.</td>
-                                <td class="text-end">{{ section.stats.total.sum }} ₽</td>
-                                <td class="text-end">{{ section.stats.completed.sum }} ₽</td>
-                                <td class="text-end">{{ section.stats.active.sum }} ₽</td>
-                                <td class="text-end">{{ section.stats.active_expires.sum }} ₽</td>
+                                <td class="text-end">{{ section.stats.total.sum|rub }} ₽</td>
+                                <td class="text-end">{{ section.stats.completed.sum|rub }} ₽</td>
+                                <td class="text-end">{{ section.stats.active.sum|rub }} ₽</td>
+                                <td class="text-end">{{ section.stats.active_expires.sum|rub }} ₽</td>
                                 {% if section.has_expired %}
-                                <td class="text-end">{{ section.stats.active_expired.sum }} ₽</td>
+                                <td class="text-end">{{ section.stats.active_expired.sum|rub }} ₽</td>
                                 {% endif %}
                             </tr>
                         </tbody>

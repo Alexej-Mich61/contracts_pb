@@ -1,5 +1,6 @@
 <!-- templates/reports/works_sum_report.html -->
 {% extends "base.html" %}
+{% load rub_format %}
 
 {% block content %}
 <div class="container-fluid py-4">
@@ -60,8 +61,8 @@
                         <tr class="table-primary fw-bold">
                             <td>Всего</td>
                             <td class="text-center">{{ company_data.total_count }}</td>
-                            <td class="text-end">{{ company_data.total_sum }} ₽</td>
-                            <td class="text-end">{{ company_data.total_monthly }} ₽</td>
+                            <td class="text-end">{{ company_data.total_sum|rub }} ₽</td>
+                            <td class="text-end">{{ company_data.total_monthly|rub }} ₽</td>
                         </tr>
 
                         {% for section_key, section in company_data.sections.items %}
@@ -75,8 +76,8 @@
                             <tr class="fw-semibold">
                                 <td class="ps-4">{{ section.name }} (итого)</td>
                                 <td class="text-center">{{ section.total_count }}</td>
-                                <td class="text-end">{{ section.total_sum }} ₽</td>
-                                <td class="text-end">{{ section.total_monthly }} ₽</td>
+                                <td class="text-end">{{ section.total_sum|rub }} ₽</td>
+                                <td class="text-end">{{ section.total_monthly|rub }} ₽</td>
                             </tr>
 
                             <!-- Виды работ -->
@@ -84,8 +85,8 @@
                             <tr>
                                 <td class="ps-5">{{ work_name }}</td>
                                 <td class="text-center">{{ stats.count }}</td>
-                                <td class="text-end">{{ stats.sum }} ₽</td>
-                                <td class="text-end">{{ stats.monthly }} ₽</td>
+                                <td class="text-end">{{ stats.sum|rub }} ₽</td>
+                                <td class="text-end">{{ stats.monthly|rub }} ₽</td>
                             </tr>
                             {% endfor %}
 
