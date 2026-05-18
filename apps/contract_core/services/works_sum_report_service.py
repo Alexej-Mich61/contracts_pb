@@ -97,7 +97,11 @@ class WorksSumReportService:
             work_name = contract.work.name if contract.work else 'Не указано'
 
             # Общая сумма = total_sum + monthly_sum
-            total = (contract.total_sum or Decimal('0.00')) + (contract.monthly_sum or Decimal('0.00'))
+            # total = (contract.total_sum or Decimal('0.00')) + (contract.monthly_sum or Decimal('0.00'))
+
+            # Общая сумма = total_sum
+            total = (contract.total_sum or Decimal('0.00'))
+
             # Сумма в месяц = monthly_sum
             monthly = contract.monthly_sum or Decimal('0.00')
 
