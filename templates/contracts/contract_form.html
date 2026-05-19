@@ -436,6 +436,40 @@ function removeFormsetForm(btn, prefix) {
     }
 }
 
+// Вставка названия заказчика в поле "Наименование объекта"
+document.addEventListener('click', function(e) {
+    var btn = e.target.closest('.copy-customer-name-btn');
+    if (!btn) return;
+
+    var customerSelect = document.getElementById('id_customer');
+    if (!customerSelect || !customerSelect.value) {
+        alert('Сначала выберите заказчика в основной форме договора');
+        return;
+    }
+
+    var customerName = customerSelect.options[customerSelect.selectedIndex].text.trim();
+
+    // Защита от placeholder'ов типа "— Выберите —"
+    if (!customerName || customerName.startsWith('—') || customerName.startsWith('-')) {
+        alert('Сначала выберите заказчика');
+        return;
+    }
+
+    var poForm = btn.closest('.protection-objects-form');
+    var nameInput = poForm.querySelector('input[name$="-name"]');
+
+    if (nameInput) {
+        nameInput.value = customerName;
+        nameInput.focus();
+
+        // Лёгкий визуальный фидбек
+        nameInput.classList.add('is-valid');
+        setTimeout(function() {
+            nameInput.classList.remove('is-valid');
+        }, 1200);
+    }
+});
+
 <!--function removeFormsetForm(btn, prefix) {-->
 <!--    const cssClass = prefix.replace(/_/g, '-');-->
 <!--    const formDiv = btn.closest('.' + cssClass + '-form');-->
