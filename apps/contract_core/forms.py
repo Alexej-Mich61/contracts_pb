@@ -609,11 +609,38 @@ class ProtectionObjectForm(forms.ModelForm):
     #         raise forms.ValidationError("Сумма не может быть отрицательной")
     #     return val
 
+
+class BaseProtectionObjectFormSet(forms.BaseInlineFormSet):
+    """
+    Проверяем, что в договоре есть хотя бы один неудалённый объект защиты.
+    """
+
+    def clean(self):
+        super().clean()
+
+        # Если в отдельных формах уже есть ошибки — не мешаем их показу
+        if any(self.errors):
+            return
+
+        active_count = 0
+        for form in self.forms:
+            # cleaned_data может отсутствовать, если форма пустая и не валидировалась
+            if hasattr(form, 'cleaned_data') and not form.cleaned_data.get('DELETE', False):
+                active_count += 1
+
+        if active_count < 1:
+            raise forms.ValidationError(
+                "Добавьте хотя бы один объект защиты к договору.",
+                code='min_protection_objects'
+            )
+
+
 # Formset для объектов защиты
 ProtectionObjectFormSet = forms.inlineformset_factory(
     Contract,
     ProtectionObject,
     form=ProtectionObjectForm,
+    formset=BaseProtectionObjectFormSet,
     extra=0,  # <-- Изменить с 1 на 0 (HTMX будет добавлять формы динамически)
     can_delete=True,
     min_num=0,

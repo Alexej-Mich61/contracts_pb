@@ -308,6 +308,15 @@
                 </div>
                 <div class="card-body" id="protection-objects-container">
                     {{ protection_object_formset.management_form }}
+
+                    {# === ОШИБКИ FORMSET (минимум 1 объект) === #}
+                    {% if protection_object_formset.non_form_errors %}
+                    <div class="alert alert-danger">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        {{ protection_object_formset.non_form_errors|join:", " }}
+                    </div>
+                    {% endif %}
+
                     <div id="protection-objects-list">
                         {% for form in protection_object_formset %}
                         {% include "contracts/partials/partials_contract_form/_contract_form_protection_object.html" with index=forloop.counter0 object=object %}
