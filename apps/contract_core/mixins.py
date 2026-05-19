@@ -260,10 +260,14 @@ class ContractCreateUpdateMixin:
         print("[DEV] АК привязаны")
 
         # 3. Стадия подписания
-        signing_stage = signing_form.save(commit=False)
-        signing_stage.contract = self.object
-        signing_stage.save()
-        print(f"[DEV] Стадия подписания сохранена | stage={signing_stage.stage}")
+        signing_stage = None
+        if signing_form.has_changed():
+            signing_stage = signing_form.save(commit=False)
+            signing_stage.contract = self.object
+            signing_stage.save()
+            print(f"[DEV] Стадия подписания сохранена | stage={signing_stage.stage}")
+        else:
+            print("[DEV] Стадия подписания НЕ изменилась — save() пропущен")
 
         # 4. Итоговый акт
         final_act = final_act_form.save(commit=False)
@@ -348,7 +352,7 @@ class ContractCreateUpdateMixin:
             self.object.number or "б/н",
             self.object.customer,
             len(protection_formset.forms),
-            signing_stage.stage.name if signing_stage.stage else "—",
+            signing_stage.stage.name if signing_stage and signing_stage.stage else "—",
             "да" if final_act.present else "нет",
         )
         print(f"[DEV] <<< УСПЕХ: договор {action_word} pk={self.object.pk}")

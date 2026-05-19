@@ -323,7 +323,8 @@ class ContractSigningStage(models.Model):
         on_delete=models.PROTECT,
         verbose_name="Текущая стадия"
     )
-    changed_at = models.DateTimeField("Дата изменения", auto_now=True)
+    # Убрали auto_now=True, разрешили null
+    changed_at = models.DateTimeField("Дата изменения", null=True, blank=True)
     changed_by = models.ForeignKey(
         'identity.User',
         on_delete=models.SET_NULL,
@@ -346,7 +347,6 @@ class ContractSigningStage(models.Model):
         Финальные стадии никогда не считаются просроченными.
         Если control_days не передан — берётся из настроек (1 запрос).
         """
-        # Финальные стадии не контролируются по сроку
         if self.stage_id and self.stage.is_final:
             return False
 
@@ -360,8 +360,32 @@ class ContractSigningStage(models.Model):
 
     def save(self, *args, **kwargs):
         current_user = get_current_user()
-        if current_user and not self.pk:
-            self.changed_by = current_user
+
+        if self.pk:
+            # --- РЕЖИМ РЕДАКТИРОВАНИЯ ---
+            try:
+                old = ContractSigningStage.objects.get(pk=self.pk)
+                old_note = (old.note or "").strip()
+                new_note = (self.note or "").strip()
+
+                # Обновляем дату и автора ТОЛЬКО если поменялась стадия или примечание
+                if old.stage_id != self.stage_id or old_note != new_note:
+                    self.changed_at = timezone.now()
+                    if current_user:
+                        self.changed_by = current_user
+                # Иначе changed_at остаётся старым — не трогаем!
+
+            except ContractSigningStage.DoesNotExist:
+                # На всякий случай (гипотетически)
+                self.changed_at = timezone.now()
+                if current_user:
+                    self.changed_by = current_user
+        else:
+            # --- РЕЖИМ СОЗДАНИЯ ---
+            self.changed_at = timezone.now()
+            if current_user:
+                self.changed_by = current_user
+
         super().save(*args, **kwargs)
 
     class Meta:
