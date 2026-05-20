@@ -183,36 +183,41 @@ class ContractForm(forms.ModelForm):
             self.fields['date_concluded'].initial = today
             self.fields['date_start'].initial = today
 
-            # При создании — пустой queryset для customer, executor, work
             if not self.data:
                 self.fields['customer'].queryset = Company.objects.none()
                 self.fields['customer'].choices = [('', '— Введите название или ИНН и нажмите "Найти" —')]
                 self.fields['executor'].queryset = Company.objects.none()
                 self.fields['work'].queryset = Work.objects.none()
             else:
-                # POST запрос при создании — даем полный queryset для валидации
                 self.fields['customer'].queryset = Company.objects.filter(is_customer=True)
                 self.fields['executor'].queryset = Company.objects.filter(
                     Q(is_licensee=True) | Q(is_laboratory=True)
                 )
                 self.fields['work'].queryset = Work.objects.filter(is_active=True)
+
         else:
             # ===== РЕЖИМ РЕДАКТИРОВАНИЯ =====
+            if self.is_bound:
+                # POST/PUT/PATCH — даём полный queryset для валидации,
+                # т.к. пользователь мог изменить значения через HTMX
+                self.fields['customer'].queryset = Company.objects.filter(is_customer=True)
+                self.fields['executor'].queryset = Company.objects.filter(
+                    Q(is_licensee=True) | Q(is_laboratory=True)
+                )
+                self.fields['work'].queryset = Work.objects.filter(is_active=True)
+            else:
+                # GET — readonly-режим, показываем только текущие значения
+                if self.instance.customer:
+                    self.fields['customer'].queryset = Company.objects.filter(pk=self.instance.customer.pk)
+                    self.fields['customer'].initial = self.instance.customer_id
 
-            # 1. Заказчик — показываем ТОЛЬКО текущего
-            if self.instance.customer:
-                self.fields['customer'].queryset = Company.objects.filter(pk=self.instance.customer.pk)
-                self.fields['customer'].initial = self.instance.customer_id
+                if self.instance.executor:
+                    self.fields['executor'].queryset = Company.objects.filter(pk=self.instance.executor.pk)
+                    self.fields['executor'].initial = self.instance.executor_id
 
-            # 2. Исполнитель — показываем ТОЛЬКО текущего (для readonly режима)
-            if self.instance.executor:
-                self.fields['executor'].queryset = Company.objects.filter(pk=self.instance.executor.pk)
-                self.fields['executor'].initial = self.instance.executor_id
-
-            # 3. Вид работы — показываем ТОЛЬКО текущий (для readonly режима)
-            if self.instance.work:
-                self.fields['work'].queryset = Work.objects.filter(pk=self.instance.work.pk)
-                self.fields['work'].initial = self.instance.work_id
+                if self.instance.work:
+                    self.fields['work'].queryset = Work.objects.filter(pk=self.instance.work.pk)
+                    self.fields['work'].initial = self.instance.work_id
 
     def clean(self):
         cleaned_data = super().clean()
