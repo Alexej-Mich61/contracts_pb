@@ -177,7 +177,7 @@ class ContractListView(LoginRequiredMixin, ListView):
     model = Contract
     template_name = "contracts/contract_list.html"
     context_object_name = "contracts"
-    paginate_by = 10
+    paginate_by = 25
 
     def _has_active_filters(self):
         ignored = {'page', 'csrfmiddlewaretoken', 'hx-request', 'hx-target', 'hx-current-url'}
@@ -202,7 +202,7 @@ class ContractListView(LoginRequiredMixin, ListView):
         self._has_filters = has_filters
 
         if not has_filters:
-            return filtered_qs[:10]  # лимит только без фильтров
+            return filtered_qs[:100]  # лимит договоров только без фильтров
         return filtered_qs
 
     def get_context_data(self, **kwargs):
@@ -260,7 +260,7 @@ class ContractListHtmxView(LoginRequiredMixin, ListView):
     model = Contract
     template_name = "contracts/contract_list.html"
     context_object_name = "contracts"
-    paginate_by = 10
+    paginate_by = 25
 
     def _has_active_filters(self):
         ignored = {'page', 'csrfmiddlewaretoken', 'hx-request', 'hx-target', 'hx-current-url'}
