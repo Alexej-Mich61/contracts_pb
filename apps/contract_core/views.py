@@ -202,7 +202,7 @@ class ContractListView(LoginRequiredMixin, ListView):
         self._has_filters = has_filters
 
         if not has_filters:
-            return filtered_qs[:100]  # лимит договоров только без фильтров
+            return filtered_qs[:100]  # лимит только без фильтров
         return filtered_qs
 
     def get_context_data(self, **kwargs):
@@ -218,12 +218,11 @@ class ContractListView(LoginRequiredMixin, ListView):
         context['is_limited'] = not has_filters
 
         # === СТАТИСТИКА ===
-        # 1. Для статистики всегда используем ПОЛНЫЙ отфильтрованный queryset
         full_qs = self.get_filtered_queryset()
 
         if not has_filters:
-            # Без фильтров — статистика только по 10 отображаемым
-            stats_qs = context['contracts']
+            # Без фильтров — статистика по всем 100 отображаемым (не только текущей странице!)
+            stats_qs = full_qs[:100]
         else:
             # При активных фильтрах — статистика по всем отфильтрованным
             stats_qs = full_qs
@@ -242,10 +241,6 @@ class ContractListView(LoginRequiredMixin, ListView):
         context['total_objects'] = ProtectionObject.objects.filter(
             contract__in=stats_qs
         ).count()
-        # счетчик, убирающий дубли АК (с помощью distinct)
-        # context['total_aks'] = Ak.objects.filter(
-        #     protection_objects__contract__in=stats_qs
-        # ).distinct().count()
 
         # счетчик без distinct, т.е. если один и тот же АК в 2 объектах - посчитает за 2 АК
         context['total_aks'] = Ak.objects.filter(
@@ -278,21 +273,19 @@ class ContractListHtmxView(LoginRequiredMixin, ListView):
         service = ContractFilterService(self.request, queryset=base_queryset)
         return service.filter()
 
-    # def get_queryset(self):
-    #     return self.get_filtered_queryset()
     def get_queryset(self):
         filtered_qs = self.get_filtered_queryset()
         has_filters = self._has_active_filters()
-        self._has_filters = has_filters  # ← важно для get_context_data
+        self._has_filters = has_filters
 
         if not has_filters:
-            return filtered_qs[:100]  # ← добавить тот же лимит
+            return filtered_qs[:100]
         return filtered_qs
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        has_filters = self._has_active_filters()
+        has_filters = getattr(self, '_has_filters', self._has_active_filters())
         context['is_limited'] = not has_filters
 
         # === ДАННЫЕ ДЛЯ ФИЛЬТРА ===
@@ -305,7 +298,7 @@ class ContractListHtmxView(LoginRequiredMixin, ListView):
         full_qs = self.get_filtered_queryset()
 
         if not has_filters:
-            stats_qs = context['contracts']
+            stats_qs = full_qs[:100]   # ← исправлено: все 100, не только страница
         else:
             stats_qs = full_qs
 
@@ -332,7 +325,6 @@ class ContractListHtmxView(LoginRequiredMixin, ListView):
 
     def render_to_response(self, context, **response_kwargs):
         if self.request.htmx:
-            # Рендерим основной блок + OOB-обновления для фильтра и алерта
             blocks = ['contracts_list', 'filter_oob', 'limit_alert_oob']
             html_parts = []
 
@@ -347,7 +339,6 @@ class ContractListHtmxView(LoginRequiredMixin, ListView):
                         )
                     )
                 except Exception:
-                    # Если блок не найден, пропускаем
                     pass
 
             return HttpResponse('\n'.join(html_parts))
