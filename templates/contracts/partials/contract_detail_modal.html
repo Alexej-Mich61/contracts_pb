@@ -39,6 +39,19 @@
                     <p><strong>Сумма в месяц:</strong> {{ contract.monthly_sum|floatformat:2 }} руб.</p>
                     <p><strong>Аванс:</strong> {{ contract.advance|floatformat:2 }} руб.</p>
                     <hr class="my-2">
+                    <p>
+                        <strong>Оплата:</strong>
+                        {% if contract.is_paid %}
+                        <span class="badge bg-success">
+                        <i class="bi bi-check-circle-fill me-1"></i>Оплачен
+                    </span>
+                        {% else %}
+                        <span class="badge bg-light text-dark border">
+                        <i class="bi bi-x-circle me-1"></i>Не оплачен
+                    </span>
+                        {% endif %}
+                    </p>
+                    <hr class="my-2">
                     <p>Файл договора:<br>{% if contract.file %}<a href="{{ contract.file.url }}" target="_blank">скачать</a>{% else %}—{% endif %}
                     </p>
 

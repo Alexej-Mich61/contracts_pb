@@ -2,21 +2,21 @@
 {% load humanize %}
 {% load contract_extras %}
 
-<<div class="col-12 mb-3">
+<div class="col-12 mb-3">
     <div class="card shadow-sm border rounded-4">
         <!-- Шапка карточки: ключевая информация -->
         <div class="card-header bg-white py-2 rounded-top-4">
             <!-- Номер и дата договора + системные индикаторы -->
             <div class="d-flex align-items-center gap-2 mb-2 flex-wrap bg-info-subtle p-1 rounded-3">
-                <span class="fw-bold text-dark fs-6">
-                    {{ contract.number|default:"б/н" }} от {{ contract.date_concluded|date:"d.m.Y"|default:"—" }}
-                </span>
+        <span class="fw-bold text-dark fs-6">
+            {{ contract.number|default:"б/н" }} от {{ contract.date_concluded|date:"d.m.Y"|default:"—" }}
+        </span>
                 {% for check in contract.system_checks.all %}
-                    {% if check.last_checked %}
-                        <span class="badge bg-success" title="{{ check.system_type.name }}: {{ check.last_checked|date:'d.m.Y' }}">
-                            <i class="bi bi-check-circle"></i> {{ check.system_type.name }}
-                        </span>
-                    {% endif %}
+                {% if check.last_checked %}
+                <span class="badge bg-success" title="{{ check.system_type.name }}: {{ check.last_checked|date:'d.m.Y' }}">
+                    <i class="bi bi-check-circle"></i> {{ check.system_type.name }}
+                </span>
+                {% endif %}
                 {% endfor %}
 
                 {% if contract.note %}
@@ -24,6 +24,12 @@
                     <i class="bi bi-journal-text text-secondary me-1"></i>
                     {{ contract.note|truncatechars:50|linebreaksbr }}
                 </div>
+                {% endif %}
+
+                {% if contract.is_paid %}
+                <span class="badge bg-success ms-auto">
+                <i class="bi bi-check-circle-fill me-1"></i>Оплачен
+            </span>
                 {% endif %}
             </div>
 
@@ -233,6 +239,16 @@
                             <tr>
                                 <td class="text-muted">Кол-во АК:</td>
                                 <td>{{ contract.ak_count }}</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">Оплачен:</td>
+                                <td>
+                                    {% if contract.is_paid %}
+                                    <span class="badge bg-success">Да</span>
+                                    {% else %}
+                                    <span class="badge bg-light text-dark border">Нет</span>
+                                    {% endif %}
+                                </td>
                             </tr>
                         </table>
 

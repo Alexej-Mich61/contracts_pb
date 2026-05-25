@@ -556,6 +556,14 @@ class Contract(models.Model):
         validators=[MinValueValidator(0, message="Аванс не может быть отрицательным")]
     )
 
+    # Новое поле - Оплата
+    is_paid = models.BooleanField(
+        "Оплачен",
+        default=False,
+        db_index=True,
+        help_text="Отметка о полной оплате договора"
+    )
+
     # Статус
     STATUS_PENDING = "pending"
     STATUS_ACTIVE = "active"
@@ -611,6 +619,7 @@ class Contract(models.Model):
             models.Index(fields=["executor", "status"]),
             models.Index(fields=["is_trash"]),
             models.Index(fields=["is_archived"]),
+            models.Index(fields=["is_paid"]),
         ]
 
     def save(self, *args, **kwargs):

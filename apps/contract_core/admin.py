@@ -234,8 +234,13 @@ class SystemTypeAdmin(admin.ModelAdmin):
 
 @admin.register(Contract)
 class ContractAdmin(ImportExportModelAdmin):
-    list_display = ('number', 'type', 'status', 'customer', 'executor', 'date_start', 'date_end')
-    list_filter = ('type', 'status', 'is_trash', 'is_archived')
+    list_display = (
+        'number', 'type', 'status', 'is_paid', 'customer', 'executor',
+        'date_start', 'date_end'
+    )
+    list_filter = (
+        'type', 'status', 'is_paid', 'is_trash', 'is_archived'
+    )
     search_fields = ('number', 'customer__name', 'executor__name')
     ordering = ('-created_at',)
     inlines = [
@@ -245,12 +250,15 @@ class ContractAdmin(ImportExportModelAdmin):
         ContractSystemCheckInline,
         ProtectionObjectInline,
     ]
+    readonly_fields = (
+        'creator', 'updater', 'created_at', 'updated_at', 'status'
+    )
     fieldsets = (
         ('Основное', {
             'fields': ('type', 'number', 'date_concluded', 'customer', 'date_start', 'date_end', 'executor', 'work')
         }),
         ('Финансы', {
-            'fields': ('total_sum', 'monthly_sum', 'advance')
+            'fields': ('total_sum', 'monthly_sum', 'advance', 'is_paid')
         }),
         ('Служебное', {
             'fields': ('status', 'is_trash', 'is_archived', 'creator', 'updater', 'created_at', 'updated_at')
