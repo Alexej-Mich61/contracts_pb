@@ -278,8 +278,16 @@ class ContractListHtmxView(LoginRequiredMixin, ListView):
         service = ContractFilterService(self.request, queryset=base_queryset)
         return service.filter()
 
+    # def get_queryset(self):
+    #     return self.get_filtered_queryset()
     def get_queryset(self):
-        return self.get_filtered_queryset()
+        filtered_qs = self.get_filtered_queryset()
+        has_filters = self._has_active_filters()
+        self._has_filters = has_filters  # ← важно для get_context_data
+
+        if not has_filters:
+            return filtered_qs[:100]  # ← добавить тот же лимит
+        return filtered_qs
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
