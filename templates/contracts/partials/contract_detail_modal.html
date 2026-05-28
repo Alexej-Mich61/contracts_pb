@@ -52,7 +52,14 @@
                         {% endif %}
                     </p>
                     <hr class="my-2">
-                    <p>Файл договора:<br>{% if contract.file %}<a href="{{ contract.file.url }}" target="_blank">скачать</a>{% else %}—{% endif %}
+                    <p>Файл договора:<br>
+                        {% if contract.file %}
+                        <a href="{{ contract.file.url }}" target="_blank">скачать</a>
+                        <hr class="my-2">
+                        <a href="{{ contract.file.url }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-eye"></i>Текущий файл: {{ contract.file.name|cut:"contracts/" }}
+                        </a>
+                        {% else %}—{% endif %}
                     </p>
 
                     {% if contract.note %}
