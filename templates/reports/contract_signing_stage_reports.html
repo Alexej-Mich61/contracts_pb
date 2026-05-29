@@ -2,7 +2,7 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}Отчёт по стадиям подписания договоров{% endblock %}
+{% block title %}Отчёт по стадиям подписания договоров){% endblock %}
 
 {% block content %}
 <div class="container-fluid py-4">
@@ -26,6 +26,9 @@
             <span class="badge bg-secondary fs-4 fw-bold px-3 py-2">{{ report_data|length }}</span>
         </div>
     </div>
+
+    <p class="text-left">В отчёт попадают действующие договоры, которые
+        не завершённые и не архивные.</p>
 
     {% if report_data %}
         {% for company_data in report_data %}

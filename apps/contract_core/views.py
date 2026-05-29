@@ -970,7 +970,7 @@ class WorksSumReportView(LoginRequiredMixin, TemplateView):
         report_data = service.generate_report()
 
         context.update(report_data)
-        context['page_title'] = 'Отчет по работам и суммам действующих (незавершенных) договоров'
+        context['page_title'] = 'Отчет по работам и суммам действующих договоров'
 
         return context
 
