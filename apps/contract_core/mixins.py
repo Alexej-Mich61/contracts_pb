@@ -240,8 +240,22 @@ class ContractCreateUpdateMixin:
         action_word = "СОЗДАНИЕ" if is_new_contract else "ОБНОВЛЕНИЕ"
         print(f"[DEV] >>> Начинаем {action_word} договора")
 
+        # --- ЗАЩИТА is_paid: сохраняем старое значение перед form.save()
+        old_is_paid = None
+        if form.instance and form.instance.pk:
+            old_is_paid = form.instance.is_paid
+            print(f"[DEV] old_is_paid={old_is_paid} | changed_data={form.changed_data}")
+
         # 1. Сохраняем основной договор
-        self.object = form.save()
+        self.object = form.save(commit=False)
+
+        # Если редактируем и is_paid не менялся — восстанавливаем старое значение,
+        # чтобы не перезаписывать его в БД лишний раз (защита от случайного сброса)
+        if old_is_paid is not None and 'is_paid' not in form.changed_data:
+            self.object.is_paid = old_is_paid
+            print(f"[DEV] is_paid восстановлено из БД (не было в changed_data)")
+
+        self.object.save()
         print(f"[DEV] Договор сохранён | pk={self.object.pk} | number={self.object.number}")
 
         # 2. Объекты защиты

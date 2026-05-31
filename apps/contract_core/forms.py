@@ -104,7 +104,7 @@ class ContractForm(forms.ModelForm):
         fields = [
             'type', 'number', 'date_concluded',
             'customer', 'date_start', 'date_end', 'executor', 'work',
-            'note', 'file', 'total_sum', 'monthly_sum', 'advance'
+            'note', 'file', 'total_sum', 'monthly_sum', 'advance', 'is_paid'
         ]
         widgets = {
             'type': forms.Select(attrs={
@@ -159,6 +159,10 @@ class ContractForm(forms.ModelForm):
                 'step': '0.01',
                 'min': '0',
             }),
+            'is_paid': forms.CheckboxInput(attrs={
+                'class': 'form-check-input',
+                'role': 'switch',
+            }),
         }
         help_texts = {
             'type': 'Выберите тип договора для активации связанных полей',
@@ -171,6 +175,7 @@ class ContractForm(forms.ModelForm):
             'advance': 'Сумма авансового платежа',
             'file': 'PDF, DOC, DOCX, до 100 МБ',
             'customer': 'Выберите заказчика из списка или воспользуйтесь поиском',
+            'is_paid': 'Отметьте, если договор полностью оплачен',
         }
 
     def __init__(self, *args, user=None, **kwargs):
