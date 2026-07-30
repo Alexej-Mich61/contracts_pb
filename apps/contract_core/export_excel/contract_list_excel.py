@@ -20,6 +20,7 @@ def export_contracts_to_excel(contracts, filename="contracts.xlsx"):
     headers = [
         "№ договора и дата",
         "Заказчик",
+        "ИНН Заказчика",
         "Исполнитель",
         "Срок действия",
         "Сумма общая, ₽",
@@ -30,10 +31,12 @@ def export_contracts_to_excel(contracts, filename="contracts.xlsx"):
         "Работы",
         "Стадия подписания",
         "Статус",
+        "Оплата",
+        "Итоговый акт",
     ]
 
     # Стили
-    header_font = Font(bold=True, color="FFFFFF", size=11)
+    header_font = Font(bold=True, color="FFFFFF", size=12)
     header_fill = PatternFill(start_color="0d6efd", end_color="0d6efd", fill_type="solid")
     header_align = Alignment(horizontal="center", vertical="center", wrap_text=True)
     thin_border = Border(
@@ -76,9 +79,17 @@ def export_contracts_to_excel(contracts, filename="contracts.xlsx"):
         if ak_count is None:
             ak_count = sum(obj.aks.count() for obj in contract.contract_objects.all())
 
+        # --- НОВЫЕ ПОЛЯ ---
+        customer_inn = contract.customer.inn if contract.customer else "—"
+        payment = "Да" if contract.is_paid else ""
+        final_act_status = ""
+        if hasattr(contract, "final_act") and contract.final_act and contract.final_act.present:
+            final_act_status = "Есть"
+
         values = [
             number_date,
             contract.customer.name if contract.customer else "—",
+            customer_inn,
             contract.executor.name if contract.executor else "—",
             period,
             contract.total_sum or 0,
@@ -89,29 +100,31 @@ def export_contracts_to_excel(contracts, filename="contracts.xlsx"):
             contract.work.name if contract.work else "—",
             signing,
             contract.get_status_display(),
+            payment,
+            final_act_status,
         ]
 
         for col_num, value in enumerate(values, 1):
             cell = ws.cell(row=row_num, column=col_num, value=value)
             cell.border = thin_border
 
-            if col_num in (5, 6, 7):          # деньги — выравнивание вправо + числовой формат
+            if col_num in (6, 7, 8):          # деньги — выравнивание вправо + числовой формат
                 cell.number_format = "#,##0.00"
                 cell.alignment = Alignment(horizontal="right", vertical="center")
-            elif col_num in (8, 9):           # количества — по центру
+            elif col_num in (9, 10):           # количества — по центру
                 cell.alignment = Alignment(horizontal="center", vertical="center")
             else:                             # текст — влево + перенос
                 cell.alignment = Alignment(horizontal="left", vertical="center", wrap_text=True)
 
     # Ширина колонок
-    column_widths = [22, 30, 30, 24, 16, 16, 14, 14, 12, 28, 22, 16]
+    column_widths = [22, 30, 16, 30, 24, 16, 16, 14, 14, 12, 28, 22, 16, 12, 16]
     for i, width in enumerate(column_widths, 1):
         ws.column_dimensions[get_column_letter(i)].width = width
 
     # Закрепить заголовок
     ws.freeze_panes = "A2"
 
-    # Автофильтр
+    # Автофильтр (охватывает все колонки автоматически)
     ws.auto_filter.ref = ws.dimensions
 
     # Ответ

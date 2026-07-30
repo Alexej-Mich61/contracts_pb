@@ -353,7 +353,7 @@ class ContractExportExcelView(LoginRequiredMixin, View):
         service = ContractFilterService(request, queryset=base_queryset)
         contracts = (
             service.filter()
-            .select_related("customer", "executor", "work", "signing_stage__stage")
+            .select_related("customer", "executor", "work", "signing_stage__stage", "final_act")
             .prefetch_related("contract_objects", "contract_objects__aks")
         )
 
