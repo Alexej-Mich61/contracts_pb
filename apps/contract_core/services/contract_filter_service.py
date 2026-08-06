@@ -105,17 +105,17 @@ class ContractFilterService:
     def _filter_by_type(self, queryset):
         """Фильтр по типу договора и работе"""
         contract_type = self.params.get('contract_type')
-        work_id = self.params.get('work')
+        work_ids = [wid for wid in self.params.getlist('work') if wid]  # ← фильтруем пустые строки
 
         if contract_type:
             queryset = queryset.filter(type=contract_type)
-            if not work_id:
+            if not work_ids:
                 work_type = self.CONTRACT_TO_WORK_TYPE.get(contract_type)
                 if work_type:
                     queryset = queryset.filter(work__work_type=work_type)
 
-        if work_id:
-            queryset = queryset.filter(work_id=work_id)
+        if work_ids:
+            queryset = queryset.filter(work_id__in=work_ids)
 
         return queryset
 

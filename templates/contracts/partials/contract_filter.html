@@ -82,7 +82,7 @@
                         <div class="col-md-3">
                             <label class="form-label fw-bold">Вид работы</label>
                             <div id="work-select-container">
-                                {% include "contracts/partials/partials_contract_list_filter/_work_select.html" with works=filter_data.works selected_work=request.GET.work %}
+                                {% include "contracts/partials/partials_contract_list_filter/_work_select.html" with works=filter_data.works %}
                             </div>
                         </div>
 
@@ -354,7 +354,11 @@ document.querySelectorAll('.filter-dependent').forEach(function(select) {
         if (this.name === 'contract_type') {
             var workSelect = document.querySelector('[name="work"]');
             if (workSelect) {
-                params.append('work', workSelect.value);
+                Array.from(workSelect.selectedOptions).forEach(function(opt) {
+                    if (opt.value) {
+                        params.append('work', opt.value);
+                    }
+                });
             }
         }
 

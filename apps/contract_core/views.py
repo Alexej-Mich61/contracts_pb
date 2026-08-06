@@ -799,12 +799,11 @@ class FilterWorksView(LoginRequiredMixin, View):
     def get(self, request):
         contract_type = request.GET.get('contract_type')
         works = ContractFilterService.get_works_by_contract_type(contract_type)
-        selected_work = request.GET.get('work', '')
+        selected_works = request.GET.getlist('work')
 
-        # ОБНОВЛЁННЫЙ ПУТЬ: шаблон переименован и перемещён
         return render(request, 'contracts/partials/partials_contract_list_filter/_work_select.html', {
             'works': works,
-            'selected_work': selected_work
+            'selected_works': selected_works
         })
 
 

@@ -1,9 +1,13 @@
 <!-- templates/contracts/partials/partials_contract_list_filter/_work_select.html -->
-<select name="work" id="work-select" class="form-select form-select-sm">
-    <option value="">Все работы</option>
+<select name="work" id="work-select" class="form-select form-select-sm" multiple size="4">
     {% for work in works %}
-        <option value="{{ work.id }}" {% if selected_work == work.id|stringformat:"s" %}selected{% endif %}>
+        {% with work_id=work.id|stringformat:"s" %}
+        <option value="{{ work.id }}"
+            {% for key, values in request.GET.lists %}
+                {% if key == "work" and work_id in values %}selected{% endif %}
+            {% endfor %}>
             {{ work.name }}
         </option>
+        {% endwith %}
     {% endfor %}
 </select>
