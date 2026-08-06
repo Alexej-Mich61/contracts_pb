@@ -39,6 +39,7 @@ class ContractFilterService:
         queryset = self._filter_by_location(queryset)
         queryset = self._filter_by_type(queryset)
         queryset = self._filter_by_status(queryset)
+        queryset = self._filter_by_payment(queryset)
         queryset = self._filter_by_search(queryset)
         queryset = self._filter_by_date_range(queryset)
         queryset = self._filter_by_created_date(queryset)
@@ -123,6 +124,15 @@ class ContractFilterService:
         statuses = self.params.getlist('status')
         if statuses:
             queryset = queryset.filter(status__in=statuses)
+        return queryset
+
+    def _filter_by_payment(self, queryset):
+        """Фильтр по признаку оплаты"""
+        is_paid = self.params.get('is_paid')
+        if is_paid == 'yes':
+            queryset = queryset.filter(is_paid=True)
+        elif is_paid == 'no':
+            queryset = queryset.filter(is_paid=False)
         return queryset
 
     def _filter_by_search(self, queryset):

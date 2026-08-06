@@ -86,6 +86,7 @@
                             </div>
                         </div>
 
+                        <!-- Статус -->
                         <div class="col-md-3">
                             <label class="form-label fw-bold">Статус</label>
                             <select name="status" class="form-select form-select-sm" multiple size="4">
@@ -94,6 +95,16 @@
                                         {{ label }}
                                     </option>
                                 {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Оплата -->
+                        <div class="col-md-3">
+                            <label class="form-label fw-bold">Оплата</label>
+                            <select name="is_paid" class="form-select form-select-sm">
+                                <option value="" {% if request.GET.is_paid == '' or request.GET.is_paid is None %}selected{% endif %}>Все</option>
+                                <option value="yes" {% if request.GET.is_paid == 'yes' %}selected{% endif %}>Есть</option>
+                                <option value="no" {% if request.GET.is_paid == 'no' %}selected{% endif %}>Нет</option>
                             </select>
                         </div>
 
