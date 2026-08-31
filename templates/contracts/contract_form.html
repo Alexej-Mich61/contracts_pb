@@ -13,11 +13,16 @@
     <form method="post" enctype="multipart/form-data" class="needs-validation" novalidate id="contract-form">
         {% csrf_token %}
 
+        {% if next_url %}
+        <input type="hidden" name="next" value="{{ next_url }}">
+        {% endif %}
+
         {# === Кнопки управления (верх) === #}
         <div class="card border shadow-sm my-4">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center">
-                    <a href="{% url 'contract_core:contract_list' %}" class="btn btn-outline-secondary">
+                    {% url 'contract_core:contract_list' as contract_list_url %}
+                    <a href="{{ next_url|default:contract_list_url }}" class="btn btn-outline-secondary">
                         <i class="bi bi-x-lg me-1"></i>Отмена
                     </a>
 
@@ -346,13 +351,14 @@
         <div class="card border shadow-sm my-4">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center">
-                    <a href="{% url 'contract_core:contract_list' %}" class="btn btn-outline-secondary">
+                    {% url 'contract_core:contract_list' as contract_list_url %}
+                    <a href="{{ next_url|default:contract_list_url }}" class="btn btn-outline-secondary">
                         <i class="bi bi-x-lg me-1"></i>Отмена
                     </a>
 
                     <div class="d-flex gap-2">
                         {% if object %}
-                            {# РЕЖИМ РЕДАКТИРОВАНИЯ #}
+                        {# РЕЖИМ РЕДАКТИРОВАНИЯ #}
                             {% if user.can_edit_contract_any %}
                             <button type="submit" class="btn btn-success">
                                 <i class="bi bi-check-lg me-1"></i>Сохранить изменения

@@ -386,3 +386,53 @@ class ContractCreateUpdateMixin:
         )
         print(f"[DEV] form_invalid вызван | errors={form.errors}")
         return super().form_invalid(form)
+
+
+# Миксин для сохранения фильтров, урл-а без фильтров и страницы пагинации
+class ContractListStateMixin:
+    """
+    Сохраняет в сессии:
+      - "чистый" URL списка (без /filter/)
+      - параметры фильтров
+      - номер страницы
+    """
+
+    def get(self, request, *args, **kwargs):
+        is_list_htmx = (
+            request.headers.get("HX-Request")
+            and request.resolver_match
+            and request.resolver_match.url_name == "contract_list_htmx"
+        )
+
+        if not request.headers.get("HX-Request") or is_list_htmx:
+            if is_list_htmx:
+                # Для HTMX-запроса строим "чистый" URL основной страницы
+                from django.urls import reverse
+
+                base = reverse("contract_core:contract_list")
+                query = request.GET.urlencode()
+                full_url = f"{base}?{query}" if query else base
+            else:
+                full_url = request.get_full_path()
+
+            request.session["contract_list_last_url"] = full_url
+
+            # Сохраняем фильтры (без служебных параметров)
+            ignored = {
+                "page",
+                "csrfmiddlewaretoken",
+                "hx-request",
+                "hx-target",
+                "hx-current-url",
+            }
+            filters = {}
+            for k in request.GET.keys():
+                if k in ignored:
+                    continue
+                vals = request.GET.getlist(k)
+                filters[k] = vals if len(vals) > 1 else vals[0]
+
+            request.session["contract_list_filters"] = filters
+            request.session["contract_list_page"] = request.GET.get("page", "1")
+
+        return super().get(request, *args, **kwargs)

@@ -2,7 +2,7 @@
 from django.http import HttpResponse, HttpResponseRedirect, FileResponse
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.urls import reverse_lazy
+from django.urls import reverse, reverse_lazy
 from django.contrib import messages
 from django.utils import timezone
 from django.views.generic import TemplateView, ListView, CreateView, UpdateView, DetailView, DeleteView
@@ -30,7 +30,7 @@ from apps.contract_core.export_excel.contract_detail_excel import export_contrac
 
 from apps.identity.mixins import PermissionRequiredMixin
 
-from .mixins import ContractAccessMixin, ContractCreateUpdateMixin
+from .mixins import ContractAccessMixin, ContractCreateUpdateMixin, ContractListStateMixin
 
 from .models import (
     Ak,
@@ -172,7 +172,7 @@ class ContractDetailExportExcelView(LoginRequiredMixin, ContractAccessMixin, Det
 # Вьюхи для договоров
 # ========== СПИСОЧНЫЕ ПРЕДСТАВЛЕНИЯ ==========
 
-class ContractListView(LoginRequiredMixin, ListView):
+class ContractListView(LoginRequiredMixin, ContractListStateMixin, ListView):
     """Главная страница списка договоров"""
     model = Contract
     template_name = "contracts/contract_list.html"
@@ -247,10 +247,13 @@ class ContractListView(LoginRequiredMixin, ListView):
             protection_objects__contract__in=stats_qs
         ).count()
 
+        # URL для кнопок "Редактировать" (чистый, без /filter/)
+        context['current_list_url'] = self.request.get_full_path()
+
         return context
 
 
-class ContractListHtmxView(LoginRequiredMixin, ListView):
+class ContractListHtmxView(LoginRequiredMixin, ContractListStateMixin, ListView):
     """HTMX-эндпоинт для списка договоров"""
     model = Contract
     template_name = "contracts/contract_list.html"
@@ -321,6 +324,11 @@ class ContractListHtmxView(LoginRequiredMixin, ListView):
         ).distinct().count()
         context['signing_control_days'] = SigningStageControlSettings.get_settings().control_days
 
+        # URL для кнопок "Редактировать" (из сессии, чтобы попасть на ту же страницу)
+        context['current_list_url'] = self.request.session.get(
+            'contract_list_last_url', reverse('contract_core:contract_list')
+        )
+
         return context
 
     def render_to_response(self, context, **response_kwargs):
@@ -341,7 +349,16 @@ class ContractListHtmxView(LoginRequiredMixin, ListView):
                 except Exception:
                     pass
 
-            return HttpResponse('\n'.join(html_parts))
+            response = HttpResponse('\n'.join(html_parts))
+
+            # Пушим в адресную строку URL основной страницы, а не /contracts/filter/
+            query = self.request.GET.urlencode()
+            push_url = reverse('contract_core:contract_list')
+            if query:
+                push_url = f'{push_url}?{query}'
+            response['HX-Push-Url'] = push_url
+
+            return response
         return super().render_to_response(context, **response_kwargs)
 
 
@@ -402,10 +419,31 @@ class ContractUpdateView(PermissionRequiredMixin, LoginRequiredMixin, ContractAc
         kwargs['user'] = self.request.user
         return kwargs
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Приоритет: явный ?next= в GET, затем сохранённый в сессии URL
+        context['next_url'] = (
+            self.request.GET.get('next')
+            or self.request.session.get('contract_list_last_url')
+        )
+        return context
+
     def get_success_url(self):
+        # 1. Приоритет: скрытое поле next из формы (POST)
+        next_url = self.request.POST.get('next')
+        if next_url:
+            messages.success(self.request, "Договор успешно обновлён")
+            return next_url
+
+        # 2. Fallback: восстанавливаем из сессии
+        last_url = self.request.session.get('contract_list_last_url')
+        if last_url:
+            messages.success(self.request, "Договор успешно обновлён")
+            return last_url
+
+        # 3. По умолчанию
         messages.success(self.request, "Договор успешно обновлён")
         return reverse_lazy('contract_core:contract_list')
-
 
 class ContractMoveToTrashView(PermissionRequiredMixin, LoginRequiredMixin, ContractAccessMixin, DetailView):
     """Перемещение договора в корзину (is_trash = True)"""
@@ -420,7 +458,11 @@ class ContractMoveToTrashView(PermissionRequiredMixin, LoginRequiredMixin, Contr
         contract.updater = request.user
         contract.save()
         messages.success(request, f"Договор №{contract.number} перемещён в корзину")
-        return redirect('contract_core:contract_list')
+        return self._redirect_back()
+
+    def _redirect_back(self):
+        url = self.request.session.get('contract_list_last_url') or reverse_lazy('contract_core:contract_list')
+        return redirect(url)
 
 
 class ContractRestoreView(PermissionRequiredMixin, LoginRequiredMixin, ContractAccessMixin, DetailView):
@@ -440,7 +482,8 @@ class ContractRestoreView(PermissionRequiredMixin, LoginRequiredMixin, ContractA
         contract.updater = request.user
         contract.save()
         messages.success(request, f"Договор №{contract.number} восстановлен")
-        return redirect('contract_core:contract_list')
+        url = self.request.session.get('contract_list_last_url') or reverse_lazy('contract_core:contract_list')
+        return redirect(url)
 
 
 class ContractHardDeleteView(PermissionRequiredMixin, LoginRequiredMixin, ContractAccessMixin, DeleteView):
@@ -461,7 +504,8 @@ class ContractHardDeleteView(PermissionRequiredMixin, LoginRequiredMixin, Contra
         number = contract.number
         contract.delete()
         messages.success(request, f"Договор №{number} полностью удалён")
-        return redirect(self.get_success_url())
+        url = self.request.session.get('contract_list_last_url') or self.success_url
+        return redirect(url)
 
 
 # ========== ВСПОМОГАТЕЛЬНЫЕ ВЬЮХИ ДЛЯ ФОРМЫ ДОГОВОРА (добавление/редактирование)==========
@@ -765,8 +809,6 @@ class MarkSystemCheckView(LoginRequiredMixin, View):
     """Отметить проверку системы"""
 
     def post(self, request, contract_pk, system_type_pk):
-        # from .models import SystemType, ContractSystemCheck
-
         contract = get_object_or_404(Contract, pk=contract_pk)
         system_type = get_object_or_404(SystemType, pk=system_type_pk)
 
@@ -781,6 +823,11 @@ class MarkSystemCheckView(LoginRequiredMixin, View):
         check.save()
 
         messages.success(request, f"Отмечено: {system_type.name}")
+
+        # Возврат на предыдущую страницу списка
+        next_url = request.POST.get('next') or request.session.get('contract_list_last_url')
+        if next_url:
+            return redirect(next_url)
         return redirect('contract_core:contract_update', pk=contract_pk)
 
 
